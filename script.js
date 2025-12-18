@@ -4,45 +4,45 @@
 const products = [
     {
         id: 1,
-        name: "Апельсины Valencia",
-        description: "Сочные сладкие апельсины из Испании. Идеальны для сока.",
-        price: 299,
-        image: "https://images.unsplash.com/photo-1547514701-42782101795e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+        name: "ICEBERG ULTRA MENTHOL",
+        description: "ICEBERG ULTRA MENTHOL (150 МГ) - МЕНТОЛ",
+        price: 500,
+        image: "https://static.insales-cdn.com/images/products/1/4176/629641296/large_DD5D020A-5370-4C6E-8350-BC442E83B211.jpg"
     },
     {
         id: 2,
-        name: "Мандарины Maroc",
-        description: "Легко чистящиеся мандарины с насыщенным вкусом.",
-        price: 399,
-        image: "https://images.unsplash.com/photo-1577234286642-fc512a5f8f11?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+        name: "ICEBERG ULTRA BLACK (150 МГ)",
+        description: "ICEBERG ULTRA BLACK (150 МГ) - ЖВАЧКА ТУТТИ-ФРУТТИ",
+        price: 500,
+        image: "https://static.insales-cdn.com/images/products/1/4138/629641258/large_418EE6C0-080A-4F12-85FC-011F55E19F86.jpg"
     },
     {
         id: 3,
-        name: "Грейпфрут Ruby",
-        description: "Красный грейпфрут с горьковато-сладким вкусом.",
-        price: 189,
-        image: "https://images.unsplash.com/photo-1574302503386-0c4e8c5eaa3a?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+        name: "ICEBERG ULTRA CRAZY MIX",
+        description: "ICEBERG ULTRA CRAZY MIX (150 МГ) - МУЛЬТИФРУТ, ЦИТРУС",
+        price: 500,
+        image: "https://static.insales-cdn.com/images/products/1/4960/629642080/large_36DE056D-C798-404C-A1A4-098A258FFE2B.jpg"
     },
     {
         id: 4,
-        name: "Лимон Sicilian",
-        description: "Ароматные лимоны с толстой кожурой. Богаты витамином C.",
-        price: 149,
-        image: "https://images.unsplash.com/photo-1580274467991-3a5c8e7aee3d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+        name: "ICEBERG ULTRA EMERALD",
+        description: "ICEBERG ULTRA EMERALD (150 МГ) - ЗЕЛЕНОЕ ЯБЛОКО, ЛАЙМ",
+        price: 500,
+        image: "https://static.insales-cdn.com/images/products/1/5090/629642210/large_E205F534-FC22-4962-AFE3-BB71710AF3F0.jpg"
     },
     {
         id: 5,
-        name: "Набор цитрусовый",
-        description: "Ассорти из апельсинов, мандаринов и грейпфрутов.",
-        price: 899,
-        image: "https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+        name: "ICEBERG ULTRA DRAGONFIRE",
+        description: "ICEBERG ULTRA DRAGONFIRE - АРОМАТ ЦВЕТОВ",
+        price: 500,
+        image: "https://static.insales-cdn.com/images/products/1/5177/629642297/large_3097AA0C-00E1-47C7-BDFC-0EA9EA9E1E75.jpg"
     },
     {
         id: 6,
-        name: "Свежевыжатый апельсиновый сок",
-        description: "1 литр. Без добавок и консервантов.",
-        price: 450,
-        image: "https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+        name: "ICEBERG ULTRA DOUBLE MINT",
+        description: "ICEBERG ULTRA DOUBLE MINT (150 МГ) - ДВОЙНАЯ МЯТА",
+        price: 500,
+        image: "https://static.insales-cdn.com/images/products/1/503/746127863/large_IMG_1491.JPG"
     }
 ];
 
@@ -280,4 +280,5 @@ document.addEventListener('DOMContentLoaded', () => {
     window.closeCart = closeCart;
     window.checkout = checkout;
     window.clearCart = clearCart;
+
 });
