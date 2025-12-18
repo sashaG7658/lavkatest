@@ -464,4 +464,119 @@ body {
 
 .empty-cart-msg p {
     margin: 10px 0;
+
+}
+/* Стили для динамической загрузки */
+.loading {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 60px 20px;
+    color: #666;
+}
+
+.loading i {
+    margin-bottom: 20px;
+    color: #ff9800;
+}
+
+.empty-store {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 60px 20px;
+    background: #f8f9fa;
+    border-radius: 15px;
+    border: 2px dashed #ddd;
+}
+
+.empty-store i {
+    color: #ddd;
+    margin-bottom: 20px;
+}
+
+.error-message {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 40px;
+    background: #ffebee;
+    border-radius: 10px;
+    color: #d32f2f;
+}
+
+.update-info {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 20px;
+    margin-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+.refresh-btn {
+    background: #2196F3;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 10px;
+    transition: background 0.3s;
+}
+
+.refresh-btn:hover {
+    background: #0b7dda;
+}
+
+.refresh-btn i {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Уведомления */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #4CAF50;
+    color: white;
+    padding: 15px 25px;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 9999;
+    transform: translateX(120%);
+    transition: transform 0.3s ease;
+    max-width: 400px;
+}
+
+.notification.show {
+    transform: translateX(0);
+}
+
+.notification.error {
+    background: #f44336;
+}
+
+.notification i {
+    font-size: 1.2rem;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .notification {
+        left: 20px;
+        right: 20px;
+        transform: translateY(-150%);
+    }
+    
+    .notification.show {
+        transform: translateY(0);
+    }
 }
