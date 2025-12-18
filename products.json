@@ -1,48 +1,11 @@
 [
-
   {
-    "id": 1,
-    "name": "ICEBERG ULTRA MENTHOL",
-    "price": 500,
-    "description": "ICEBERG ULTRA MENTHOL (150 МГ) - МЕНТОЛ",
-    "image": "https://static.insales-cdn.com/images/products/1/4176/629641296/large_DD5D020A-5370-4C6E-8350-BC442E83B211.jpg",
-    "added_by": "Chief_68",
-    "added_date": "2025-12-18 18:15:43"
-  },
-  {
-    "id": 2,
-    "name": "ICEBERG ULTRA BLACK (150 МГ)",
-    "price": 500,
-    "description": "ICEBERG ULTRA BLACK (150 МГ) - ЖВАЧКА ТУТТИ-ФРУТТИ",
-    "image": "https://static.insales-cdn.com/images/products/1/4138/629641258/large_418EE6C0-080A-4F12-85FC-011F55E19F86.jpg",
-    "added_by": "Chief_68",
-    "added_date": "2025-12-18 18:16:29"
-  },
-  {
-    "id": 3,
-    "name": "ICEBERG ULTRA CRAZY MIX",
-    "price": 500,
-    "description": "ICEBERG ULTRA CRAZY MIX (150 МГ) - МУЛЬТИФРУТ, ЦИТРУС",
-    "image": "https://static.insales-cdn.com/images/products/1/4960/629642080/large_36DE056D-C798-404C-A1A4-098A258FFE2B.jpg",
-    "added_by": "Chief_68",
-    "added_date": "2025-12-18 18:17:38"
-  },
-  {
-    "id": 4,
-    "name": "ICEBERG ULTRA EMERALD",
-    "price": 500,
-    "description": "ICEBERG ULTRA EMERALD (150 МГ) - ЗЕЛЕНОЕ ЯБЛОКО, ЛАЙМ",
-    "image": "https://static.insales-cdn.com/images/products/1/5090/629642210/large_E205F534-FC22-4962-AFE3-BB71710AF3F0.jpg",
-    "added_by": "Chief_68",
-    "added_date": "2025-12-18 18:18:19"
-  },
-  {
-    "id": 5,
-    "name": "ICEBERG ULTRA DRAGONFIRE",
-    "price": 500,
-    "description": "ICEBERG ULTRA DRAGONFIRE - АРОМАТ ЦВЕТОВ",
-    "image": "https://static.insales-cdn.com/images/products/1/5177/629642297/large_3097AA0C-00E1-47C7-BDFC-0EA9EA9E1E75.jpg",
-    "added_by": "Chief_68",
-    "added_date": "2025-12-18 18:18:57"
+    "id": 6,
+    "name": "бб",
+    "price": 100,
+    "description": "эфжыдыды",
+    "image": "https://via.placeholder.com/300x200/0B5B8A/FFFFFF?text=ICEBERG",
+    "added_by": "bigs0ldout",
+    "added_date": "2025-12-18 21:23:33"
   }
 ]
