@@ -1,1 +1,11 @@
-[]
+[
+  {
+    "id": 1,
+    "name": "12",
+    "price": 500,
+    "description": "232323",
+    "image": "https://i.pinimg.com/736x/02/3a/30/023a300502f6aa6927a777116f488b50.jpg",
+    "added_by": "Chief_68",
+    "added_date": "2025-12-18 17:48:42"
+  }
+]
