@@ -1,0 +1,20 @@
+[
+  {
+    "id": 1,
+    "name": "123",
+    "price": 500,
+    "description": "123",
+    "image": "123",
+    "added_by": "Chief_68",
+    "added_date": "2025-12-18T16:15:48+00:00"
+  },
+  {
+    "id": 2,
+    "name": "111",
+    "price": 500,
+    "description": "111",
+    "image": "https://ru.pinterest.com/pin/871305859174239943/",
+    "added_by": "Chief_68",
+    "added_date": "2025-12-18T16:29:26+00:00"
+  }
+]
