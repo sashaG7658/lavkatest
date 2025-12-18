@@ -1,5 +1,5 @@
 :root {
-    --primary-color: #0B5B8A;
+    --primary-color: #f0f0f0;
     --secondary-color: #FF9800;
     --bg-color: #F5F5F5;
     --card-color: #FFFFFF;
@@ -522,7 +522,7 @@ body {
     position: fixed;
     top: 20px;
     right: 20px;
-    background: #4CAF50;
+    background: #e68900;
     color: white;
     padding: 12px 20px;
     border-radius: 10px;
