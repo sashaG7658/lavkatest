@@ -2,96 +2,96 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <!-- Важные мета-теги для мобильных -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#0B5B8A">
-    
-    <title>LAVKA Shop | Telegram Магазин</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ICEBERG Shop | Оранжевая тема</title>
     
     <!-- Стили -->
     <link rel="stylesheet" href="style.css">
     
-    <!-- Иконки Font Awesome -->
+    <!-- Иконки -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Telegram WebApp SDK -->
+    <!-- Telegram WebApp -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     
-    <!-- Дополнительные мета-теги -->
-    <meta name="description" content="Магазин ICEBERG в Telegram - товары по 2 в строке">
-    <meta name="format-detection" content="telephone=no">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>❄️</text></svg>">
+    <!-- Мета-теги -->
+    <meta name="theme-color" content="#FF9800">
+    <meta name="description" content="ICEBERG Shop с оранжевой темой и поддержкой темной/светлой темы Telegram">
     
-    <!-- Предзагрузка важных ресурсов -->
-    <link rel="preconnect" href="https://static.insales-cdn.com">
+    <!-- Загрузчик -->
     <style>
-        /* Быстрый загрузчик */
         .loader {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: #0B5B8A;
+            background: #FF9800;
             display: flex;
             justify-content: center;
             align-items: center;
             z-index: 9999;
-            transition: opacity 0.3s;
+            transition: opacity 0.5s ease;
         }
         .loader-content {
             text-align: center;
             color: white;
         }
-        .loader-spinner {
-            font-size: 3rem;
+        .loader-logo {
+            font-size: 4rem;
             margin-bottom: 20px;
-            animation: spin 1s linear infinite;
+            animation: bounce 1s infinite alternate;
         }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        @keyframes bounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-20px); }
+        }
+        .loader h2 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        .loader p {
+            font-size: 1rem;
+            opacity: 0.8;
         }
     </style>
 </head>
 <body>
-    <!-- Быстрый загрузчик -->
+    <!-- Загрузчик -->
     <div class="loader" id="loader">
         <div class="loader-content">
-            <div class="loader-spinner">❄️</div>
-            <h2>LAVKA Shop</h2>
-            <p>Загрузка...</p>
+            <div class="loader-logo">❄️</div>
+            <h2>ICEBERG Shop</h2>
+            <p>Загрузка оранжевой темы...</p>
         </div>
     </div>
     
     <!-- Основное приложение -->
     <div class="container" id="app" style="display: none;">
-        <!-- Шапка приложения -->
+        <!-- Шапка -->
         <header class="header">
-            <h1><i class="fas fa-snowflake"></i> ICEBERG Shop</h1>
+            <h1><i class="fas fa-fire"></i> ICEBERG Shop</h1>
             <button id="cartButton" class="cart-btn">
                 <i class="fas fa-shopping-cart"></i>
                 <span id="cartCounter">0</span>
             </button>
         </header>
 
-        <!-- Сетка товаров 2 в строку -->
+        <!-- Сетка товаров -->
         <main class="catalog" id="catalog">
             <div class="loading">
                 <i class="fas fa-spinner fa-spin"></i> Загрузка товаров...
             </div>
         </main>
 
-        <!-- Информационная панель -->
+        <!-- Футер -->
         <footer class="footer">
-            <p>🛒 Магазин ICEBERG работает внутри Telegram</p>
-            <p class="small">Товары отображаются по 2 в строке для удобного просмотра</p>
+            <p><i class="fas fa-palette"></i> Тема автоматически подстраивается под Telegram</p>
+            <p class="small">Основной цвет: #FF9800 | Товары: 2 в строке</p>
         </footer>
 
-        <!-- Боковая панель корзины -->
+        <!-- Корзина -->
         <div id="cartSidebar" class="cart-sidebar">
             <div class="cart-header">
                 <h2><i class="fas fa-shopping-bag"></i> Ваш заказ</h2>
@@ -117,49 +117,29 @@
             </div>
         </div>
         
-        <!-- Затемнение фона при открытой корзине -->
+        <!-- Оверлей -->
         <div id="cartOverlay" class="cart-overlay"></div>
     </div>
 
-    <!-- Локальный скрипт -->
+    <!-- Скрипты -->
     <script src="script.js"></script>
     
-    <!-- Скрипт для скрытия загрузчика -->
+    <!-- Предотвращение зума на iOS -->
     <script>
-        // Скрываем загрузчик когда всё готово
-        window.addEventListener('load', function() {
-            setTimeout(function() {
-                const loader = document.getElementById('loader');
-                const app = document.getElementById('app');
-                
-                if (loader && app) {
-                    loader.style.opacity = '0';
-                    setTimeout(function() {
-                        loader.style.display = 'none';
-                        app.style.display = 'block';
-                    }, 300);
-                }
-            }, 500);
-        });
-        
-        // Предотвращаем зум по двойному тапу на iOS
+        document.addEventListener('touchstart', function(event) {
+            if (event.touches.length > 1) {
+                event.preventDefault();
+            }
+        }, { passive: false });
+
         let lastTouchEnd = 0;
         document.addEventListener('touchend', function(event) {
-            const now = (new Date()).getTime();
+            const now = Date.now();
             if (now - lastTouchEnd <= 300) {
                 event.preventDefault();
             }
             lastTouchEnd = now;
         }, false);
-        
-        // Предотвращаем выделение текста при касании
-        document.addEventListener('touchstart', function(event) {
-            if (event.target.tagName === 'BUTTON' || event.target.tagName === 'INPUT') {
-                return;
-            }
-            event.preventDefault();
-        }, { passive: false });
     </script>
 </body>
 </html>
-
