@@ -80,7 +80,7 @@ body {
 }
 
 .cart-btn:hover {
-    background: #094669;
+    background:  #FF9800;
 }
 
 .cart-btn i {
@@ -653,3 +653,4 @@ button, input[type="button"], input[type="submit"] {
         background-position-x: -200%;
     }
 }
+
