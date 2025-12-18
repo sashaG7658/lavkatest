@@ -1,4 +1,51 @@
 // ======================
+// ЗАГРУЗКА ТОВАРОВ ИЗ products.json
+// ======================
+async function loadProductsFromServer() {
+    try {
+        // Загружаем товары с GitHub
+        const response = await fetch('https://raw.githubusercontent.com/sashaG7658/lavkatest/main/products.json');
+        if (!response.ok) {
+            throw new Error('Файл с товарами не найден');
+        }
+        return await response.json();
+    } catch (error) {
+        console.warn('Не удалось загрузить товары с сервера:', error);
+        // Возвращаем тестовые товары по умолчанию
+        return [
+            {
+               id: 1,
+        name: "ICEBERG ULTRA MENTHOL",
+        description: "ICEBERG ULTRA MENTHOL (150 МГ) - МЕНТОЛ",
+        price: 500,
+        image: "https://static.insales-cdn.com/images/products/1/4176/629641296/large_DD5D020A-5370-4C6E-8350-BC442E83B211.jpg"
+        }
+        ];
+    }
+}
+
+// ======================
+// ОСНОВНАЯ ИНИЦИАЛИЗАЦИЯ
+// ======================
+async function initializeApp() {
+    // Загружаем товары
+    window.products = await loadProductsFromServer();
+    
+    // Рендерим товары
+    renderProducts();
+    
+    // Инициализируем Telegram WebApp
+    if (window.Telegram?.WebApp) {
+        window.Telegram.WebApp.ready();
+        window.Telegram.WebApp.expand();
+    }
+    
+    console.log(`✅ Загружено ${window.products.length} товаров`);
+}
+
+// Запускаем приложение
+document.addEventListener('DOMContentLoaded', initializeApp);
+// ======================
 // 1. ДАННЫЕ ТОВАРОВ (можно заменить на загрузку с сервера)
 // ======================
 const products = [
@@ -282,3 +329,4 @@ document.addEventListener('DOMContentLoaded', () => {
     window.clearCart = clearCart;
 
 });
+
