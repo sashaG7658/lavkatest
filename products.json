@@ -1,7 +1,5 @@
 [
-  .catalog {
-    grid-template-columns: repeat(2, 1fr) !important;
-}
+
   {
     "id": 1,
     "name": "ICEBERG ULTRA MENTHOL",
