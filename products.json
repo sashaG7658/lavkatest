@@ -1,29 +1,29 @@
 [
   {
-    "id": 7,
-    "name": "тест 19,12,25",
+    "id": 1,
+    "name": "ICEBERG ULTRA MENTHOL",
+    "description": "ICEBERG ULTRA MENTHOL (150 МГ) - МЕНТОЛ",
     "price": 500,
-    "description": "123456",
-    "image": "https://i.pinimg.com/736x/1c/17/fc/1c17fc0c250c8ccec9c51c3ed7c8d361.jpg",
-    "added_by": "Chief_68",
-    "added_date": "2025-12-19 16:51:18"
+    "image": "https://static.insales-cdn.com/images/products/1/4176/629641296/large_DD5D020A-5370-4C6E-8350-BC442E83B211.jpg",
+    "added_by": "system",
+    "added_date": "2024-01-01 00:00:00"
   },
   {
-    "id": 8,
-    "name": "20,12,24",
+    "id": 2,
+    "name": "ICEBERG ULTRA BLACK (150 МГ)",
+    "description": "ICEBERG ULTRA BLACK (150 МГ) - ЖВАЧКА ТУТТИ-ФРУТТИ",
     "price": 500,
-    "description": "124578",
-    "image": "https://i.pinimg.com/736x/f1/b4/39/f1b439d7a6280ad96195f95fb6d4f148.jpg",
-    "added_by": "Chief_68",
-    "added_date": "2025-12-19 22:41:09"
+    "image": "https://static.insales-cdn.com/images/products/1/4138/629641258/large_418EE6C0-080A-4F12-85FC-011F55E19F86.jpg",
+    "added_by": "system",
+    "added_date": "2024-01-01 00:00:00"
   },
   {
-    "id": 9,
-    "name": "2.8.20.12.25",
+    "id": 3,
+    "name": "ICEBERG ULTRA CRAZY MIX",
+    "description": "ICEBERG ULTRA CRAZY MIX (150 МГ) - МУЛЬТИФРУТ, ЦИТРУС",
     "price": 500,
-    "description": "20030",
-    "image": "https://i.pinimg.com/736x/6b/d8/ef/6bd8efc524120d5b628624144feda8bc.jpg",
-    "added_by": "Chief_68",
-    "added_date": "2025-12-19 23:09:40"
+    "image": "https://static.insales-cdn.com/images/products/1/4960/629642080/large_36DE056D-C798-404C-A1A4-098A258FFE2B.jpg",
+    "added_by": "system",
+    "added_date": "2024-01-01 00:00:00"
   }
 ]
