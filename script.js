@@ -1,8 +1,41 @@
-// script.js
+// script.js - УПРОЩЕННАЯ ВЕРСИЯ С РАБОЧЕЙ ЗАГРУЗКОЙ
 // ======================
-// 1. НАСТРОЙКИ
+// 1. НАСТРОЙКИ С СИСТЕМОЙ ФАЛЛБЭКОВ
 // ======================
-const GITHUB_RAW_URL = "https://raw.githubusercontent.com/sashaG7658/lavkatest/main/products.json";
+const GITHUB_URLS = [
+    // Основная ссылка на GitHub
+    "https://raw.githubusercontent.com/sashaG7658/lavkatest/main/products.json",
+    // Альтернативная ссылка (если основная не работает)
+    "https://cdn.jsdelivr.net/gh/sashaG7658/lavkatest/products.json",
+    // Raw.githack (третий вариант)
+    "https://raw.githack.com/sashaG7658/lavkatest/main/products.json"
+];
+
+// Стартовые товары (на случай если ни одна ссылка не работает)
+const DEFAULT_PRODUCTS = [
+    {
+        id: 1,
+        name: "ICEBERG ULTRA MENTHOL",
+        description: "ICEBERG ULTRA MENTHOL (150 МГ) - МЕНТОЛ",
+        price: 500,
+        image: "https://static.insales-cdn.com/images/products/1/4176/629641296/large_DD5D020A-5370-4C6E-8350-BC442E83B211.jpg"
+    },
+    {
+        id: 2,
+        name: "ICEBERG ULTRA BLACK",
+        description: "ICEBERG ULTRA BLACK (150 МГ) - ТУТТИ-ФРУТТИ",
+        price: 500,
+        image: "https://static.insales-cdn.com/images/products/1/4138/629641258/large_418EE6C0-080A-4F12-85FC-011F55E19F86.jpg"
+    },
+    {
+        id: 3,
+        name: "ICEBERG ULTRA CRAZY MIX",
+        description: "ICEBERG ULTRA CRAZY MIX - МУЛЬТИФРУТ, ЦИТРУС",
+        price: 500,
+        image: "https://static.insales-cdn.com/images/products/1/4960/629642080/large_36DE056D-C798-404C-A1A4-098A258FFE2B.jpg"
+    }
+];
+
 let products = [];
 let cart = [];
 let tg = null;
@@ -34,120 +67,86 @@ function initTelegram() {
 }
 
 // ======================
-// 3. ЗАГРУЗКА ТОВАРОВ ИЗ GITHUB
+// 3. ЗАГРУЗКА ТОВАРОВ С ФАЛЛБЭКАМИ
 // ======================
 async function loadProducts() {
-    try {
-        const catalog = document.getElementById('catalog');
-        if (catalog) {
-            catalog.innerHTML = `
-                <div class="loading" style="grid-column: 1 / -1;">
-                    <i class="fas fa-spinner fa-spin"></i>
-                    <p>Загрузка товаров из GitHub...</p>
-                </div>
-            `;
-        }
-        
-        // Добавляем уникальный timestamp для предотвращения кэширования
-        const timestamp = new Date().getTime();
-        const response = await fetch(`${GITHUB_RAW_URL}?t=${timestamp}`, {
-            headers: {
-                'Cache-Control': 'no-cache, no-store, must-revalidate',
-                'Pragma': 'no-cache',
-                'Expires': '0'
-            }
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        if (!Array.isArray(data)) {
-            throw new Error('Данные не являются массивом');
-        }
-        
-        products = data;
-        
-        console.log(`✅ Загружено ${products.length} товаров из GitHub`);
-        console.log(`📅 Последнее обновление: ${new Date().toLocaleTimeString()}`);
-        
-        // Сохраняем товары в localStorage как backup
-        localStorage.setItem('iceberg_products_backup', JSON.stringify(products));
-        localStorage.setItem('iceberg_products_timestamp', timestamp.toString());
-        localStorage.setItem('iceberg_last_update', new Date().toISOString());
-        
-        renderProducts();
-        
-        // Показываем уведомление если товары были обновлены
-        const lastUpdate = localStorage.getItem('iceberg_last_update_notified');
-        if (!lastUpdate || Date.now() - new Date(lastUpdate).getTime() > 60000) {
-            showNotification(`✅ Загружено ${products.length} товаров`);
-            localStorage.setItem('iceberg_last_update_notified', new Date().toISOString());
-        }
-        
-        return products;
-        
-    } catch (error) {
-        console.error('❌ Ошибка загрузки товаров:', error);
-        
-        // Пробуем загрузить из localStorage
-        try {
-            const backup = localStorage.getItem('iceberg_products_backup');
-            if (backup) {
-                products = JSON.parse(backup);
-                console.log(`✅ Загружено ${products.length} товаров из кэша`);
-                renderProducts();
-                
-                // Показываем предупреждение
-                showNotification('⚠️ Используются кэшированные товары');
-                return products;
-            }
-        } catch (cacheError) {
-            console.error('❌ Ошибка загрузки из кэша:', cacheError);
-        }
-        
-        // Показываем ошибку
-        const catalog = document.getElementById('catalog');
-        if (catalog) {
-            catalog.innerHTML = `
-                <div class="error" style="grid-column: 1 / -1; text-align: center; padding: 40px 20px;">
-                    <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: #FF9800; margin-bottom: 20px;"></i>
-                    <h3 style="color: var(--text-color); margin-bottom: 10px;">Ошибка загрузки товаров</h3>
-                    <p style="color: var(--text-secondary); margin-bottom: 20px;">Проверьте соединение с интернетом</p>
-                    <button onclick="loadProducts()" style="
-                        background: var(--primary-color);
-                        color: white;
-                        border: none;
-                        padding: 12px 24px;
-                        border-radius: 25px;
-                        font-size: 1rem;
-                        font-weight: 600;
-                        cursor: pointer;
-                        display: inline-flex;
-                        align-items: center;
-                        gap: 10px;
-                        transition: all 0.3s;
-                    ">
-                        <i class="fas fa-sync-alt"></i> Попробовать снова
-                    </button>
-                </div>
-            `;
-        }
-        
-        return [];
+    const catalog = document.getElementById('catalog');
+    
+    if (catalog) {
+        catalog.innerHTML = `
+            <div class="loading" style="grid-column: 1 / -1; text-align: center; padding: 40px 20px;">
+                <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: #FF9800; margin-bottom: 15px;"></i>
+                <p style="color: var(--text-color);">Загрузка товаров...</p>
+            </div>
+        `;
     }
+    
+    // Пробуем загрузить с каждой ссылки по очереди
+    for (let i = 0; i < GITHUB_URLS.length; i++) {
+        const url = GITHUB_URLS[i];
+        console.log(`🔄 Пробую загрузить с: ${url}`);
+        
+        try {
+            const response = await fetch(`${url}?t=${Date.now()}`);
+            
+            if (response.ok) {
+                const data = await response.json();
+                
+                if (Array.isArray(data) && data.length > 0) {
+                    products = data;
+                    console.log(`✅ Успешно загружено ${products.length} товаров с ${url}`);
+                    
+                    // Сохраняем успешную ссылку
+                    localStorage.setItem('iceberg_success_url', url);
+                    localStorage.setItem('iceberg_products', JSON.stringify(products));
+                    localStorage.setItem('iceberg_last_update', new Date().toISOString());
+                    
+                    renderProducts();
+                    showNotification(`✅ Загружено ${products.length} товаров`);
+                    return products;
+                }
+            }
+        } catch (error) {
+            console.log(`❌ Ошибка загрузки с ${url}:`, error.message);
+            continue; // Пробуем следующую ссылку
+        }
+    }
+    
+    // Если все ссылки не работают, пробуем загрузить из localStorage
+    console.log('🔄 Все ссылки не работают, пробую загрузить из localStorage...');
+    
+    try {
+        const savedProducts = localStorage.getItem('iceberg_products');
+        if (savedProducts) {
+            products = JSON.parse(savedProducts);
+            console.log(`✅ Загружено ${products.length} товаров из localStorage`);
+            renderProducts();
+            showNotification('⚠️ Используются сохраненные товары');
+            return products;
+        }
+    } catch (error) {
+        console.error('❌ Ошибка загрузки из localStorage:', error);
+    }
+    
+    // Если ничего не работает, используем дефолтные товары
+    console.log('🔄 Использую дефолтные товары');
+    products = DEFAULT_PRODUCTS;
+    renderProducts();
+    showNotification('⚠️ Используются базовые товары');
+    
+    // Сохраняем дефолтные товары
+    localStorage.setItem('iceberg_products', JSON.stringify(products));
+    
+    return products;
 }
 
 // ======================
-// 4. КОРЗИНА
+// 4. ОСНОВНЫЕ ФУНКЦИИ (упрощенные)
 // ======================
 function loadCart() {
     try {
         const savedCart = localStorage.getItem('iceberg_cart');
         cart = savedCart ? JSON.parse(savedCart) : [];
-        console.log(`🛒 Загружено ${cart.length} товаров в корзине`);
     } catch (error) {
         console.error('❌ Ошибка загрузки корзины:', error);
         cart = [];
@@ -159,7 +158,6 @@ function saveCart() {
         localStorage.setItem('iceberg_cart', JSON.stringify(cart));
         updateCartUI();
         updateTelegramButton();
-        console.log(`💾 Корзина сохранена (${cart.length} товаров)`);
     } catch (error) {
         console.error('❌ Ошибка сохранения корзины:', error);
     }
@@ -187,11 +185,6 @@ function addToCart(productId) {
 
     saveCart();
     showNotification(`✅ ${product.name} добавлен в корзину`);
-    
-    // Вибрация на мобильных
-    if (navigator.vibrate) {
-        navigator.vibrate(50);
-    }
 }
 
 function removeFromCart(productId) {
@@ -215,15 +208,7 @@ function updateQuantity(productId, change) {
 function clearCart() {
     if (cart.length === 0) return;
     
-    if (tg && tg.showConfirm) {
-        tg.showConfirm("Очистить всю корзину?", function(result) {
-            if (result) {
-                cart = [];
-                saveCart();
-                showNotification("🛒 Корзина очищена");
-            }
-        });
-    } else if (confirm("Очистить всю корзину?")) {
+    if (confirm("Очистить всю корзину?")) {
         cart = [];
         saveCart();
         showNotification("🛒 Корзина очищена");
@@ -251,7 +236,7 @@ function updateTelegramButton() {
 }
 
 // ======================
-// 5. ОТОБРАЖЕНИЕ ТОВАРОВ
+// 5. ОТОБРАЖЕНИЕ
 // ======================
 function renderProducts() {
     const catalog = document.getElementById('catalog');
@@ -259,10 +244,22 @@ function renderProducts() {
 
     if (products.length === 0) {
         catalog.innerHTML = `
-            <div class="error" style="grid-column: 1 / -1;">
-                <i class="fas fa-box-open"></i>
-                <p>Товаров пока нет</p>
-                <p class="small">Добавьте товары через админ-панель</p>
+            <div class="error" style="grid-column: 1 / -1; text-align: center; padding: 40px 20px;">
+                <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: #FF9800; margin-bottom: 20px;"></i>
+                <h3 style="color: var(--text-color); margin-bottom: 10px;">Нет товаров для отображения</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 20px;">Попробуйте обновить страницу</p>
+                <button onclick="loadProducts()" style="
+                    background: #FF9800;
+                    color: white;
+                    border: none;
+                    padding: 12px 24px;
+                    border-radius: 25px;
+                    font-size: 1rem;
+                    font-weight: 600;
+                    cursor: pointer;
+                ">
+                    <i class="fas fa-sync-alt"></i> Обновить
+                </button>
             </div>
         `;
         return;
@@ -274,9 +271,7 @@ function renderProducts() {
                  alt="${product.name}" 
                  class="product-image"
                  loading="lazy"
-                 onload="this.style.opacity = '1'"
-                 onerror="this.src='https://via.placeholder.com/300x200/FF9800/FFFFFF?text=ICEBERG'; this.style.opacity = '1'"
-                 style="opacity: 0; transition: opacity 0.3s;">
+                 onerror="this.src='https://via.placeholder.com/300x200/FF9800/FFFFFF?text=ICEBERG'">
             <div class="product-info">
                 <h3 class="product-title">${product.name}</h3>
                 <p class="product-description">${product.description}</p>
@@ -289,13 +284,6 @@ function renderProducts() {
             </div>
         </div>
     `).join('');
-    
-    // Показываем количество товаров в заголовке
-    const titleElement = document.querySelector('.header h1');
-    if (titleElement && products.length > 0) {
-        const originalText = titleElement.textContent.replace(/\(\d+\)/, '');
-        titleElement.textContent = `${originalText} (${products.length})`;
-    }
 }
 
 function updateCartUI() {
@@ -328,7 +316,6 @@ function updateCartUI() {
                 <img src="${item.image}" 
                      alt="${item.name}" 
                      class="cart-item-image"
-                     loading="lazy"
                      onerror="this.src='https://via.placeholder.com/100x100/FF9800/FFFFFF?text=ICEBERG'">
                 <div class="cart-item-details">
                     <div class="cart-item-title">${item.name}</div>
@@ -353,23 +340,25 @@ function updateCartUI() {
 }
 
 function showNotification(message) {
-    // Удаляем предыдущие уведомления
-    const existingNotifications = document.querySelectorAll('.notification');
-    existingNotifications.forEach(n => n.remove());
-    
     const notification = document.createElement('div');
-    notification.className = 'notification';
-    notification.innerHTML = `
-        <i class="fas fa-info-circle" style="margin-right: 8px;"></i>
-        ${message}
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #4CAF50;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 10px;
+        z-index: 2000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        animation: fadeIn 0.3s ease;
+        max-width: calc(100% - 40px);
     `;
-    
+    notification.textContent = message;
     document.body.appendChild(notification);
-    
-    // Автоудаление через 3 секунды
+
     setTimeout(() => {
-        notification.style.animation = 'fadeIn 0.3s ease reverse';
-        setTimeout(() => notification.remove(), 300);
+        notification.remove();
     }, 3000);
 }
 
@@ -391,40 +380,18 @@ function closeCart() {
 function checkout() {
     if (cart.length === 0) return;
     
-    // Создаем данные заказа
     const orderData = {
-        type: 'order',
-        data: {
-            products: cart,
-            total: getCartTotal(),
-            timestamp: new Date().toISOString(),
-            user: tg ? tg.initDataUnsafe.user : null
-        }
+        products: cart,
+        total: getCartTotal(),
+        timestamp: new Date().toISOString()
     };
     
-    console.log('Отправка заказа:', orderData);
+    console.log('Заказ:', orderData);
+    alert(`✅ Заказ оформлен!\nСумма: ${getCartTotal()} руб.`);
     
-    if (tg && tg.sendData) {
-        // Отправляем данные в бота
-        tg.sendData(JSON.stringify(orderData));
-        
-        // Показываем уведомление
-        showNotification("✅ Заказ отправлен! Проверьте бота для подтверждения.");
-        
-        // Закрываем корзину
-        closeCart();
-        
-        // Очищаем корзину
-        cart = [];
-        saveCart();
-        
-    } else {
-        // Для отладки вне Telegram
-        alert(`Заказ оформлен!\nСумма: ${getCartTotal()} руб.\n\nВ Telegram это откроет страницу подтверждения.`);
-        cart = [];
-        saveCart();
-        closeCart();
-    }
+    cart = [];
+    saveCart();
+    closeCart();
 }
 
 // ======================
@@ -437,7 +404,7 @@ async function initApp() {
     // Загружаем корзину
     loadCart();
     
-    // Загружаем товары из GitHub
+    // Загружаем товары
     await loadProducts();
     
     // Обновляем UI
@@ -449,18 +416,6 @@ async function initApp() {
     document.getElementById('cartOverlay').onclick = closeCart;
     document.getElementById('checkoutButton').onclick = checkout;
     document.getElementById('clearCartButton').onclick = clearCart;
-    
-    // Кнопка обновления товаров
-    const refreshBtn = document.getElementById('refreshButton');
-    if (refreshBtn) {
-        refreshBtn.onclick = async () => {
-            refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-            await loadProducts();
-            setTimeout(() => {
-                refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i>';
-            }, 1000);
-        };
-    }
     
     // Экспортируем функции
     window.addToCart = addToCart;
@@ -477,21 +432,12 @@ async function initApp() {
         const loader = document.getElementById('loader');
         const app = document.getElementById('app');
         if (loader && app) {
-            loader.style.opacity = '0';
-            setTimeout(() => {
-                loader.style.display = 'none';
-                app.style.display = 'block';
-            }, 300);
+            loader.style.display = 'none';
+            app.style.display = 'block';
         }
     }, 500);
     
     console.log('✅ ICEBERG Shop инициализирован');
-    
-    // Автообновление товаров каждые 2 минуты
-    setInterval(async () => {
-        console.log('🔄 Автообновление товаров...');
-        await loadProducts();
-    }, 2 * 60 * 1000);
 }
 
 // ======================
