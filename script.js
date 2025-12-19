@@ -1,99 +1,29 @@
 // script.js
 // ======================
-// 1. ОПРЕДЕЛЕНИЕ ТЕМЫ TELEGRAM
+// 1. НАСТРОЙКИ
 // ======================
-let currentTheme = 'light';
+const GITHUB_RAW_URL = "https://raw.githubusercontent.com/sashaG7658/lavkatest/main/products.json";
+const BOT_TOKEN = "8524553480:AAHlSe0qo7kbdFMZiOFDlhe6BrVxGEJe5UM";
+let products = [];
+let cart = [];
 let tg = null;
-
-// Функция определения темы
-function detectTheme() {
-    try {
-        tg = window.Telegram?.WebApp;
-        
-        if (tg) {
-            // Используем тему из Telegram
-            const isDark = tg.colorScheme === 'dark';
-            currentTheme = isDark ? 'dark' : 'light';
-            
-            // Применяем тему
-            document.body.classList.remove('light-theme', 'dark-theme', 'auto-theme');
-            document.body.classList.add(`${currentTheme}-theme`);
-            
-            // Сохраняем тему в localStorage
-            localStorage.setItem('theme', currentTheme);
-            
-            // Настраиваем кнопку Telegram
-            tg.MainButton.setParams({
-                color: isDark ? '#FF9800' : '#FF9800',
-                text_color: isDark ? '#FFFFFF' : '#FFFFFF'
-            });
-            
-            console.log(`✅ Тема Telegram: ${currentTheme}`);
-            return;
-        }
-        
-        // Если не Telegram, проверяем системную тему
-        const savedTheme = localStorage.getItem('theme');
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        
-        if (savedTheme) {
-            currentTheme = savedTheme;
-        } else {
-            currentTheme = prefersDark ? 'dark' : 'light';
-        }
-        
-        document.body.classList.remove('light-theme', 'dark-theme', 'auto-theme');
-        document.body.classList.add(`${currentTheme}-theme`);
-        
-    } catch (error) {
-        console.error('❌ Ошибка определения темы:', error);
-        document.body.classList.add('auto-theme');
-    }
-}
-
-// Функция переключения темы
-function toggleTheme() {
-    currentTheme = currentTheme === 'light' ? 'dark' : 'light';
-    
-    // Обновляем классы
-    document.body.classList.remove('light-theme', 'dark-theme');
-    document.body.classList.add(`${currentTheme}-theme`);
-    
-    // Сохраняем в localStorage
-    localStorage.setItem('theme', currentTheme);
-    
-    // Обновляем иконку
-    updateThemeIcon();
-    
-    // Показываем уведомление
-    showNotification(`Тема: ${currentTheme === 'dark' ? '🌙 Темная' : '☀️ Светлая'}`);
-    
-    console.log(`🔄 Переключена тема: ${currentTheme}`);
-}
-
-// Обновление иконки темы
-function updateThemeIcon() {
-    const themeIcon = document.querySelector('.theme-switch i');
-    if (themeIcon) {
-        themeIcon.className = currentTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
-        document.querySelector('.theme-switch').classList.toggle('dark', currentTheme === 'dark');
-    }
-}
+let currentTheme = 'light';
 
 // ======================
 // 2. ИНИЦИАЛИЗАЦИЯ TELEGRAM
 // ======================
 function initTelegram() {
     try {
+        tg = window.Telegram?.WebApp;
         if (tg) {
             tg.ready();
             tg.expand();
             
-            // Слушаем изменения темы в Telegram
-            tg.onEvent('themeChanged', detectTheme);
-            tg.onEvent('viewportChanged', detectTheme);
+            // Определяем тему
+            currentTheme = tg.colorScheme === 'dark' ? 'dark' : 'light';
+            document.body.classList.add(`${currentTheme}-theme`);
             
-            // Настраиваем основную кнопку
+            // Настраиваем кнопку
             tg.MainButton.setText("Корзина");
             tg.MainButton.onClick(openCart);
             
@@ -105,61 +35,82 @@ function initTelegram() {
 }
 
 // ======================
-// 3. ДАННЫЕ ТОВАРОВ (оранжевая тема)
+// 3. ЗАГРУЗКА ТОВАРОВ ИЗ GITHUB
 // ======================
-const products = [
-    {
-        id: 1,
-        name: "ICEBERG ULTRA MENTHOL",
-        description: "ICEBERG ULTRA MENTHOL (150 МГ) - МЕНТОЛ",
-        price: 500,
-        image: "https://static.insales-cdn.com/images/products/1/4176/629641296/large_DD5D020A-5370-4C6E-8350-BC442E83B211.jpg",
-        isNew: true
-    },
-    {
-        id: 2,
-        name: "ICEBERG ULTRA BLACK",
-        description: "ICEBERG ULTRA BLACK (150 МГ) - ТУТТИ-ФРУТТИ",
-        price: 500,
-        image: "https://static.insales-cdn.com/images/products/1/4138/629641258/large_418EE6C0-080A-4F12-85FC-011F55E19F86.jpg",
-        isNew: true
-    },
-    {
-        id: 3,
-        name: "ICEBERG ULTRA CRAZY MIX",
-        description: "ICEBERG ULTRA CRAZY MIX - МУЛЬТИФРУТ, ЦИТРУС",
-        price: 500,
-        image: "https://static.insales-cdn.com/images/products/1/4960/629642080/large_36DE056D-C798-404C-A1A4-098A258FFE2B.jpg"
-    },
-    {
-        id: 4,
-        name: "ICEBERG ULTRA EMERALD",
-        description: "ICEBERG ULTRA EMERALD - ЯБЛОКО, ЛАЙМ",
-        price: 500,
-        image: "https://static.insales-cdn.com/images/products/1/5090/629642210/large_E205F534-FC22-4962-AFE3-BB71710AF3F0.jpg"
-    },
-    {
-        id: 5,
-        name: "ICEBERG ULTRA DRAGONFIRE",
-        description: "ICEBERG ULTRA DRAGONFIRE - ЦВЕТЫ",
-        price: 500,
-        image: "https://static.insales-cdn.com/images/products/1/5177/629642297/large_3097AA0C-00E1-47C7-BDFC-0EA9EA9E1E75.jpg"
-    },
-    {
-        id: 6,
-        name: "ICEBERG ULTRA DOUBLE MINT",
-        description: "ICEBERG ULTRA DOUBLE MINT - ДВОЙНАЯ МЯТА",
-        price: 500,
-        image: "https://static.insales-cdn.com/images/products/1/503/746127863/large_IMG_1491.JPG"
+async function loadProducts() {
+    try {
+        const catalog = document.getElementById('catalog');
+        if (catalog) {
+            catalog.innerHTML = `
+                <div class="loading" style="grid-column: 1 / -1;">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Загрузка товаров из GitHub...</p>
+                </div>
+            `;
+        }
+        
+        // Добавляем timestamp для предотвращения кэширования
+        const timestamp = new Date().getTime();
+        const response = await fetch(`${GITHUB_RAW_URL}?t=${timestamp}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        products = await response.json();
+        
+        if (!Array.isArray(products)) {
+            throw new Error('Данные не являются массивом');
+        }
+        
+        console.log(`✅ Загружено ${products.length} товаров из GitHub`);
+        
+        // Сохраняем товары в localStorage как backup
+        localStorage.setItem('iceberg_products_backup', JSON.stringify(products));
+        localStorage.setItem('iceberg_products_timestamp', timestamp.toString());
+        
+        renderProducts();
+        
+        return products;
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки товаров:', error);
+        
+        // Пробуем загрузить из localStorage
+        try {
+            const backup = localStorage.getItem('iceberg_products_backup');
+            if (backup) {
+                products = JSON.parse(backup);
+                console.log(`✅ Загружено ${products.length} товаров из кэша`);
+                renderProducts();
+                return products;
+            }
+        } catch (cacheError) {
+            console.error('❌ Ошибка загрузки из кэша:', cacheError);
+        }
+        
+        // Показываем ошибку
+        const catalog = document.getElementById('catalog');
+        if (catalog) {
+            catalog.innerHTML = `
+                <div class="error" style="grid-column: 1 / -1;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>Ошибка загрузки товаров</p>
+                    <p class="small">Попробуйте обновить страницу</p>
+                    <button onclick="loadProducts()" style="margin-top: 15px; padding: 10px 20px; background: #FF9800; color: white; border: none; border-radius: 10px; cursor: pointer;">
+                        <i class="fas fa-sync-alt"></i> Обновить
+                    </button>
+                </div>
+            `;
+        }
+        
+        return [];
     }
-];
+}
 
 // ======================
 // 4. КОРЗИНА
 // ======================
-let cart = [];
-
-// Загрузка корзины из localStorage
 function loadCart() {
     try {
         const savedCart = localStorage.getItem('iceberg_cart');
@@ -170,7 +121,6 @@ function loadCart() {
     }
 }
 
-// Сохранение корзины
 function saveCart() {
     try {
         localStorage.setItem('iceberg_cart', JSON.stringify(cart));
@@ -181,19 +131,22 @@ function saveCart() {
     }
 }
 
-// ======================
-// 5. ОСНОВНЫЕ ФУНКЦИИ
-// ======================
 function addToCart(productId) {
     const product = products.find(p => p.id === productId);
-    if (!product) return;
+    if (!product) {
+        showNotification('❌ Товар не найден');
+        return;
+    }
 
     const existingItem = cart.find(item => item.id === productId);
     if (existingItem) {
         existingItem.quantity += 1;
     } else {
         cart.push({
-            ...product,
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            image: product.image,
             quantity: 1
         });
     }
@@ -259,20 +212,30 @@ function updateTelegramButton() {
 }
 
 // ======================
-// 6. ОТОБРАЖЕНИЕ
+// 5. ОТОБРАЖЕНИЕ
 // ======================
 function renderProducts() {
     const catalog = document.getElementById('catalog');
     if (!catalog) return;
 
+    if (products.length === 0) {
+        catalog.innerHTML = `
+            <div class="error" style="grid-column: 1 / -1;">
+                <i class="fas fa-box-open"></i>
+                <p>Товаров пока нет</p>
+                <p class="small">Добавьте товары через админ-панель</p>
+            </div>
+        `;
+        return;
+    }
+
     catalog.innerHTML = products.map(product => `
         <div class="product-card">
-            ${product.isNew ? '<div class="new-badge pulse">NEW</div>' : ''}
+            ${product.isNew ? '<div class="new-badge">NEW</div>' : ''}
             <img src="${product.image}" 
                  alt="${product.name}" 
-                 class="product-image loading"
+                 class="product-image"
                  loading="lazy"
-                 onload="this.classList.remove('loading')"
                  onerror="this.src='https://via.placeholder.com/300x200/FF9800/FFFFFF?text=ICEBERG'">
             <div class="product-info">
                 <h3 class="product-title">${product.name}</h3>
@@ -349,13 +312,13 @@ function showNotification(message) {
     document.body.appendChild(notification);
 
     setTimeout(() => {
-        notification.style.animation = 'slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) reverse';
+        notification.style.animation = 'slideIn 0.3s ease reverse';
         setTimeout(() => notification.remove(), 300);
     }, 3000);
 }
 
 // ======================
-// 7. КОРЗИНА И ЗАКАЗ
+// 6. КОРЗИНА И ЗАКАЗ
 // ======================
 function openCart() {
     document.getElementById('cartSidebar').classList.add('active');
@@ -369,35 +332,42 @@ function closeCart() {
     document.body.style.overflow = '';
 }
 
-function checkout() {
+// ======================
+// 7. ОФОРМЛЕНИЕ ЗАКАЗА С ПЕРЕХОДОМ НА СТРАНИЦУ ПОДТВЕРЖДЕНИЯ
+// ======================
+async function checkout() {
     if (cart.length === 0) return;
-
-    const orderData = {
-        products: cart,
-        total: getCartTotal(),
-        timestamp: new Date().toISOString(),
-        theme: currentTheme,
-        user: tg ? tg.initDataUnsafe.user : null
-    };
-
-    console.log("Заказ оформлен:", orderData);
     
-    if (tg && tg.showAlert) {
-        tg.showAlert(`✅ Заказ оформлен!\nСумма: ${getCartTotal()} руб.`, () => {
-            if (tg.sendData) {
-                tg.sendData(JSON.stringify(orderData));
-            }
-            cart = [];
-            saveCart();
-            closeCart();
-        });
-    } else {
-        alert(`✅ Заказ оформлен!\nСумма: ${getCartTotal()} руб.`);
-        
-        if (tg && tg.sendData) {
-            tg.sendData(JSON.stringify(orderData));
+    // Создаем данные заказа
+    const orderData = {
+        type: 'order',
+        data: {
+            products: cart,
+            total: getCartTotal(),
+            timestamp: new Date().toISOString(),
+            user: tg ? tg.initDataUnsafe.user : null
         }
+    };
+    
+    console.log('Отправка заказа:', orderData);
+    
+    if (tg && tg.sendData) {
+        // Отправляем данные в бота
+        tg.sendData(JSON.stringify(orderData));
         
+        // Показываем уведомление
+        showNotification("✅ Заказ отправлен! Откройте бота для подтверждения.");
+        
+        // Закрываем корзину
+        closeCart();
+        
+        // Очищаем корзину
+        cart = [];
+        saveCart();
+        
+    } else {
+        // Для отладки вне Telegram
+        alert(`Заказ оформлен!\nСумма: ${getCartTotal()} руб.\n\nВ Telegram это откроет страницу подтверждения.`);
         cart = [];
         saveCart();
         closeCart();
@@ -407,27 +377,18 @@ function checkout() {
 // ======================
 // 8. ИНИЦИАЛИЗАЦИЯ
 // ======================
-function initApp() {
-    // Определяем тему
-    detectTheme();
-    
+async function initApp() {
     // Инициализируем Telegram
     initTelegram();
     
     // Загружаем корзину
     loadCart();
     
-    // Рендерим товары
-    renderProducts();
-    updateCartUI();
+    // Загружаем товары из GitHub
+    await loadProducts();
     
-    // Создаем переключатель темы
-    const themeSwitch = document.createElement('div');
-    themeSwitch.className = 'theme-switch';
-    themeSwitch.innerHTML = '<i class="fas fa-moon"></i>';
-    themeSwitch.onclick = toggleTheme;
-    document.body.appendChild(themeSwitch);
-    updateThemeIcon();
+    // Обновляем UI
+    updateCartUI();
     
     // Настраиваем обработчики
     document.getElementById('cartButton').onclick = openCart;
@@ -444,7 +405,7 @@ function initApp() {
     window.closeCart = closeCart;
     window.checkout = checkout;
     window.clearCart = clearCart;
-    window.toggleTheme = toggleTheme;
+    window.loadProducts = loadProducts;
     
     // Скрываем загрузчик
     setTimeout(() => {
@@ -460,9 +421,17 @@ function initApp() {
     }, 500);
     
     console.log('✅ ICEBERG Shop инициализирован');
+    
+    // Автообновление товаров каждые 5 минут
+    setInterval(async () => {
+        console.log('🔄 Автообновление товаров...');
+        await loadProducts();
+    }, 5 * 60 * 1000);
 }
 
-// Запускаем при загрузке
+// ======================
+// 9. ЗАПУСК
+// ======================
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initApp);
 } else {
