@@ -3,7 +3,6 @@
 // 1. НАСТРОЙКИ
 // ======================
 const GITHUB_RAW_URL = "https://raw.githubusercontent.com/sashaG7658/lavkatest/main/products.json";
-const BOT_TOKEN = "8524553480:AAHlSe0qo7kbdFMZiOFDlhe6BrVxGEJe5UM";
 let products = [];
 let cart = [];
 let tg = null;
@@ -49,27 +48,44 @@ async function loadProducts() {
             `;
         }
         
-        // Добавляем timestamp для предотвращения кэширования
+        // Добавляем уникальный timestamp для предотвращения кэширования
         const timestamp = new Date().getTime();
-        const response = await fetch(`${GITHUB_RAW_URL}?t=${timestamp}`);
+        const response = await fetch(`${GITHUB_RAW_URL}?t=${timestamp}`, {
+            headers: {
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
+            }
+        });
         
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         
-        products = await response.json();
+        const data = await response.json();
         
-        if (!Array.isArray(products)) {
+        if (!Array.isArray(data)) {
             throw new Error('Данные не являются массивом');
         }
         
+        products = data;
+        
         console.log(`✅ Загружено ${products.length} товаров из GitHub`);
+        console.log(`📅 Последнее обновление: ${new Date().toLocaleTimeString()}`);
         
         // Сохраняем товары в localStorage как backup
         localStorage.setItem('iceberg_products_backup', JSON.stringify(products));
         localStorage.setItem('iceberg_products_timestamp', timestamp.toString());
+        localStorage.setItem('iceberg_last_update', new Date().toISOString());
         
         renderProducts();
+        
+        // Показываем уведомление если товары были обновлены
+        const lastUpdate = localStorage.getItem('iceberg_last_update_notified');
+        if (!lastUpdate || Date.now() - new Date(lastUpdate).getTime() > 60000) {
+            showNotification(`✅ Загружено ${products.length} товаров`);
+            localStorage.setItem('iceberg_last_update_notified', new Date().toISOString());
+        }
         
         return products;
         
@@ -83,6 +99,9 @@ async function loadProducts() {
                 products = JSON.parse(backup);
                 console.log(`✅ Загружено ${products.length} товаров из кэша`);
                 renderProducts();
+                
+                // Показываем предупреждение
+                showNotification('⚠️ Используются кэшированные товары');
                 return products;
             }
         } catch (cacheError) {
@@ -93,12 +112,25 @@ async function loadProducts() {
         const catalog = document.getElementById('catalog');
         if (catalog) {
             catalog.innerHTML = `
-                <div class="error" style="grid-column: 1 / -1;">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <p>Ошибка загрузки товаров</p>
-                    <p class="small">Попробуйте обновить страницу</p>
-                    <button onclick="loadProducts()" style="margin-top: 15px; padding: 10px 20px; background: #FF9800; color: white; border: none; border-radius: 10px; cursor: pointer;">
-                        <i class="fas fa-sync-alt"></i> Обновить
+                <div class="error" style="grid-column: 1 / -1; text-align: center; padding: 40px 20px;">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: #FF9800; margin-bottom: 20px;"></i>
+                    <h3 style="color: var(--text-color); margin-bottom: 10px;">Ошибка загрузки товаров</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 20px;">Проверьте соединение с интернетом</p>
+                    <button onclick="loadProducts()" style="
+                        background: var(--primary-color);
+                        color: white;
+                        border: none;
+                        padding: 12px 24px;
+                        border-radius: 25px;
+                        font-size: 1rem;
+                        font-weight: 600;
+                        cursor: pointer;
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 10px;
+                        transition: all 0.3s;
+                    ">
+                        <i class="fas fa-sync-alt"></i> Попробовать снова
                     </button>
                 </div>
             `;
@@ -115,6 +147,7 @@ function loadCart() {
     try {
         const savedCart = localStorage.getItem('iceberg_cart');
         cart = savedCart ? JSON.parse(savedCart) : [];
+        console.log(`🛒 Загружено ${cart.length} товаров в корзине`);
     } catch (error) {
         console.error('❌ Ошибка загрузки корзины:', error);
         cart = [];
@@ -126,6 +159,7 @@ function saveCart() {
         localStorage.setItem('iceberg_cart', JSON.stringify(cart));
         updateCartUI();
         updateTelegramButton();
+        console.log(`💾 Корзина сохранена (${cart.length} товаров)`);
     } catch (error) {
         console.error('❌ Ошибка сохранения корзины:', error);
     }
@@ -153,6 +187,11 @@ function addToCart(productId) {
 
     saveCart();
     showNotification(`✅ ${product.name} добавлен в корзину`);
+    
+    // Вибрация на мобильных
+    if (navigator.vibrate) {
+        navigator.vibrate(50);
+    }
 }
 
 function removeFromCart(productId) {
@@ -212,7 +251,7 @@ function updateTelegramButton() {
 }
 
 // ======================
-// 5. ОТОБРАЖЕНИЕ
+// 5. ОТОБРАЖЕНИЕ ТОВАРОВ
 // ======================
 function renderProducts() {
     const catalog = document.getElementById('catalog');
@@ -231,12 +270,13 @@ function renderProducts() {
 
     catalog.innerHTML = products.map(product => `
         <div class="product-card">
-            ${product.isNew ? '<div class="new-badge">NEW</div>' : ''}
             <img src="${product.image}" 
                  alt="${product.name}" 
                  class="product-image"
                  loading="lazy"
-                 onerror="this.src='https://via.placeholder.com/300x200/FF9800/FFFFFF?text=ICEBERG'">
+                 onload="this.style.opacity = '1'"
+                 onerror="this.src='https://via.placeholder.com/300x200/FF9800/FFFFFF?text=ICEBERG'; this.style.opacity = '1'"
+                 style="opacity: 0; transition: opacity 0.3s;">
             <div class="product-info">
                 <h3 class="product-title">${product.name}</h3>
                 <p class="product-description">${product.description}</p>
@@ -249,6 +289,13 @@ function renderProducts() {
             </div>
         </div>
     `).join('');
+    
+    // Показываем количество товаров в заголовке
+    const titleElement = document.querySelector('.header h1');
+    if (titleElement && products.length > 0) {
+        const originalText = titleElement.textContent.replace(/\(\d+\)/, '');
+        titleElement.textContent = `${originalText} (${products.length})`;
+    }
 }
 
 function updateCartUI() {
@@ -306,13 +353,22 @@ function updateCartUI() {
 }
 
 function showNotification(message) {
+    // Удаляем предыдущие уведомления
+    const existingNotifications = document.querySelectorAll('.notification');
+    existingNotifications.forEach(n => n.remove());
+    
     const notification = document.createElement('div');
     notification.className = 'notification';
-    notification.textContent = message;
+    notification.innerHTML = `
+        <i class="fas fa-info-circle" style="margin-right: 8px;"></i>
+        ${message}
+    `;
+    
     document.body.appendChild(notification);
-
+    
+    // Автоудаление через 3 секунды
     setTimeout(() => {
-        notification.style.animation = 'slideIn 0.3s ease reverse';
+        notification.style.animation = 'fadeIn 0.3s ease reverse';
         setTimeout(() => notification.remove(), 300);
     }, 3000);
 }
@@ -332,10 +388,7 @@ function closeCart() {
     document.body.style.overflow = '';
 }
 
-// ======================
-// 7. ОФОРМЛЕНИЕ ЗАКАЗА С ПЕРЕХОДОМ НА СТРАНИЦУ ПОДТВЕРЖДЕНИЯ
-// ======================
-async function checkout() {
+function checkout() {
     if (cart.length === 0) return;
     
     // Создаем данные заказа
@@ -356,7 +409,7 @@ async function checkout() {
         tg.sendData(JSON.stringify(orderData));
         
         // Показываем уведомление
-        showNotification("✅ Заказ отправлен! Откройте бота для подтверждения.");
+        showNotification("✅ Заказ отправлен! Проверьте бота для подтверждения.");
         
         // Закрываем корзину
         closeCart();
@@ -375,7 +428,7 @@ async function checkout() {
 }
 
 // ======================
-// 8. ИНИЦИАЛИЗАЦИЯ
+// 7. ИНИЦИАЛИЗАЦИЯ
 // ======================
 async function initApp() {
     // Инициализируем Telegram
@@ -396,6 +449,18 @@ async function initApp() {
     document.getElementById('cartOverlay').onclick = closeCart;
     document.getElementById('checkoutButton').onclick = checkout;
     document.getElementById('clearCartButton').onclick = clearCart;
+    
+    // Кнопка обновления товаров
+    const refreshBtn = document.getElementById('refreshButton');
+    if (refreshBtn) {
+        refreshBtn.onclick = async () => {
+            refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            await loadProducts();
+            setTimeout(() => {
+                refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i>';
+            }, 1000);
+        };
+    }
     
     // Экспортируем функции
     window.addToCart = addToCart;
@@ -422,15 +487,15 @@ async function initApp() {
     
     console.log('✅ ICEBERG Shop инициализирован');
     
-    // Автообновление товаров каждые 5 минут
+    // Автообновление товаров каждые 2 минуты
     setInterval(async () => {
         console.log('🔄 Автообновление товаров...');
         await loadProducts();
-    }, 5 * 60 * 1000);
+    }, 2 * 60 * 1000);
 }
 
 // ======================
-// 9. ЗАПУСК
+// 8. ЗАПУСК
 // ======================
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initApp);
