@@ -830,3 +830,77 @@ button:active {
 .pulse {
     animation: pulse-glow 2s infinite;
 }
+
+/* Добавьте эти стили в конец style.css */
+
+/* Стили для отображения остатков */
+.product-quantity {
+    font-size: 0.8rem;
+    margin-top: 4px;
+    font-weight: 500;
+}
+
+/* Бейджи для статусов товаров */
+.availability-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    z-index: 1;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.availability-badge.in-stock {
+    background: linear-gradient(45deg, #4CAF50, #66BB6A);
+    color: white;
+}
+
+.availability-badge.low-stock {
+    background: linear-gradient(45deg, #FF9800, #FFB74D);
+    color: white;
+}
+
+.availability-badge.out-of-stock {
+    background: linear-gradient(45deg, #F44336, #EF5350);
+    color: white;
+}
+
+/* Стили для корзины с предупреждениями */
+.cart-item-warning {
+    color: #FF9800;
+    font-size: 0.8rem;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.cart-item-warning.error {
+    color: #F44336;
+}
+
+/* Статистика в шапке */
+.stats-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 8px;
+    background: var(--primary-light);
+    border-radius: 10px;
+    font-size: 0.8rem;
+    margin-left: 10px;
+}
+
+/* Анимация для новых товаров */
+@keyframes highlightNew {
+    0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+}
+
+.highlight-new {
+    animation: highlightNew 2s ease-in-out;
+}
