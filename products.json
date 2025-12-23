@@ -1319,7 +1319,7 @@
     "added_by": "admin",
     "added_date": "2025-12-20 14:00:00"
   },
-    {
+  {
     "id": 121,
     "name": "KASTA CLASSIC ДЫНЯ",
     "description": "KASTA CLASSIC (101 МГ) - ДЫНЯ",
@@ -2199,7 +2199,7 @@
     "added_by": "admin",
     "added_date": "2025-12-20 14:00:00"
   },
-    {
+  {
     "id": 201,
     "name": "ICEBERG CHERRY",
     "description": "ICEBERG CHERRY (75 МГ) - ВИШНЯ",
@@ -4140,7 +4140,7 @@
     "name": "LYFT COLA НИКОТИНОВЫЕ ПЛАСТИНКИ",
     "description": "LYFT COLA НИКОТИНОВЫЕ ПЛАСТИНКИ (10 МГ) - КОЛА",
     "price": 500,
-    "quantity": 10,
+    "quantity": 30,
     "category": "lyft_plates",
     "image": "https://static.insales-cdn.com/images/products/1/4203/967897195/large_IMG_8763.JPG",
     "added_by": "admin",
@@ -4158,6 +4158,3 @@
     "added_date": "2025-12-20 14:00:00"
   }
 ]
-  
-
-
