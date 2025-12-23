@@ -1,31 +1,30 @@
 // script.js
+// ICEBERG Shop - Версия для пользователей (без показа количества)
 // ======================
-// 1. ОПРЕДЕЛЕНИЕ ТЕМЫ TELEGRAM
-// ======================
+
 let currentTheme = 'light';
 let tg = null;
 let products = [];
 let cart = [];
 let autoUpdateInterval = null;
 
-// Функция определения темы
+// ======================
+// 1. ТЕМА И TELEGRAM
+// ======================
+
 function detectTheme() {
     try {
         tg = window.Telegram?.WebApp;
         
         if (tg) {
-            // Используем тему из Telegram
             const isDark = tg.colorScheme === 'dark';
             currentTheme = isDark ? 'dark' : 'light';
             
-            // Применяем тему
             document.body.classList.remove('light-theme', 'dark-theme', 'auto-theme');
             document.body.classList.add(`${currentTheme}-theme`);
             
-            // Сохраняем тему в localStorage
             localStorage.setItem('theme', currentTheme);
             
-            // Настраиваем кнопку Telegram
             tg.MainButton.setParams({
                 color: isDark ? '#FF9800' : '#FF9800',
                 text_color: isDark ? '#FFFFFF' : '#FFFFFF'
@@ -35,7 +34,6 @@ function detectTheme() {
             return;
         }
         
-        // Если не Telegram, проверяем системную тему
         const savedTheme = localStorage.getItem('theme');
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         
@@ -54,27 +52,19 @@ function detectTheme() {
     }
 }
 
-// Функция переключения темы
 function toggleTheme() {
     currentTheme = currentTheme === 'light' ? 'dark' : 'light';
     
-    // Обновляем классы
     document.body.classList.remove('light-theme', 'dark-theme');
     document.body.classList.add(`${currentTheme}-theme`);
     
-    // Сохраняем в localStorage
     localStorage.setItem('theme', currentTheme);
-    
-    // Обновляем иконку
     updateThemeIcon();
     
-    // Показываем уведомление
     showNotification(`Тема: ${currentTheme === 'dark' ? '🌙 Темная' : '☀️ Светлая'}`);
-    
     console.log(`🔄 Переключена тема: ${currentTheme}`);
 }
 
-// Обновление иконки темы
 function updateThemeIcon() {
     const themeIcon = document.querySelector('.theme-switch i');
     if (themeIcon) {
@@ -83,20 +73,15 @@ function updateThemeIcon() {
     }
 }
 
-// ======================
-// 2. ИНИЦИАЛИЗАЦИЯ TELEGRAM
-// ======================
 function initTelegram() {
     try {
         if (tg) {
             tg.ready();
             tg.expand();
             
-            // Слушаем изменения темы в Telegram
             tg.onEvent('themeChanged', detectTheme);
             tg.onEvent('viewportChanged', detectTheme);
             
-            // Настраиваем основную кнопку
             tg.MainButton.setText("Корзина");
             tg.MainButton.onClick(openCart);
             
@@ -108,11 +93,11 @@ function initTelegram() {
 }
 
 // ======================
-// 3. ЗАГРУЗКА ТОВАРОВ С GITHUB
+// 2. ЗАГРУЗКА ТОВАРОВ
 // ======================
+
 async function loadProductsFromGitHub() {
     try {
-        // Добавляем временную метку для избежания кэширования
         const timestamp = new Date().getTime();
         const response = await fetch(`https://raw.githubusercontent.com/sashaG7658/lavkatest/main/products.json?t=${timestamp}`);
         
@@ -125,7 +110,7 @@ async function loadProductsFromGitHub() {
         // Добавляем поле quantity если его нет
         loadedProducts.forEach(product => {
             if (!product.hasOwnProperty('quantity')) {
-                product.quantity = 10; // Значение по умолчанию
+                product.quantity = 10;
             }
         });
         
@@ -193,10 +178,57 @@ function getDefaultProducts() {
 }
 
 // ======================
+// 3. ОТОБРАЖЕНИЕ ТОВАРОВ (БЕЗ КОЛИЧЕСТВА)
+// ======================
+
+function renderProducts(productsToRender) {
+    const catalog = document.getElementById('catalog');
+    if (!catalog) return;
+
+    catalog.innerHTML = productsToRender.map(product => {
+        const qty = product.quantity || 0;
+        const isAvailable = qty > 0;
+        
+        // Бейджи только для пользователей
+        let badge = '';
+        if (product.isNew && isAvailable) {
+            badge = '<div class="new-badge pulse">NEW</div>';
+        } else if (!isAvailable) {
+            badge = '<div class="new-badge" style="background: #F44336;">НЕТ В НАЛИЧИИ</div>';
+        }
+        // Убираем бейдж "ОСТАЛОСЬ X" - пользователи не видят количество
+        
+        return `
+            <div class="product-card">
+                ${badge}
+                <img src="${product.image}" 
+                     alt="${product.name}" 
+                     class="product-image loading"
+                     loading="lazy"
+                     onload="this.classList.remove('loading')"
+                     onerror="this.src='https://via.placeholder.com/300x200/FF9800/FFFFFF?text=ICEBERG'">
+                <div class="product-info">
+                    <h3 class="product-title">${product.name}</h3>
+                    <p class="product-description">${product.description}</p>
+                    <div class="product-footer">
+                        <div class="product-price">${product.price} ₽</div>
+                        <button class="add-to-cart" 
+                                onclick="addToCart(${product.id})"
+                                ${!isAvailable ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>
+                            <i class="fas fa-cart-plus"></i> 
+                            ${!isAvailable ? 'Нет в наличии' : 'В корзину'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// ======================
 // 4. КОРЗИНА
 // ======================
 
-// Загрузка корзины из localStorage
 function loadCart() {
     try {
         const savedCart = localStorage.getItem('iceberg_cart');
@@ -208,7 +240,6 @@ function loadCart() {
     }
 }
 
-// Сохранение корзины
 function saveCart() {
     try {
         localStorage.setItem('iceberg_cart', JSON.stringify(cart));
@@ -219,9 +250,6 @@ function saveCart() {
     }
 }
 
-// ======================
-// 5. ОСНОВНЫЕ ФУНКЦИИ
-// ======================
 function addToCart(productId) {
     const product = products.find(p => p.id === productId);
     if (!product) {
@@ -232,7 +260,6 @@ function addToCart(productId) {
     // Проверяем остатки
     if (product.quantity <= 0) {
         showNotification('❌ Товар закончился');
-        updateProductAvailability(productId);
         return;
     }
     
@@ -279,7 +306,6 @@ function updateQuantity(productId, change) {
     // Проверяем остатки
     if (newQuantity > product.quantity) {
         showNotification(`⚠️ Максимум ${product.quantity} шт. в наличии`);
-        updateProductAvailability(productId);
         return;
     }
     
@@ -329,122 +355,6 @@ function updateTelegramButton() {
     }
 }
 
-// ======================
-// 6. ОТОБРАЖЕНИЕ
-// ======================
-function renderProducts(productsToRender) {
-    const catalog = document.getElementById('catalog');
-    if (!catalog) return;
-
-    catalog.innerHTML = productsToRender.map(product => {
-        const qty = product.quantity || 0;
-        const isAvailable = qty > 0;
-        const isLowStock = qty <= 5 && qty > 0;
-        const isOutOfStock = qty <= 0;
-        
-        let badge = '';
-        if (product.isNew) {
-            badge = '<div class="new-badge pulse">NEW</div>';
-        } else if (isOutOfStock) {
-            badge = '<div class="new-badge" style="background: #F44336;">НЕТ В НАЛИЧИИ</div>';
-        } else if (isLowStock) {
-            badge = `<div class="new-badge" style="background: #FF9800;">ОСТАЛОСЬ ${qty}</div>`;
-        }
-        
-        const qtyColor = isAvailable ? (qty > 5 ? '#4CAF50' : '#FF9800') : '#F44336';
-        const qtyText = isAvailable ? `📦 ${qty} шт. в наличии` : '❌ Нет в наличии';
-        
-        return `
-            <div class="product-card">
-                ${badge}
-                <img src="${product.image}" 
-                     alt="${product.name}" 
-                     class="product-image loading"
-                     loading="lazy"
-                     onload="this.classList.remove('loading')"
-                     onerror="this.src='https://via.placeholder.com/300x200/FF9800/FFFFFF?text=ICEBERG'">
-                <div class="product-info">
-                    <h3 class="product-title">${product.name}</h3>
-                    <p class="product-description">${product.description}</p>
-                    <div class="product-footer">
-                        <div>
-                            <div class="product-price">${product.price} ₽</div>
-                            <div class="product-quantity" style="font-size: 0.8rem; color: ${qtyColor};">
-                                ${qtyText}
-                            </div>
-                        </div>
-                        <button class="add-to-cart" 
-                                onclick="addToCart(${product.id})"
-                                ${!isAvailable ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>
-                            <i class="fas fa-cart-plus"></i> 
-                            ${!isAvailable ? 'Нет в наличии' : 'В корзину'}
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-    }).join('');
-}
-
-function updateProductAvailability(productId) {
-    const product = products.find(p => p.id === productId);
-    if (!product) return;
-    
-    const productElement = document.querySelector(`.product-card:has(button[onclick="addToCart(${productId})"])`);
-    if (!productElement) return;
-    
-    const qty = product.quantity || 0;
-    const isAvailable = qty > 0;
-    const isLowStock = qty <= 5 && qty > 0;
-    
-    // Обновляем бейдж
-    const badgeElement = productElement.querySelector('.new-badge');
-    if (badgeElement) {
-        if (isAvailable) {
-            if (isLowStock) {
-                badgeElement.textContent = `ОСТАЛОСЬ ${qty}`;
-                badgeElement.style.background = '#FF9800';
-            } else {
-                badgeElement.remove();
-            }
-        } else {
-            badgeElement.textContent = 'НЕТ В НАЛИЧИИ';
-            badgeElement.style.background = '#F44336';
-        }
-    } else if (isLowStock) {
-        const newBadge = document.createElement('div');
-        newBadge.className = 'new-badge';
-        newBadge.style.background = '#FF9800';
-        newBadge.textContent = `ОСТАЛОСЬ ${qty}`;
-        productElement.insertBefore(newBadge, productElement.firstChild);
-    }
-    
-    // Обновляем текст количества
-    const qtyElement = productElement.querySelector('.product-quantity');
-    if (qtyElement) {
-        const qtyColor = isAvailable ? (qty > 5 ? '#4CAF50' : '#FF9800') : '#F44336';
-        const qtyText = isAvailable ? `📦 ${qty} шт. в наличии` : '❌ Нет в наличии';
-        qtyElement.style.color = qtyColor;
-        qtyElement.textContent = qtyText;
-    }
-    
-    // Обновляем кнопку
-    const button = productElement.querySelector('.add-to-cart');
-    if (button) {
-        if (!isAvailable) {
-            button.disabled = true;
-            button.style.opacity = '0.5';
-            button.style.cursor = 'not-allowed';
-            button.innerHTML = '<i class="fas fa-cart-plus"></i> Нет в наличии';
-        } else {
-            button.disabled = false;
-            button.style.opacity = '';
-            button.style.cursor = '';
-            button.innerHTML = '<i class="fas fa-cart-plus"></i> В корзину';
-        }
-    }
-}
-
 function updateCartUI() {
     const cartCounter = document.getElementById('cartCounter');
     if (cartCounter) {
@@ -486,7 +396,6 @@ function updateCartUI() {
                         <div class="cart-item-title">${item.name}</div>
                         <div class="cart-item-price">${item.price} руб./шт.</div>
                         ${!isAvailable ? '<div class="cart-item-warning" style="color: #F44336; font-size: 0.8rem; margin-bottom: 5px;">⚠️ Товар закончился</div>' : ''}
-                        ${isAvailable && item.quantity > maxAvailable ? `<div class="cart-item-warning" style="color: #FF9800; font-size: 0.8rem; margin-bottom: 5px;">⚠️ Максимум ${maxAvailable} шт.</div>` : ''}
                         <div class="cart-item-controls">
                             <button class="quantity-btn" onclick="updateQuantity(${item.id}, -1)" ${!isAvailable ? 'disabled style="opacity: 0.5;"' : ''}>-</button>
                             <span class="item-quantity">${item.quantity} шт.</span>
@@ -513,7 +422,6 @@ function updateCartUI() {
 }
 
 function showNotification(message) {
-    // Удаляем старые уведомления
     const oldNotifications = document.querySelectorAll('.notification');
     oldNotifications.forEach(n => n.remove());
     
@@ -529,21 +437,10 @@ function showNotification(message) {
 }
 
 // ======================
-// 7. КОРЗИНА И ЗАКАЗ
+// 5. ОФОРМЛЕНИЕ ЗАКАЗА
 // ======================
-function openCart() {
-    document.getElementById('cartSidebar').classList.add('active');
-    document.getElementById('cartOverlay').classList.add('active');
-    document.body.style.overflow = 'hidden';
-}
 
-function closeCart() {
-    document.getElementById('cartSidebar').classList.remove('active');
-    document.getElementById('cartOverlay').classList.remove('active');
-    document.body.style.overflow = '';
-}
-
-function checkout() {
+async function checkout() {
     if (cart.length === 0) return;
     
     // Проверяем доступность товаров
@@ -555,7 +452,6 @@ function checkout() {
     if (unavailableItems.length > 0) {
         showNotification(`❌ ${unavailableItems.length} товаров больше не доступны`);
         
-        // Удаляем недоступные товары
         cart = cart.filter(item => {
             const product = products.find(p => p.id === item.id);
             return product && product.quantity > 0;
@@ -583,91 +479,138 @@ function checkout() {
         return;
     }
 
+    // Формируем данные заказа
     const orderData = {
-        products: cart,
+        products: cart.map(item => ({
+            id: item.id,
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity
+        })),
         total: getCartTotal(),
+        items_count: getCartCount(),
         timestamp: new Date().toISOString(),
-        theme: currentTheme,
-        user: tg ? tg.initDataUnsafe.user : null
+        user: tg ? {
+            id: tg.initDataUnsafe.user?.id,
+            username: tg.initDataUnsafe.user?.username,
+            first_name: tg.initDataUnsafe.user?.first_name,
+            last_name: tg.initDataUnsafe.user?.last_name
+        } : null
     };
 
-    console.log("Заказ оформлен:", orderData);
+    console.log("🛒 Отправка заказа:", orderData);
     
-    if (tg && tg.showAlert) {
-        tg.showAlert(`✅ Заказ оформлен!\nСумма: ${getCartTotal()} руб.\nТоваров: ${getCartCount()} шт.`, () => {
-            if (tg.sendData) {
-                tg.sendData(JSON.stringify(orderData));
-            }
+    try {
+        // Отправляем заказ в Telegram бота
+        if (tg && tg.sendData) {
+            tg.sendData(JSON.stringify(orderData));
+            
+            tg.showAlert(
+                `✅ Заказ оформлен!\n\n` +
+                `📦 Товаров: ${getCartCount()} шт.\n` +
+                `💰 Сумма: ${getCartTotal()} руб.\n\n` +
+                `📞 Свяжитесь с продавцом для уточнения деталей:\n` +
+                `👤 @Chief_68`,
+                () => {
+                    cart = [];
+                    saveCart();
+                    closeCart();
+                    
+                    // Обновляем товары через 2 секунды
+                    setTimeout(() => {
+                        loadAndRenderProducts();
+                    }, 2000);
+                }
+            );
+        } else {
+            // Если не в Telegram
+            alert(
+                `✅ Заказ оформлен!\n\n` +
+                `📦 Товаров: ${getCartCount()} шт.\n` +
+                `💰 Сумма: ${getCartTotal()} руб.\n\n` +
+                `📞 Свяжитесь с продавцом:\n` +
+                `👤 @Chief_68\n\n` +
+                `🔄 Остатки будут обновлены`
+            );
+            
             cart = [];
             saveCart();
             closeCart();
-        });
-    } else {
-        alert(`✅ Заказ оформлен!\nСумма: ${getCartTotal()} руб.\nТоваров: ${getCartCount()} шт.`);
-        
-        if (tg && tg.sendData) {
-            tg.sendData(JSON.stringify(orderData));
         }
         
-        cart = [];
-        saveCart();
-        closeCart();
+        // Обновляем товары через 3 секунды
+        setTimeout(() => {
+            loadAndRenderProducts();
+        }, 3000);
+        
+    } catch (error) {
+        console.error('❌ Ошибка оформления заказа:', error);
+        showNotification('❌ Ошибка оформления заказа');
     }
 }
 
+function openCart() {
+    document.getElementById('cartSidebar').classList.add('active');
+    document.getElementById('cartOverlay').classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeCart() {
+    document.getElementById('cartSidebar').classList.remove('active');
+    document.getElementById('cartOverlay').classList.remove('active');
+    document.body.style.overflow = '';
+}
+
 // ======================
-// 8. АВТООБНОВЛЕНИЕ
+// 6. АВТООБНОВЛЕНИЕ
 // ======================
-function startAutoUpdate() {
-    // Обновляем каждые 30 секунд
-    autoUpdateInterval = setInterval(async () => {
-        try {
-            const newProducts = await loadProductsFromGitHub();
-            
-            // Проверяем изменения
-            const hasChanges = JSON.stringify(products) !== JSON.stringify(newProducts);
-            
-            if (hasChanges) {
-                const oldProducts = [...products];
-                products = newProducts;
-                renderProducts(products);
-                
-                console.log('🔄 Товары обновлены');
-                
-                // Проверяем товары в корзине на наличие
-                let cartUpdated = false;
-                cart.forEach(cartItem => {
-                    const product = products.find(p => p.id === cartItem.id);
-                    if (!product || product.quantity <= 0) {
-                        removeFromCart(cartItem.id);
-                        showNotification(`⚠️ ${cartItem.name} больше не доступен`);
-                        cartUpdated = true;
-                    } else if (cartItem.quantity > product.quantity) {
-                        cartItem.quantity = product.quantity;
-                        showNotification(`⚠️ Количество ${cartItem.name} уменьшено до ${product.quantity} шт.`);
-                        cartUpdated = true;
-                    }
-                    
-                    // Обновляем отображение конкретного товара
-                    updateProductAvailability(cartItem.id);
-                });
-                
-                if (cartUpdated) {
-                    saveCart();
-                }
-                
-                // Показываем уведомление об изменениях
-                const newItems = products.filter(p => !oldProducts.find(op => op.id === p.id));
-                if (newItems.length > 0) {
-                    showNotification(`🆕 Добавлено ${newItems.length} новых товаров`);
-                }
+
+async function loadAndRenderProducts() {
+    try {
+        const newProducts = await loadProductsFromGitHub();
+        
+        const oldProducts = [...products];
+        products = newProducts;
+        
+        // Рендерим товары (без показа количества для пользователей)
+        renderProducts(products);
+        
+        // Проверяем корзину
+        let cartUpdated = false;
+        cart.forEach(cartItem => {
+            const product = products.find(p => p.id === cartItem.id);
+            if (!product || product.quantity <= 0) {
+                removeFromCart(cartItem.id);
+                showNotification(`⚠️ ${cartItem.name} больше не доступен`);
+                cartUpdated = true;
+            } else if (cartItem.quantity > product.quantity) {
+                cartItem.quantity = product.quantity;
+                showNotification(`⚠️ Количество ${cartItem.name} уменьшено до ${product.quantity} шт.`);
+                cartUpdated = true;
             }
-        } catch (error) {
-            console.error('❌ Ошибка обновления товаров:', error);
+        });
+        
+        if (cartUpdated) {
+            saveCart();
         }
-    }, 30000); // 30 секунд
+        
+        const newItems = products.filter(p => !oldProducts.find(op => op.id === p.id));
+        if (newItems.length > 0) {
+            showNotification(`🆕 Добавлено ${newItems.length} новых товаров`);
+        }
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки товаров:', error);
+    }
+}
+
+function startAutoUpdate() {
+    // Обновляем каждые 60 секунд
+    autoUpdateInterval = setInterval(async () => {
+        await loadAndRenderProducts();
+    }, 60000);
     
-    console.log('🔄 Автообновление запущено (каждые 30 секунд)');
+    console.log('🔄 Автообновление запущено (каждые 60 секунд)');
 }
 
 function stopAutoUpdate() {
@@ -679,8 +622,9 @@ function stopAutoUpdate() {
 }
 
 // ======================
-// 9. ИНИЦИАЛИЗАЦИЯ
+// 7. ИНИЦИАЛИЗАЦИЯ
 // ======================
+
 async function initApp() {
     // Определяем тему
     detectTheme();
@@ -688,15 +632,11 @@ async function initApp() {
     // Инициализируем Telegram
     initTelegram();
     
-    // Загружаем товары с GitHub
-    products = await loadProductsFromGitHub();
+    // Загружаем товары
+    await loadAndRenderProducts();
     
     // Загружаем корзину
     loadCart();
-    
-    // Рендерим товары
-    renderProducts(products);
-    updateCartUI();
     
     // Запускаем автообновление
     startAutoUpdate();
@@ -725,7 +665,6 @@ async function initApp() {
     window.checkout = checkout;
     window.clearCart = clearCart;
     window.toggleTheme = toggleTheme;
-    window.updateProductAvailability = updateProductAvailability;
     
     // Скрываем загрузчик
     setTimeout(() => {
@@ -736,12 +675,12 @@ async function initApp() {
             setTimeout(() => {
                 loader.style.display = 'none';
                 app.style.display = 'block';
-                showNotification('✅ Товары загружены. Автообновление включено');
+                showNotification('✅ Магазин загружен');
             }, 300);
         }
     }, 500);
     
-    console.log('✅ ICEBERG Shop инициализирован с остатками');
+    console.log('✅ ICEBERG Shop инициализирован');
 }
 
 // Запускаем при загрузке
