@@ -4,39 +4,54 @@
     "name": "ICEBERG ULTRA MENTHOL",
     "description": "ICEBERG ULTRA MENTHOL (150 МГ) - МЕНТОЛ",
     "price": 500,
-    "quantity": 10,
+    "quantity": 8,
+    "category": "iceberg",
     "image": "https://static.insales-cdn.com/images/products/1/4176/629641296/large_DD5D020A-5370-4C6E-8350-BC442E83B211.jpg",
     "added_by": "system",
     "added_date": "2025-12-18 00:00:00"
   },
   {
     "id": 2,
-    "name": "ICEBERG ULTRA BLACK (150 МГ)",
-    "description": "ICEBERG ULTRA BLACK (150 МГ) - ЖВАЧКА ТУТТИ-ФРУТТИ",
-    "price": 500,
-    "quantity": 8,
-    "image": "https://static.insales-cdn.com/images/products/1/4138/629641258/large_418EE6C0-080A-4F12-85FC-011F55E19F86.jpg",
-    "added_by": "system",
-    "added_date": "2025-12-18 00:00:00"
+    "name": "ARQA SPECIAL BLUEBERRY",
+    "description": "ARQA SPECIAL BLUEBERRY - ЧЕРНИКА",
+    "price": 550,
+    "quantity": 12,
+    "category": "arqa",
+    "image": "https://example.com/arqa-blueberry.jpg",
+    "added_by": "admin",
+    "added_date": "2025-12-20 10:30:00"
   },
   {
     "id": 3,
-    "name": "ICEBERG ULTRA CRAZY MIX",
-    "description": "ICEBERG ULTRA CRAZY MIX (150 МГ) - МУЛЬТИФРУТ, ЦИТРУС",
-    "price": 500,
-    "quantity": 30,
-    "image": "https://static.insales-cdn.com/images/products/1/4960/629642080/large_36DE056D-C798-404C-A1A4-098A258FFE2B.jpg",
-    "added_by": "system",
-    "added_date": "2025-12-18 00:00:00"
+    "name": "SHOK ENERGY DRINK",
+    "description": "SHOK ENERGY DRINK - ЭНЕРГЕТИК",
+    "price": 480,
+    "quantity": 5,
+    "category": "shok",
+    "image": "https://example.com/shok-energy.jpg",
+    "added_by": "admin",
+    "added_date": "2025-12-20 11:15:00"
   },
   {
     "id": 4,
-    "name": "ICEBERG ULTRA EMERALD",
-    "description": "ICEBERG ULTRA EMERALD (150 МГ) - ЗЕЛЕНОЕ ЯБЛОКО, ЛАЙМ",
-    "price": 500,
-    "quantity": 10,
-    "image": "https://static.insales-cdn.com/images/products/1/5090/629642210/large_E205F534-FC22-4962-AFE3-BB71710AF3F0.jpg",
-    "added_by": "system",
-    "added_date": "2025-12-18 00:00:00"
+    "name": "STORM MENTHOL ICE",
+    "description": "STORM BY ШОK MENTHOL ICE - ЛЕДЯНОЙ МЕНТОЛ",
+    "price": 520,
+    "quantity": 0,
+    "category": "storm",
+    "image": "https://example.com/storm-menthol.jpg",
+    "added_by": "admin",
+    "added_date": "2025-12-20 12:00:00"
+  },
+  {
+    "id": 5,
+    "name": "ST TOBACCO",
+    "description": "ST (АНАЛОГ FERDS) TOBACCO - ТАБАК",
+    "price": 450,
+    "quantity": 15,
+    "category": "st",
+    "image": "https://example.com/st-tobacco.jpg",
+    "added_by": "admin",
+    "added_date": "2025-12-20 13:45:00"
   }
 ]
