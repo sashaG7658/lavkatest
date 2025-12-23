@@ -65,6 +65,28 @@
             justify-content: center;
             font-weight: bold;
         }
+        
+        /* Статистика категорий */
+        .category-stats {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 10px 0;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+        
+        .category-stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .category-stat-number {
+            font-weight: bold;
+            color: var(--primary-color);
+            font-size: 1.2rem;
+        }
     </style>
 </head>
 <body>
@@ -93,6 +115,22 @@
                     <!-- Категории будут добавлены через JavaScript -->
                 </div>
             </div>
+            
+            <!-- Статистика категорий -->
+            <div class="category-stats" id="categoryStats" style="display: none;">
+                <div class="category-stat-item">
+                    <span class="category-stat-number" id="totalProducts">0</span>
+                    <span>Всего товаров</span>
+                </div>
+                <div class="category-stat-item">
+                    <span class="category-stat-number" id="availableProducts">0</span>
+                    <span>В наличии</span>
+                </div>
+                <div class="category-stat-item">
+                    <span class="category-stat-number" id="categoryProducts">0</span>
+                    <span>В категории</span>
+                </div>
+            </div>
         </div>
 
         <!-- Сетка товаров -->
@@ -106,6 +144,7 @@
         <footer class="footer">
             <p><i class="fas fa-layer-group"></i> LAVKA Shop </p>
             <p class="small">Выберите категорию из меню выше | Товары обновляются автоматически</p>
+            <p class="small">Всего товаров: <span id="footerTotalProducts">0</span> | В наличии: <span id="footerAvailableProducts">0</span></p>
         </footer>
 
         <!-- Корзина -->
@@ -155,6 +194,37 @@
             }
             lastTouchEnd = now;
         }, false);
+        
+        // Функция для обновления статистики категорий
+        function updateCategoryStats() {
+            const totalProducts = products.length;
+            const availableProducts = products.filter(p => p.quantity > 0).length;
+            const currentCategoryProducts = filterProductsByCategory(products).length;
+            
+            document.getElementById('totalProducts').textContent = totalProducts;
+            document.getElementById('availableProducts').textContent = availableProducts;
+            document.getElementById('categoryProducts').textContent = currentCategoryProducts;
+            
+            document.getElementById('footerTotalProducts').textContent = totalProducts;
+            document.getElementById('footerAvailableProducts').textContent = availableProducts;
+            
+            // Показываем статистику
+            document.getElementById('categoryStats').style.display = 'flex';
+        }
+        
+        // Переопределяем renderProductsByCategory для обновления статистики
+        const originalRenderProductsByCategory = window.renderProductsByCategory;
+        window.renderProductsByCategory = function() {
+            originalRenderProductsByCategory();
+            updateCategoryStats();
+        };
+        
+        // Переопределяем loadAndRenderProducts для обновления статистики
+        const originalLoadAndRenderProducts = window.loadAndRenderProducts;
+        window.loadAndRenderProducts = async function() {
+            await originalLoadAndRenderProducts();
+            updateCategoryStats();
+        };
         
         // Функция для прокрутки категорий
         function setupCategoriesScroll() {
