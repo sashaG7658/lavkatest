@@ -48,45 +48,6 @@
             font-size: 1rem;
             opacity: 0.8;
         }
-        
-        /* Счетчик категорий */
-        .category-counter {
-            position: absolute;
-            top: -5px;
-            right: -5px;
-            background: #F44336;
-            color: white;
-            font-size: 0.6rem;
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-        }
-        
-        /* Статистика категорий */
-        .category-stats {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            margin: 10px 0;
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-        }
-        
-        .category-stat-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        
-        .category-stat-number {
-            font-weight: bold;
-            color: var(--primary-color);
-            font-size: 1.2rem;
-        }
     </style>
 </head>
 <body>
@@ -109,26 +70,17 @@
                 </button>
             </header>
 
-            <!-- Навигация по категориям -->
+            <!-- Навигация по основным категориям -->
             <div class="categories-scroll-wrapper">
                 <div class="categories-nav" id="categoriesNav">
                     <!-- Категории будут добавлены через JavaScript -->
                 </div>
             </div>
             
-            <!-- Статистика категорий -->
-            <div class="category-stats" id="categoryStats" style="display: none;">
-                <div class="category-stat-item">
-                    <span class="category-stat-number" id="totalProducts">0</span>
-                    <span>Всего товаров</span>
-                </div>
-                <div class="category-stat-item">
-                    <span class="category-stat-number" id="availableProducts">0</span>
-                    <span>В наличии</span>
-                </div>
-                <div class="category-stat-item">
-                    <span class="category-stat-number" id="categoryProducts">0</span>
-                    <span>В категории</span>
+            <!-- Навигация по подкатегориям -->
+            <div class="categories-scroll-wrapper">
+                <div class="subcategories-nav" id="subCategoriesNav">
+                    <!-- Подкатегории будут добавлены через JavaScript -->
                 </div>
             </div>
         </div>
@@ -143,8 +95,8 @@
         <!-- Футер -->
         <footer class="footer">
             <p><i class="fas fa-layer-group"></i> LAVKA Shop </p>
-            <p class="small">Выберите категорию из меню выше | Товары обновляются автоматически</p>
-            <p class="small">Всего товаров: <span id="footerTotalProducts">0</span> | В наличии: <span id="footerAvailableProducts">0</span></p>
+            <p class="small">Выберите категорию и подраздел из меню выше</p>
+            <p class="small">Товары обновляются автоматически</p>
         </footer>
 
         <!-- Корзина -->
@@ -195,88 +147,64 @@
             lastTouchEnd = now;
         }, false);
         
-        // Функция для обновления статистики категорий
-        function updateCategoryStats() {
-            const totalProducts = products.length;
-            const availableProducts = products.filter(p => p.quantity > 0).length;
-            const currentCategoryProducts = filterProductsByCategory(products).length;
-            
-            document.getElementById('totalProducts').textContent = totalProducts;
-            document.getElementById('availableProducts').textContent = availableProducts;
-            document.getElementById('categoryProducts').textContent = currentCategoryProducts;
-            
-            document.getElementById('footerTotalProducts').textContent = totalProducts;
-            document.getElementById('footerAvailableProducts').textContent = availableProducts;
-            
-            // Показываем статистику
-            document.getElementById('categoryStats').style.display = 'flex';
-        }
-        
-        // Переопределяем renderProductsByCategory для обновления статистики
-        const originalRenderProductsByCategory = window.renderProductsByCategory;
-        window.renderProductsByCategory = function() {
-            originalRenderProductsByCategory();
-            updateCategoryStats();
-        };
-        
-        // Переопределяем loadAndRenderProducts для обновления статистики
-        const originalLoadAndRenderProducts = window.loadAndRenderProducts;
-        window.loadAndRenderProducts = async function() {
-            await originalLoadAndRenderProducts();
-            updateCategoryStats();
-        };
-        
         // Функция для прокрутки категорий
         function setupCategoriesScroll() {
             const categoriesNav = document.getElementById('categoriesNav');
-            if (!categoriesNav) return;
+            const subCategoriesNav = document.getElementById('subCategoriesNav');
             
-            let isDown = false;
-            let startX;
-            let scrollLeft;
+            function setupScroll(element) {
+                if (!element) return;
+                
+                let isDown = false;
+                let startX;
+                let scrollLeft;
+                
+                element.addEventListener('mousedown', (e) => {
+                    isDown = true;
+                    element.classList.add('active');
+                    startX = e.pageX - element.offsetLeft;
+                    scrollLeft = element.scrollLeft;
+                });
+                
+                element.addEventListener('mouseleave', () => {
+                    isDown = false;
+                    element.classList.remove('active');
+                });
+                
+                element.addEventListener('mouseup', () => {
+                    isDown = false;
+                    element.classList.remove('active');
+                });
+                
+                element.addEventListener('mousemove', (e) => {
+                    if (!isDown) return;
+                    e.preventDefault();
+                    const x = e.pageX - element.offsetLeft;
+                    const walk = (x - startX) * 2;
+                    element.scrollLeft = scrollLeft - walk;
+                });
+                
+                // Для touch устройств
+                element.addEventListener('touchstart', (e) => {
+                    isDown = true;
+                    startX = e.touches[0].pageX - element.offsetLeft;
+                    scrollLeft = element.scrollLeft;
+                });
+                
+                element.addEventListener('touchend', () => {
+                    isDown = false;
+                });
+                
+                element.addEventListener('touchmove', (e) => {
+                    if (!isDown) return;
+                    const x = e.touches[0].pageX - element.offsetLeft;
+                    const walk = (x - startX) * 2;
+                    element.scrollLeft = scrollLeft - walk;
+                });
+            }
             
-            categoriesNav.addEventListener('mousedown', (e) => {
-                isDown = true;
-                categoriesNav.classList.add('active');
-                startX = e.pageX - categoriesNav.offsetLeft;
-                scrollLeft = categoriesNav.scrollLeft;
-            });
-            
-            categoriesNav.addEventListener('mouseleave', () => {
-                isDown = false;
-                categoriesNav.classList.remove('active');
-            });
-            
-            categoriesNav.addEventListener('mouseup', () => {
-                isDown = false;
-                categoriesNav.classList.remove('active');
-            });
-            
-            categoriesNav.addEventListener('mousemove', (e) => {
-                if (!isDown) return;
-                e.preventDefault();
-                const x = e.pageX - categoriesNav.offsetLeft;
-                const walk = (x - startX) * 2;
-                categoriesNav.scrollLeft = scrollLeft - walk;
-            });
-            
-            // Для touch устройств
-            categoriesNav.addEventListener('touchstart', (e) => {
-                isDown = true;
-                startX = e.touches[0].pageX - categoriesNav.offsetLeft;
-                scrollLeft = categoriesNav.scrollLeft;
-            });
-            
-            categoriesNav.addEventListener('touchend', () => {
-                isDown = false;
-            });
-            
-            categoriesNav.addEventListener('touchmove', (e) => {
-                if (!isDown) return;
-                const x = e.touches[0].pageX - categoriesNav.offsetLeft;
-                const walk = (x - startX) * 2;
-                categoriesNav.scrollLeft = scrollLeft - walk;
-            });
+            setupScroll(categoriesNav);
+            setupScroll(subCategoriesNav);
         }
         
         // Инициализируем прокрутку после загрузки
