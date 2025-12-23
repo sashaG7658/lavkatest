@@ -119,6 +119,254 @@ const categories = [
     { id: 'corvus', name: '🐦 CORVUS', icon: 'fas fa-crow', color: '#607D8B' }
 ];
 
+// ======================
+// ФУНКЦИЯ ФИЛЬТРАЦИИ ПО КАТЕГОРИЯМ
+// ======================
+
+function filterProductsByCategory(productsToFilter) {
+    if (currentCategory === 'all') {
+        return productsToFilter;
+    }
+    
+    return productsToFilter.filter(product => {
+        const productName = product.name.toLowerCase();
+        
+        switch(currentCategory) {
+            // Никотиновые пластинки
+            case 'nicotine':
+                return productName.includes('пластин') || 
+                       productName.includes('никотин') ||
+                       productName.includes('пастил');
+            
+            // ARQA - включает несколько подкатегорий
+            case 'arqa':
+                return productName.includes('arqa') ||
+                       productName.includes('арка') ||
+                       productName.includes('70mg') ||
+                       productName.includes('70 мг') ||
+                       productName.includes('standart') ||
+                       productName.includes('standard') ||
+                       productName.includes('slim') ||
+                       productName.includes('cs:go') ||
+                       productName.includes('cs go') ||
+                       productName.includes('слово пацана') ||
+                       productName.includes('слово');
+            
+            // ШОК - включает несколько подкатегорий
+            case 'shok':
+                return productName.includes('шок') ||
+                       productName.includes('shok') ||
+                       (productName.includes('150 мг') && productName.includes('шок')) ||
+                       (productName.includes('150 мг') && productName.includes('shok')) ||
+                       (productName.includes('75 мг') && productName.includes('шок')) ||
+                       (productName.includes('75 мг') && productName.includes('shok')) ||
+                       productName.includes('shok by x') ||
+                       productName.includes('шок by x');
+            
+            // STORM BY ШОК
+            case 'storm':
+                return productName.includes('storm') ||
+                       productName.includes('шторм');
+            
+            // ST (АНАЛОГ FERDS) - только определенные позиции
+            case 'st':
+                return (productName.includes('st') && !productName.includes('storm')) ||
+                       productName.includes('стей') ||
+                       productName.includes('ст ') ||
+                       productName.includes(' st') ||
+                       productName.includes('menthol 45') ||
+                       productName.includes('lime delight 55') ||
+                       productName.includes('luxury mint 65') ||
+                       productName.includes('freeze mint 75') ||
+                       productName.includes('royal mint 120');
+            
+            // KASTA - включает несколько подкатегорий
+            case 'kasta':
+                return productName.includes('kasta') ||
+                       productName.includes('каста') ||
+                       (productName.includes('101 мг') && productName.includes('kasta')) ||
+                       (productName.includes('105 мг') && productName.includes('kasta')) ||
+                       productName.includes('limited edition') ||
+                       productName.includes('covid') ||
+                       productName.includes('anime') ||
+                       productName.includes('dota') ||
+                       productName.includes('phobia');
+            
+            // FERDS - только определенные позиции
+            case 'ferds':
+                return productName.includes('ferds') ||
+                       productName.includes('фердс') ||
+                       productName.includes('feds') ||
+                       productName.includes('fedrs') ||
+                       productName.includes('fedrs №5') ||
+                       productName.includes('fedrs №8') ||
+                       productName.includes('fedrs №9');
+            
+            // ICEBERG - делится на подкатегории
+            case 'iceberg':
+                return productName.includes('iceberg') ||
+                       productName.includes('айсберг') ||
+                       productName.includes('strong 75') ||
+                       productName.includes('triangles 75') ||
+                       productName.includes('extra strong 100') ||
+                       productName.includes('extreme 110') ||
+                       productName.includes('ultra 150');
+            
+            // FAFF - включает все версии
+            case 'faff':
+                return productName.includes('faff') ||
+                       productName.includes('фафф') ||
+                       (productName.includes('65 мг') && productName.includes('faff')) ||
+                       (productName.includes('75 мг') && productName.includes('faff')) ||
+                       (productName.includes('100 мг') && productName.includes('faff')) ||
+                       (productName.includes('150 мг') && productName.includes('faff'));
+            
+            // RANDM BY FAFF
+            case 'randm':
+                return productName.includes('randm') ||
+                       productName.includes('рандм');
+            
+            // SHOOTER BY FAFF
+            case 'shooter':
+                return productName.includes('shooter') ||
+                       productName.includes('шутер');
+            
+            // ZUZU BY FAFF
+            case 'zuzu':
+                return productName.includes('zuzu') ||
+                       productName.includes('зузу');
+            
+            // ШВЕЦИЯ - включает несколько брендов
+            case 'sweden':
+                return productName.includes('швеция') ||
+                       productName.includes('sweden') ||
+                       productName.includes('odens') ||
+                       productName.includes('lyft') ||
+                       productName.includes('zyn') ||
+                       productName.includes('chn');
+            
+            // RED - включает несколько вариантов
+            case 'red':
+                return productName.includes('red') ||
+                       productName.includes('ред') ||
+                       productName.includes('red original') ||
+                       productName.includes('red ice cool') ||
+                       productName.includes('red killer');
+            
+            // MAD
+            case 'mad':
+                return productName.includes('mad');
+            
+            // BITCOIN
+            case 'bitcoin':
+                return productName.includes('bitcoin');
+            
+            // DRYMOST
+            case 'drymost':
+                return productName.includes('drymost');
+            
+            // CORVUS
+            case 'corvus':
+                return productName.includes('corvus');
+            
+            default:
+                return true;
+        }
+    });
+}
+
+// ======================
+// ФУНКЦИЯ ОПРЕДЕЛЕНИЯ КАТЕГОРИИ ТОВАРА
+// ======================
+
+function detectProductCategory(productName) {
+    const name = productName.toLowerCase();
+    
+    // ICEBERG
+    if (name.includes('iceberg') || name.includes('айсберг') ||
+        name.includes('strong 75') || name.includes('triangles 75') ||
+        name.includes('extra strong 100') || name.includes('extreme 110') ||
+        name.includes('ultra 150')) return 'iceberg';
+    
+    // ARQA
+    if (name.includes('arqa') || name.includes('арка') ||
+        name.includes('70mg') || name.includes('70 мг') ||
+        name.includes('standart') || name.includes('standard') ||
+        name.includes('slim') || name.includes('cs:go') ||
+        name.includes('слово пацана')) return 'arqa';
+    
+    // ШОК
+    if (name.includes('шок') || name.includes('shok') ||
+        (name.includes('150 мг') && (name.includes('шок') || name.includes('shok'))) ||
+        (name.includes('75 мг') && (name.includes('шок') || name.includes('shok'))) ||
+        name.includes('shok by x')) return 'shok';
+    
+    // STORM
+    if (name.includes('storm') || name.includes('шторм')) return 'storm';
+    
+    // ST
+    if ((name.includes('st') && !name.includes('storm')) ||
+        name.includes('стей') || name.includes('ст ') ||
+        name.includes('menthol 45') || name.includes('lime delight 55') ||
+        name.includes('luxury mint 65') || name.includes('freeze mint 75') ||
+        name.includes('royal mint 120')) return 'st';
+    
+    // KASTA
+    if (name.includes('kasta') || name.includes('каста') ||
+        name.includes('limited edition') || name.includes('covid') ||
+        name.includes('anime') || name.includes('dota') ||
+        name.includes('phobia')) return 'kasta';
+    
+    // FERDS
+    if (name.includes('ferds') || name.includes('фердс') ||
+        name.includes('fedrs') || name.includes('feds') ||
+        name.includes('fedrs №5') || name.includes('fedrs №8') ||
+        name.includes('fedrs №9')) return 'ferds';
+    
+    // FAFF
+    if (name.includes('faff') || name.includes('фафф') ||
+        (name.includes('65 мг') && name.includes('faff')) ||
+        (name.includes('75 мг') && name.includes('faff')) ||
+        (name.includes('100 мг') && name.includes('faff')) ||
+        (name.includes('150 мг') && name.includes('faff'))) return 'faff';
+    
+    // RANDM
+    if (name.includes('randm') || name.includes('рандм')) return 'randm';
+    
+    // SHOOTER
+    if (name.includes('shooter') || name.includes('шутер')) return 'shooter';
+    
+    // ZUZU
+    if (name.includes('zuzu') || name.includes('зузу')) return 'zuzu';
+    
+    // ШВЕЦИЯ
+    if (name.includes('швеция') || name.includes('sweden') ||
+        name.includes('odens') || name.includes('lyft') ||
+        name.includes('zyn') || name.includes('chn')) return 'sweden';
+    
+    // RED
+    if (name.includes('red') || name.includes('ред') ||
+        name.includes('original') || name.includes('ice cool') ||
+        name.includes('killer')) return 'red';
+    
+    // MAD
+    if (name.includes('mad')) return 'mad';
+    
+    // BITCOIN
+    if (name.includes('bitcoin')) return 'bitcoin';
+    
+    // DRYMOST
+    if (name.includes('drymost')) return 'drymost';
+    
+    // CORVUS
+    if (name.includes('corvus')) return 'corvus';
+    
+    // Никотиновые пластинки
+    if (name.includes('пластин') || name.includes('никотин') ||
+        name.includes('пастил')) return 'nicotine';
+    
+    return 'other';
+}
 function createCategoriesNav() {
     const categoriesContainer = document.getElementById('categoriesNav');
     if (!categoriesContainer) return;
@@ -821,3 +1069,4 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
+
