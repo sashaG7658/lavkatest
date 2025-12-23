@@ -1,5 +1,5 @@
 // script.js
-// ICEBERG Shop - Версия для пользователей (без показа количества)
+// ICEBERG Shop - Версия с разделами категорий
 // ======================
 
 let currentTheme = 'light';
@@ -7,6 +7,7 @@ let tg = null;
 let products = [];
 let cart = [];
 let autoUpdateInterval = null;
+let currentCategory = 'all'; // Текущая выбранная категория
 
 // ======================
 // 1. ТЕМА И TELEGRAM
@@ -93,7 +94,114 @@ function initTelegram() {
 }
 
 // ======================
-// 2. ЗАГРУЗКА ТОВАРОВ
+// 2. КАТЕГОРИИ ТОВАРОВ
+// ======================
+
+const categories = [
+    { id: 'all', name: '🔥 ВСЕ ТОВАРЫ', icon: 'fas fa-fire', color: '#FF9800' },
+    { id: 'nicotine', name: '🚬 НИКОТИНОВЫЕ ПЛАСТИНКИ', icon: 'fas fa-tablets', color: '#795548' },
+    { id: 'arqa', name: '🎨 ARQA', icon: 'fas fa-palette', color: '#2196F3' },
+    { id: 'shok', name: '⚡ ШОК', icon: 'fas fa-bolt', color: '#FF5722' },
+    { id: 'storm', name: '🌪️ STORM BY ШОК', icon: 'fas fa-wind', color: '#9C27B0' },
+    { id: 'st', name: '🔬 ST (АНАЛОГ FERDS)', icon: 'fas fa-flask', color: '#009688' },
+    { id: 'kasta', name: '👑 KASTA', icon: 'fas fa-crown', color: '#FFC107' },
+    { id: 'ferds', name: '⚗️ FERDS', icon: 'fas fa-vial', color: '#3F51B5' },
+    { id: 'iceberg', name: '❄️ ICEBERG', icon: 'fas fa-snowflake', color: '#03A9F4' },
+    { id: 'faff', name: '🐉 FAFF', icon: 'fas fa-dragon', color: '#E91E63' },
+    { id: 'randm', name: '🎲 RANDM BY FAFF', icon: 'fas fa-dice', color: '#673AB7' },
+    { id: 'shooter', name: '🎯 SHOOTER BY FAFF', icon: 'fas fa-bullseye', color: '#FF9800' },
+    { id: 'zuzu', name: '✨ ZUZU BY FAFF', icon: 'fas fa-star', color: '#FFEB3B' },
+    { id: 'sweden', name: '🇸🇪 ШВЕЦИЯ', icon: 'fas fa-flag', color: '#F44336' },
+    { id: 'red', name: '🔴 RED', icon: 'fas fa-circle', color: '#F44336' },
+    { id: 'mad', name: '😜 MAD', icon: 'fas fa-grin-tongue-wink', color: '#9C27B0' },
+    { id: 'bitcoin', name: '₿ BITCOIN', icon: 'fab fa-bitcoin', color: '#FF9800' },
+    { id: 'drymost', name: '💧 DRYMOST', icon: 'fas fa-tint', color: '#2196F3' },
+    { id: 'corvus', name: '🐦 CORVUS', icon: 'fas fa-crow', color: '#607D8B' }
+];
+
+function createCategoriesNav() {
+    const categoriesContainer = document.getElementById('categoriesNav');
+    if (!categoriesContainer) return;
+    
+    categoriesContainer.innerHTML = categories.map(category => `
+        <button class="category-btn ${currentCategory === category.id ? 'active' : ''}" 
+                onclick="switchCategory('${category.id}')"
+                style="--category-color: ${category.color}">
+            <i class="${category.icon}"></i>
+            <span>${category.name}</span>
+        </button>
+    `).join('');
+}
+
+function switchCategory(categoryId) {
+    currentCategory = categoryId;
+    createCategoriesNav();
+    renderProductsByCategory();
+    
+    // Прокручиваем к началу товаров
+    document.getElementById('catalog').scrollIntoView({ behavior: 'smooth' });
+    
+    // Показываем уведомление
+    const category = categories.find(c => c.id === categoryId);
+    if (category) {
+        showNotification(`📂 Категория: ${category.name}`);
+    }
+}
+
+function filterProductsByCategory(productsToFilter) {
+    if (currentCategory === 'all') {
+        return productsToFilter;
+    }
+    
+    // Фильтруем товары по категории (на основе названия)
+    return productsToFilter.filter(product => {
+        const productName = product.name.toLowerCase();
+        
+        switch(currentCategory) {
+            case 'nicotine':
+                return productName.includes('пластин') || productName.includes('никотин');
+            case 'arqa':
+                return productName.includes('arqa');
+            case 'shok':
+                return productName.includes('шок');
+            case 'storm':
+                return productName.includes('storm') || productName.includes('шторм');
+            case 'st':
+                return productName.includes('st ') || productName.includes(' st') || productName.includes('фердс');
+            case 'kasta':
+                return productName.includes('kasta') || productName.includes('каста');
+            case 'ferds':
+                return productName.includes('ferds') || productName.includes('фердс');
+            case 'iceberg':
+                return productName.includes('iceberg') || productName.includes('айсберг');
+            case 'faff':
+                return productName.includes('faff');
+            case 'randm':
+                return productName.includes('randm');
+            case 'shooter':
+                return productName.includes('shooter');
+            case 'zuzu':
+                return productName.includes('zuzu');
+            case 'sweden':
+                return productName.includes('швеция');
+            case 'red':
+                return productName.includes('red') || productName.includes('ред');
+            case 'mad':
+                return productName.includes('mad');
+            case 'bitcoin':
+                return productName.includes('bitcoin');
+            case 'drymost':
+                return productName.includes('drymost');
+            case 'corvus':
+                return productName.includes('corvus');
+            default:
+                return true;
+        }
+    });
+}
+
+// ======================
+// 3. ЗАГРУЗКА ТОВАРОВ
 // ======================
 
 async function loadProductsFromGitHub() {
@@ -112,6 +220,10 @@ async function loadProductsFromGitHub() {
             if (!product.hasOwnProperty('quantity')) {
                 product.quantity = 10;
             }
+            // Добавляем поле category если его нет
+            if (!product.hasOwnProperty('category')) {
+                product.category = detectProductCategory(product.name);
+            }
         });
         
         console.log(`✅ Загружено ${loadedProducts.length} товаров с GitHub`);
@@ -122,6 +234,31 @@ async function loadProductsFromGitHub() {
     }
 }
 
+function detectProductCategory(productName) {
+    const name = productName.toLowerCase();
+    
+    if (name.includes('iceberg') || name.includes('айсберг')) return 'iceberg';
+    if (name.includes('arqa')) return 'arqa';
+    if (name.includes('шок')) return 'shok';
+    if (name.includes('storm') || name.includes('шторм')) return 'storm';
+    if (name.includes('st ') || name.includes(' st') || name.includes('фердс')) return 'st';
+    if (name.includes('kasta') || name.includes('каста')) return 'kasta';
+    if (name.includes('ferds')) return 'ferds';
+    if (name.includes('faff')) return 'faff';
+    if (name.includes('randm')) return 'randm';
+    if (name.includes('shooter')) return 'shooter';
+    if (name.includes('zuzu')) return 'zuzu';
+    if (name.includes('швеция')) return 'sweden';
+    if (name.includes('red') || name.includes('ред')) return 'red';
+    if (name.includes('mad')) return 'mad';
+    if (name.includes('bitcoin')) return 'bitcoin';
+    if (name.includes('drymost')) return 'drymost';
+    if (name.includes('corvus')) return 'corvus';
+    if (name.includes('пластин') || name.includes('никотин')) return 'nicotine';
+    
+    return 'other';
+}
+
 function getDefaultProducts() {
     return [
         {
@@ -130,6 +267,7 @@ function getDefaultProducts() {
             description: "ICEBERG ULTRA MENTHOL (150 МГ) - МЕНТОЛ",
             price: 500,
             quantity: 10,
+            category: "iceberg",
             image: "https://static.insales-cdn.com/images/products/1/4176/629641296/large_DD5D020A-5370-4C6E-8350-BC442E83B211.jpg",
             isNew: true
         },
@@ -139,64 +277,80 @@ function getDefaultProducts() {
             description: "ICEBERG ULTRA BLACK (150 МГ) - ТУТТИ-ФРУТТИ",
             price: 500,
             quantity: 10,
+            category: "iceberg",
             image: "https://static.insales-cdn.com/images/products/1/4138/629641258/large_418EE6C0-080A-4F12-85FC-011F55E19F86.jpg",
             isNew: true
         },
         {
             id: 3,
-            name: "ICEBERG ULTRA CRAZY MIX",
-            description: "ICEBERG ULTRA CRAZY MIX - МУЛЬТИФРУТ, ЦИТРУС",
-            price: 500,
-            quantity: 10,
-            image: "https://static.insales-cdn.com/images/products/1/4960/629642080/large_36DE056D-C798-404C-A1A4-098A258FFE2B.jpg"
+            name: "ARQA SPECIAL MIX",
+            description: "ARQA SPECIAL MIX - УНИКАЛЬНЫЙ ВКУС",
+            price: 550,
+            quantity: 8,
+            category: "arqa",
+            image: "https://example.com/arqa.jpg"
         },
         {
             id: 4,
-            name: "ICEBERG ULTRA EMERALD",
-            description: "ICEBERG ULTRA EMERALD - ЯБЛОКО, ЛАЙМ",
-            price: 500,
-            quantity: 10,
-            image: "https://static.insales-cdn.com/images/products/1/5090/629642210/large_E205F534-FC22-4962-AFE3-BB71710AF3F0.jpg"
+            name: "SHOK ENERGY",
+            description: "SHOK ENERGY - ЭНЕРГЕТИЧЕСКИЙ ВКУС",
+            price: 480,
+            quantity: 12,
+            category: "shok",
+            image: "https://example.com/shok.jpg"
         },
         {
             id: 5,
-            name: "ICEBERG ULTRA DRAGONFIRE",
-            description: "ICEBERG ULTRA DRAGONFIRE - ЦВЕТЫ",
-            price: 500,
-            quantity: 10,
-            image: "https://static.insales-cdn.com/images/products/1/5177/629642297/large_3097AA0C-00E1-47C7-BDFC-0EA9EA9E1E75.jpg"
-        },
-        {
-            id: 6,
-            name: "ICEBERG ULTRA DOUBLE MINT",
-            description: "ICEBERG ULTRA DOUBLE MINT - ДВОЙНАЯ МЯТА",
-            price: 500,
-            quantity: 10,
-            image: "https://static.insales-cdn.com/images/products/1/503/746127863/large_IMG_1491.JPG"
+            name: "STORM MENTHOL",
+            description: "STORM BY ШОК MENTHOL - ОХЛАЖДАЮЩИЙ",
+            price: 520,
+            quantity: 6,
+            category: "storm",
+            image: "https://example.com/storm.jpg"
         }
     ];
 }
 
 // ======================
-// 3. ОТОБРАЖЕНИЕ ТОВАРОВ (БЕЗ КОЛИЧЕСТВА)
+// 4. ОТОБРАЖЕНИЕ ТОВАРОВ
 // ======================
 
-function renderProducts(productsToRender) {
+function renderProductsByCategory() {
     const catalog = document.getElementById('catalog');
     if (!catalog) return;
-
-    catalog.innerHTML = productsToRender.map(product => {
+    
+    const filteredProducts = filterProductsByCategory(products);
+    
+    if (filteredProducts.length === 0) {
+        catalog.innerHTML = `
+            <div class="empty-category">
+                <i class="fas fa-box-open fa-3x"></i>
+                <h3>Товаров в этой категории пока нет</h3>
+                <p>Выберите другую категорию или подождите добавления товаров</p>
+            </div>
+        `;
+        return;
+    }
+    
+    catalog.innerHTML = filteredProducts.map(product => {
         const qty = product.quantity || 0;
         const isAvailable = qty > 0;
         
-        // Бейджи только для пользователей
+        // Определяем цвет категории для бейджа
+        const categoryInfo = categories.find(c => c.id === product.category) || categories[0];
+        const categoryColor = categoryInfo.color || '#FF9800';
+        
         let badge = '';
         if (product.isNew && isAvailable) {
             badge = '<div class="new-badge pulse">NEW</div>';
         } else if (!isAvailable) {
             badge = '<div class="new-badge" style="background: #F44336;">НЕТ В НАЛИЧИИ</div>';
         }
-        // Убираем бейдж "ОСТАЛОСЬ X" - пользователи не видят количество
+        
+        // Добавляем бейдж категории
+        if (product.category && product.category !== 'other') {
+            badge += `<div class="category-badge" style="background: ${categoryColor};">${categoryInfo.name.split(' ')[0]}</div>`;
+        }
         
         return `
             <div class="product-card">
@@ -206,7 +360,7 @@ function renderProducts(productsToRender) {
                      class="product-image loading"
                      loading="lazy"
                      onload="this.classList.remove('loading')"
-                     onerror="this.src='https://via.placeholder.com/300x200/FF9800/FFFFFF?text=ICEBERG'">
+                     onerror="this.src='https://via.placeholder.com/300x200/${categoryColor.replace('#', '')}/FFFFFF?text=${encodeURIComponent(product.name.split(' ')[0])}'">
                 <div class="product-info">
                     <h3 class="product-title">${product.name}</h3>
                     <p class="product-description">${product.description}</p>
@@ -226,7 +380,7 @@ function renderProducts(productsToRender) {
 }
 
 // ======================
-// 4. КОРЗИНА
+// 5. КОРЗИНА
 // ======================
 
 function loadCart() {
@@ -257,7 +411,6 @@ function addToCart(productId) {
         return;
     }
     
-    // Проверяем остатки
     if (product.quantity <= 0) {
         showNotification('❌ Товар закончился');
         return;
@@ -265,7 +418,6 @@ function addToCart(productId) {
     
     const existingItem = cart.find(item => item.id === productId);
     
-    // Проверяем, не превышаем ли остаток
     if (existingItem) {
         if (existingItem.quantity >= product.quantity) {
             showNotification(`⚠️ Максимум ${product.quantity} шт. в наличии`);
@@ -303,7 +455,6 @@ function updateQuantity(productId, change) {
 
     const newQuantity = item.quantity + change;
     
-    // Проверяем остатки
     if (newQuantity > product.quantity) {
         showNotification(`⚠️ Максимум ${product.quantity} шт. в наличии`);
         return;
@@ -437,13 +588,12 @@ function showNotification(message) {
 }
 
 // ======================
-// 5. ОФОРМЛЕНИЕ ЗАКАЗА
+// 6. ОФОРМЛЕНИЕ ЗАКАЗА
 // ======================
 
 async function checkout() {
     if (cart.length === 0) return;
     
-    // Проверяем доступность товаров
     const unavailableItems = cart.filter(item => {
         const product = products.find(p => p.id === item.id);
         return !product || product.quantity <= 0;
@@ -461,7 +611,6 @@ async function checkout() {
         return;
     }
     
-    // Проверяем превышение остатков
     const exceededItems = cart.filter(item => {
         const product = products.find(p => p.id === item.id);
         return product && item.quantity > product.quantity;
@@ -479,7 +628,6 @@ async function checkout() {
         return;
     }
 
-    // Формируем данные заказа
     const orderData = {
         products: cart.map(item => ({
             id: item.id,
@@ -501,7 +649,6 @@ async function checkout() {
     console.log("🛒 Отправка заказа:", orderData);
     
     try {
-        // Отправляем заказ в Telegram бота
         if (tg && tg.sendData) {
             tg.sendData(JSON.stringify(orderData));
             
@@ -516,14 +663,12 @@ async function checkout() {
                     saveCart();
                     closeCart();
                     
-                    // Обновляем товары через 2 секунды
                     setTimeout(() => {
                         loadAndRenderProducts();
                     }, 2000);
                 }
             );
         } else {
-            // Если не в Telegram
             alert(
                 `✅ Заказ оформлен!\n\n` +
                 `📦 Товаров: ${getCartCount()} шт.\n` +
@@ -538,7 +683,6 @@ async function checkout() {
             closeCart();
         }
         
-        // Обновляем товары через 3 секунды
         setTimeout(() => {
             loadAndRenderProducts();
         }, 3000);
@@ -562,7 +706,7 @@ function closeCart() {
 }
 
 // ======================
-// 6. АВТООБНОВЛЕНИЕ
+// 7. АВТООБНОВЛЕНИЕ
 // ======================
 
 async function loadAndRenderProducts() {
@@ -572,10 +716,9 @@ async function loadAndRenderProducts() {
         const oldProducts = [...products];
         products = newProducts;
         
-        // Рендерим товары (без показа количества для пользователей)
-        renderProducts(products);
+        createCategoriesNav();
+        renderProductsByCategory();
         
-        // Проверяем корзину
         let cartUpdated = false;
         cart.forEach(cartItem => {
             const product = products.find(p => p.id === cartItem.id);
@@ -605,7 +748,6 @@ async function loadAndRenderProducts() {
 }
 
 function startAutoUpdate() {
-    // Обновляем каждые 60 секунд
     autoUpdateInterval = setInterval(async () => {
         await loadAndRenderProducts();
     }, 60000);
@@ -622,26 +764,17 @@ function stopAutoUpdate() {
 }
 
 // ======================
-// 7. ИНИЦИАЛИЗАЦИЯ
+// 8. ИНИЦИАЛИЗАЦИЯ
 // ======================
 
 async function initApp() {
-    // Определяем тему
     detectTheme();
-    
-    // Инициализируем Telegram
     initTelegram();
     
-    // Загружаем товары
     await loadAndRenderProducts();
-    
-    // Загружаем корзину
     loadCart();
-    
-    // Запускаем автообновление
     startAutoUpdate();
     
-    // Создаем переключатель темы
     const themeSwitch = document.createElement('div');
     themeSwitch.className = 'theme-switch';
     themeSwitch.innerHTML = '<i class="fas fa-moon"></i>';
@@ -649,14 +782,12 @@ async function initApp() {
     document.body.appendChild(themeSwitch);
     updateThemeIcon();
     
-    // Настраиваем обработчики
     document.getElementById('cartButton').onclick = openCart;
     document.getElementById('closeCart').onclick = closeCart;
     document.getElementById('cartOverlay').onclick = closeCart;
     document.getElementById('checkoutButton').onclick = checkout;
     document.getElementById('clearCartButton').onclick = clearCart;
     
-    // Экспортируем функции
     window.addToCart = addToCart;
     window.removeFromCart = removeFromCart;
     window.updateQuantity = updateQuantity;
@@ -665,8 +796,8 @@ async function initApp() {
     window.checkout = checkout;
     window.clearCart = clearCart;
     window.toggleTheme = toggleTheme;
+    window.switchCategory = switchCategory;
     
-    // Скрываем загрузчик
     setTimeout(() => {
         const loader = document.getElementById('loader');
         const app = document.getElementById('app');
@@ -680,15 +811,13 @@ async function initApp() {
         }
     }, 500);
     
-    console.log('✅ ICEBERG Shop инициализирован');
+    console.log('✅ ICEBERG Shop с категориями инициализирован');
 }
 
-// Запускаем при загрузке
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initApp);
 } else {
     initApp();
 }
 
-// Останавливаем автообновление при закрытии
 window.addEventListener('beforeunload', stopAutoUpdate);
