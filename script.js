@@ -1,5 +1,5 @@
 // script.js
-// ICEBERG Shop - Версия с кнопками навигации и автоматической статистикой
+// ICEBERG Shop - Версия с разделами категорий, подразделами и уведомлением менеджеру
 // ======================
 
 let currentTheme = 'light';
@@ -10,24 +10,6 @@ let autoUpdateInterval = null;
 let currentCategory = 'all'; // Текущая выбранная категория
 let currentSubCategory = null; // Текущий подраздел
 let orderHistory = []; // История заказов
-let salesStats = { // Статистика продаж
-    totalSales: 0,
-    totalRevenue: 0,
-    totalOrders: 0,
-    todaySales: 0,
-    todayRevenue: 0,
-    categoryStats: {},
-    productStats: {}
-};
-
-// Конфигурация
-const CONFIG = {
-    MANAGER_USERNAME: 'Chief_68',
-    MANAGER_LINK: 'https://t.me/Chief_68',
-    SHOP_NAME: 'LAVKA Shop',
-    AUTO_UPDATE_INTERVAL: 60000,
-    NOTIFICATION_DURATION: 3000
-};
 
 // ======================
 // 1. ТЕМА И TELEGRAM
@@ -305,10 +287,6 @@ const categories = [
 function createCategoriesNav() {
     const categoriesContainer = document.getElementById('categoriesNav');
     const subCategoriesContainer = document.getElementById('subCategoriesNav');
-    const categoriesScrollLeft = document.getElementById('categoriesScrollLeft');
-    const categoriesScrollRight = document.getElementById('categoriesScrollRight');
-    const subCategoriesScrollLeft = document.getElementById('subCategoriesScrollLeft');
-    const subCategoriesScrollRight = document.getElementById('subCategoriesScrollRight');
     
     if (!categoriesContainer) return;
     
@@ -342,28 +320,10 @@ function createCategoriesNav() {
                 `).join('')}
             `;
             subCategoriesContainer.style.display = 'flex';
-            
-            // Показываем кнопки навигации для подкатегорий
-            if (subCategoriesScrollLeft && subCategoriesScrollRight) {
-                subCategoriesScrollLeft.style.display = 'flex';
-                subCategoriesScrollRight.style.display = 'flex';
-                updateNavButtons('subCategoriesNav', 'subCategoriesScrollLeft', 'subCategoriesScrollRight');
-            }
         } else {
             subCategoriesContainer.innerHTML = '';
             subCategoriesContainer.style.display = 'none';
-            
-            // Скрываем кнопки навигации для подкатегорий
-            if (subCategoriesScrollLeft && subCategoriesScrollRight) {
-                subCategoriesScrollLeft.style.display = 'none';
-                subCategoriesScrollRight.style.display = 'none';
-            }
         }
-    }
-    
-    // Обновляем видимость кнопок навигации для основных категорий
-    if (categoriesScrollLeft && categoriesScrollRight) {
-        updateNavButtons('categoriesNav', 'categoriesScrollLeft', 'categoriesScrollRight');
     }
 }
 
@@ -397,306 +357,6 @@ function switchSubCategory(subCategoryId) {
     }
 }
 
-// Функция для обновления видимости кнопок навигации
-function updateNavButtons(containerId, leftBtnId, rightBtnId) {
-    const container = document.getElementById(containerId);
-    const leftBtn = document.getElementById(leftBtnId);
-    const rightBtn = document.getElementById(rightBtnId);
-    
-    if (!container || !leftBtn || !rightBtn) return;
-    
-    // Проверяем, нужна ли прокрутка
-    const hasScroll = container.scrollWidth > container.clientWidth;
-    
-    if (!hasScroll) {
-        leftBtn.classList.add('hidden');
-        rightBtn.classList.add('hidden');
-        return;
-    }
-    
-    // Показываем кнопки
-    leftBtn.classList.remove('hidden');
-    rightBtn.classList.remove('hidden');
-    
-    // Проверяем положение прокрутки
-    const isAtStart = container.scrollLeft <= 10;
-    const isAtEnd = container.scrollLeft + container.clientWidth >= container.scrollWidth - 10;
-    
-    leftBtn.classList.toggle('hidden', isAtStart);
-    rightBtn.classList.toggle('hidden', isAtEnd);
-}
-
-// Функции для прокрутки категорий
-function scrollCategories(direction) {
-    const container = document.getElementById('categoriesNav');
-    if (!container) return;
-    
-    const scrollAmount = 200;
-    container.scrollBy({
-        left: direction * scrollAmount,
-        behavior: 'smooth'
-    });
-    
-    // Обновляем кнопки после прокрутки
-    setTimeout(() => {
-        updateNavButtons('categoriesNav', 'categoriesScrollLeft', 'categoriesScrollRight');
-    }, 300);
-}
-
-function scrollSubCategories(direction) {
-    const container = document.getElementById('subCategoriesNav');
-    if (!container || container.style.display === 'none') return;
-    
-    const scrollAmount = 150;
-    container.scrollBy({
-        left: direction * scrollAmount,
-        behavior: 'smooth'
-    });
-    
-    // Обновляем кнопки после прокрутки
-    setTimeout(() => {
-        updateNavButtons('subCategoriesNav', 'subCategoriesScrollLeft', 'subCategoriesScrollRight');
-    }, 300);
-}
-
-// ======================
-// 3. СТАТИСТИКА ПРОДАЖ
-// ======================
-
-function loadSalesStats() {
-    try {
-        const savedStats = localStorage.getItem('iceberg_sales_stats');
-        if (savedStats) {
-            salesStats = JSON.parse(savedStats);
-            console.log(`📊 Загружена статистика продаж: ${salesStats.totalOrders} заказов`);
-        } else {
-            // Инициализируем пустую статистику
-            salesStats = {
-                totalSales: 0,
-                totalRevenue: 0,
-                totalOrders: 0,
-                todaySales: 0,
-                todayRevenue: 0,
-                categoryStats: {},
-                productStats: {}
-            };
-            console.log('📊 Инициализирована новая статистика продаж');
-        }
-        updateStatsUI();
-    } catch (error) {
-        console.error('❌ Ошибка загрузки статистики:', error);
-        salesStats = {
-            totalSales: 0,
-            totalRevenue: 0,
-            totalOrders: 0,
-            todaySales: 0,
-            todayRevenue: 0,
-            categoryStats: {},
-            productStats: {}
-        };
-    }
-}
-
-function saveSalesStats() {
-    try {
-        localStorage.setItem('iceberg_sales_stats', JSON.stringify(salesStats));
-        updateStatsUI();
-    } catch (error) {
-        console.error('❌ Ошибка сохранения статистики:', error);
-    }
-}
-
-function updateSalesStats(orderData) {
-    const today = new Date().toDateString();
-    
-    // Обновляем общую статистику
-    salesStats.totalOrders++;
-    salesStats.totalSales += orderData.items_count;
-    salesStats.totalRevenue += orderData.total;
-    
-    // Обновляем статистику за сегодня
-    const orderDate = new Date(orderData.timestamp).toDateString();
-    if (orderDate === today) {
-        salesStats.todaySales += orderData.items_count;
-        salesStats.todayRevenue += orderData.total;
-    }
-    
-    // Обновляем статистику по категориям и товарам
-    orderData.products.forEach(item => {
-        const product = products.find(p => p.id === item.id);
-        if (product) {
-            // Определяем категорию товара
-            const category = detectProductCategory(product.name);
-            
-            // Обновляем статистику по категориям
-            if (!salesStats.categoryStats[category]) {
-                salesStats.categoryStats[category] = {
-                    sales: 0,
-                    revenue: 0
-                };
-            }
-            salesStats.categoryStats[category].sales += item.quantity;
-            salesStats.categoryStats[category].revenue += item.price * item.quantity;
-            
-            // Обновляем статистику по товарам
-            if (!salesStats.productStats[product.id]) {
-                salesStats.productStats[product.id] = {
-                    name: product.name,
-                    sales: 0,
-                    revenue: 0
-                };
-            }
-            salesStats.productStats[product.id].sales += item.quantity;
-            salesStats.productStats[product.id].revenue += item.price * item.quantity;
-        }
-    });
-    
-    saveSalesStats();
-    console.log('📊 Статистика продаж обновлена');
-}
-
-function updateStatsUI() {
-    const statsPanel = document.getElementById('salesStats');
-    if (!statsPanel) return;
-    
-    // Форматируем числа
-    const formatNumber = (num) => {
-        return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-    };
-    
-    statsPanel.innerHTML = `
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-icon">
-                    <i class="fas fa-shopping-bag"></i>
-                </div>
-                <div class="stat-content">
-                    <div class="stat-value">${formatNumber(salesStats.totalOrders)}</div>
-                    <div class="stat-label">Всего заказов</div>
-                </div>
-            </div>
-            
-            <div class="stat-card">
-                <div class="stat-icon">
-                    <i class="fas fa-box"></i>
-                </div>
-                <div class="stat-content">
-                    <div class="stat-value">${formatNumber(salesStats.totalSales)}</div>
-                    <div class="stat-label">Товаров продано</div>
-                </div>
-            </div>
-            
-            <div class="stat-card">
-                <div class="stat-icon">
-                    <i class="fas fa-ruble-sign"></i>
-                </div>
-                <div class="stat-content">
-                    <div class="stat-value">${formatNumber(salesStats.totalRevenue)} ₽</div>
-                    <div class="stat-label">Общая выручка</div>
-                </div>
-            </div>
-            
-            <div class="stat-card">
-                <div class="stat-icon">
-                    <i class="fas fa-calendar-day"></i>
-                </div>
-                <div class="stat-content">
-                    <div class="stat-value">${formatNumber(salesStats.todaySales)}</div>
-                    <div class="stat-label">Продано сегодня</div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="stats-details">
-            <button class="toggle-stats-btn" onclick="toggleStatsDetails()">
-                <i class="fas fa-chart-bar"></i>
-                <span>Детальная статистика</span>
-                <i class="fas fa-chevron-down"></i>
-            </button>
-            
-            <div class="stats-details-content" id="statsDetails" style="display: none;">
-                <div class="category-stats">
-                    <h4><i class="fas fa-tags"></i> По категориям:</h4>
-                    ${Object.entries(salesStats.categoryStats)
-                        .sort((a, b) => b[1].revenue - a[1].revenue)
-                        .slice(0, 5)
-                        .map(([category, data]) => {
-                            const catInfo = categories.find(c => c.id === category) || { name: category };
-                            return `
-                            <div class="category-stat-item">
-                                <span class="category-name">${catInfo.name}</span>
-                                <span class="category-values">
-                                    <span class="sales">${data.sales} шт.</span>
-                                    <span class="revenue">${formatNumber(data.revenue)} ₽</span>
-                                </span>
-                            </div>
-                        `;
-                        }).join('')}
-                </div>
-                
-                <div class="top-products">
-                    <h4><i class="fas fa-crown"></i> Топ товаров:</h4>
-                    ${Object.values(salesStats.productStats)
-                        .sort((a, b) => b.sales - a.sales)
-                        .slice(0, 5)
-                        .map((product, index) => `
-                            <div class="product-stat-item">
-                                <span class="product-rank">${index + 1}.</span>
-                                <span class="product-name">${product.name.split(' ').slice(0, 2).join(' ')}</span>
-                                <span class="product-values">
-                                    <span class="sales">${product.sales} шт.</span>
-                                    <span class="revenue">${formatNumber(product.revenue)} ₽</span>
-                                </span>
-                            </div>
-                        `).join('')}
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-function toggleStatsDetails() {
-    const details = document.getElementById('statsDetails');
-    const toggleBtn = document.querySelector('.toggle-stats-btn');
-    
-    if (details.style.display === 'none') {
-        details.style.display = 'block';
-        toggleBtn.querySelector('.fa-chevron-down').className = 'fas fa-chevron-up';
-    } else {
-        details.style.display = 'none';
-        toggleBtn.querySelector('.fa-chevron-up').className = 'fas fa-chevron-down';
-    }
-}
-
-function detectProductCategory(productName) {
-    const name = productName.toLowerCase();
-    
-    if (name.includes('iceberg') || name.includes('айсберг')) return 'iceberg';
-    if (name.includes('arqa') || name.includes('арка')) return 'arqa';
-    if (name.includes('шок') || name.includes('shok')) return 'shok';
-    if (name.includes('storm') || name.includes('шторм')) return 'storm';
-    if ((name.includes('st') && !name.includes('storm')) || name.includes('стей')) return 'st';
-    if (name.includes('kasta') || name.includes('каста')) return 'kasta';
-    if (name.includes('ferds') || name.includes('фердс') || name.includes('fedrs')) return 'ferds';
-    if (name.includes('faff') || name.includes('фафф')) return 'faff';
-    if (name.includes('randm') || name.includes('рандм')) return 'randm';
-    if (name.includes('shooter') || name.includes('шутер')) return 'shooter';
-    if (name.includes('zuzu') || name.includes('зузу')) return 'zuzu';
-    if (name.includes('швеция') || name.includes('sweden') || name.includes('odens') || name.includes('lyft') || name.includes('zyn') || name.includes('chn')) return 'sweden';
-    if (name.includes('red') || name.includes('ред')) return 'red';
-    if (name.includes('mad')) return 'mad';
-    if (name.includes('bitcoin')) return 'bitcoin';
-    if (name.includes('drymost')) return 'drymost';
-    if (name.includes('corvus')) return 'corvus';
-    if (name.includes('пластин') || name.includes('никотин') || name.includes('пастил')) return 'nicotine';
-    
-    return 'other';
-}
-
-// ======================
-// 4. ФИЛЬТРАЦИЯ ТОВАРОВ
-// ======================
-
 function filterProductsByCategory(productsToFilter) {
     if (currentCategory === 'all') {
         return productsToFilter;
@@ -705,48 +365,107 @@ function filterProductsByCategory(productsToFilter) {
     let filtered = productsToFilter.filter(product => {
         const productName = product.name.toLowerCase();
         
+        // Основная фильтрация по категории
         switch(currentCategory) {
+            // Никотиновые пластинки
             case 'nicotine':
-                return productName.includes('пластин') || productName.includes('никотин');
+                return productName.includes('пластин') || 
+                       productName.includes('никотин') ||
+                       productName.includes('пастил');
+            
+            // ARQA - все товары ARQA
             case 'arqa':
-                return productName.includes('arqa') || productName.includes('арка');
+                return productName.includes('arqa') ||
+                       productName.includes('арка');
+            
+            // ШОК - все товары ШОК
             case 'shok':
-                return productName.includes('шок') || productName.includes('shok');
+                return productName.includes('шок') ||
+                       productName.includes('shok');
+            
+            // STORM BY ШОК
             case 'storm':
-                return productName.includes('storm') || productName.includes('шторм');
+                return productName.includes('storm') ||
+                       productName.includes('шторм');
+            
+            // ST (АНАЛОГ FERDS) - все ST товары
             case 'st':
-                return (productName.includes('st') && !productName.includes('storm')) || productName.includes('стей');
+                return (productName.includes('st') && !productName.includes('storm')) ||
+                       productName.includes('стей');
+            
+            // KASTA - все KASTA товары
             case 'kasta':
-                return productName.includes('kasta') || productName.includes('каста');
+                return productName.includes('kasta') ||
+                       productName.includes('каста');
+            
+            // FERDS - все FERDS товары
             case 'ferds':
-                return productName.includes('ferds') || productName.includes('фердс') || productName.includes('fedrs');
+                return productName.includes('ferds') ||
+                       productName.includes('фердс') ||
+                       productName.includes('fedrs') ||
+                       productName.includes('feds');
+            
+            // ICEBERG - все ICEBERG товары
             case 'iceberg':
-                return productName.includes('iceberg') || productName.includes('айсберг');
+                return productName.includes('iceberg') ||
+                       productName.includes('айсберг');
+            
+            // FAFF - все FAFF товары
             case 'faff':
-                return productName.includes('faff') || productName.includes('фафф');
+                return productName.includes('faff') ||
+                       productName.includes('фафф');
+            
+            // RANDM BY FAFF
             case 'randm':
-                return productName.includes('randm') || productName.includes('рандм');
+                return productName.includes('randm') ||
+                       productName.includes('рандм');
+            
+            // SHOOTER BY FAFF
             case 'shooter':
-                return productName.includes('shooter') || productName.includes('шутер');
+                return productName.includes('shooter') ||
+                       productName.includes('шутер');
+            
+            // ZUZU BY FAFF
             case 'zuzu':
-                return productName.includes('zuzu') || productName.includes('зузу');
+                return productName.includes('zuzu') ||
+                       productName.includes('зузу');
+            
+            // ШВЕЦИЯ - шведские бренды
             case 'sweden':
-                return productName.includes('швеция') || productName.includes('sweden') || productName.includes('odens') || productName.includes('lyft') || productName.includes('zyn') || productName.includes('chn');
+                return productName.includes('швеция') ||
+                       productName.includes('sweden') ||
+                       productName.includes('odens') ||
+                       productName.includes('lyft') ||
+                       productName.includes('zyn') ||
+                       productName.includes('chn');
+            
+            // RED - все RED товары
             case 'red':
-                return productName.includes('red') || productName.includes('ред');
+                return productName.includes('red') ||
+                       productName.includes('ред');
+            
+            // MAD
             case 'mad':
                 return productName.includes('mad');
+            
+            // BITCOIN
             case 'bitcoin':
                 return productName.includes('bitcoin');
+            
+            // DRYMOST
             case 'drymost':
                 return productName.includes('drymost');
+            
+            // CORVUS
             case 'corvus':
                 return productName.includes('corvus');
+            
             default:
                 return true;
         }
     });
     
+    // Если выбран подраздел, фильтруем дальше
     if (currentSubCategory) {
         const category = categories.find(c => c.id === currentCategory);
         if (category && category.subCategories) {
@@ -754,23 +473,29 @@ function filterProductsByCategory(productsToFilter) {
                 const productName = product.name.toLowerCase();
                 const productDesc = (product.description || '').toLowerCase();
                 
+                // Дополнительная фильтрация по подразделу
                 switch(currentSubCategory) {
+                    // ARQA подразделы
                     case '70mg':
-                        return productName.includes('70') || productDesc.includes('70');
+                        return productName.includes('70') || productName.includes('70mg') || productDesc.includes('70');
                     case 'standart':
-                        return productName.includes('standart') || productDesc.includes('standart');
+                        return productName.includes('standart') || productName.includes('standard') || productDesc.includes('standart');
                     case 'slim':
                         return productName.includes('slim') || productDesc.includes('slim');
                     case 'csgo':
-                        return productName.includes('cs') || productDesc.includes('cs:go');
+                        return productName.includes('cs') || productDesc.includes('cs:go') || productDesc.includes('cs go');
                     case 'slovo':
                         return productName.includes('слово') || productDesc.includes('слово пацана');
+                    
+                    // ШОК подразделы
                     case 'shok150':
                         return productName.includes('150') || productDesc.includes('150 мг');
                     case 'shok75':
                         return productName.includes('75') || productDesc.includes('75 мг');
                     case 'shokbyx':
                         return productName.includes('by x') || productDesc.includes('by x');
+                    
+                    // ST подразделы
                     case 'st45':
                         return productName.includes('45') || productDesc.includes('45 мг');
                     case 'st55':
@@ -781,6 +506,8 @@ function filterProductsByCategory(productsToFilter) {
                         return productName.includes('freeze') || productDesc.includes('75 мг');
                     case 'st120':
                         return productName.includes('royal') || productDesc.includes('120 мг');
+                    
+                    // KASTA подразделы
                     case 'k101':
                         return productName.includes('101') || productDesc.includes('101 мг');
                     case 'k105':
@@ -797,12 +524,16 @@ function filterProductsByCategory(productsToFilter) {
                         return productName.includes('dota') || productDesc.includes('dota');
                     case 'k125p':
                         return productName.includes('phobia') || productDesc.includes('phobia');
+                    
+                    // FERDS подразделы
                     case 'f30':
                         return productName.includes('30') || productDesc.includes('30 мг') || productName.includes('№5');
                     case 'f50':
                         return productName.includes('50') || productDesc.includes('50 мг') || productName.includes('№8');
                     case 'f65':
                         return productName.includes('65') || productDesc.includes('65 мг') || productName.includes('№9');
+                    
+                    // ICEBERG подразделы
                     case 'ice75s':
                         return productName.includes('strong') && (productName.includes('75') || productDesc.includes('75 мг'));
                     case 'ice75t':
@@ -813,6 +544,8 @@ function filterProductsByCategory(productsToFilter) {
                         return productName.includes('extreme') || productDesc.includes('extreme');
                     case 'ice150':
                         return productName.includes('ultra') || productDesc.includes('ultra');
+                    
+                    // FAFF подразделы
                     case 'faff65':
                         return productName.includes('65') || productDesc.includes('65 мг');
                     case 'faff75':
@@ -821,6 +554,8 @@ function filterProductsByCategory(productsToFilter) {
                         return productName.includes('100') || productDesc.includes('100 мг');
                     case 'faff150':
                         return productName.includes('150') || productDesc.includes('150 мг');
+                    
+                    // ШВЕЦИЯ подразделы
                     case 'odens':
                         return productName.includes('odens') || productDesc.includes('odens');
                     case 'lyft':
@@ -829,12 +564,15 @@ function filterProductsByCategory(productsToFilter) {
                         return productName.includes('zyn') || productDesc.includes('zyn');
                     case 'chn':
                         return productName.includes('chn') || productDesc.includes('chn');
+                    
+                    // RED подразделы
                     case 'red_o':
                         return productName.includes('original') || productDesc.includes('original');
                     case 'red_i':
                         return productName.includes('ice cool') || productDesc.includes('ice cool');
                     case 'red_k':
                         return productName.includes('killer') || productDesc.includes('killer');
+                    
                     default:
                         return true;
                 }
@@ -846,7 +584,7 @@ function filterProductsByCategory(productsToFilter) {
 }
 
 // ======================
-// 5. ЗАГРУЗКА И ОТОБРАЖЕНИЕ ТОВАРОВ
+// 3. ЗАГРУЗКА ТОВАРОВ
 // ======================
 
 async function loadProductsFromGitHub() {
@@ -860,6 +598,7 @@ async function loadProductsFromGitHub() {
         
         const loadedProducts = await response.json();
         
+        // Добавляем поле quantity если его нет
         loadedProducts.forEach(product => {
             if (!product.hasOwnProperty('quantity')) {
                 product.quantity = 10;
@@ -873,6 +612,33 @@ async function loadProductsFromGitHub() {
         return getDefaultProducts();
     }
 }
+
+function getDefaultProducts() {
+    return [
+        {
+            id: 1,
+            name: "ICEBERG ULTRA MENTHOL",
+            description: "ICEBERG ULTRA MENTHOL (150 МГ) - МЕНТОЛ",
+            price: 500,
+            quantity: 10,
+            image: "https://static.insales-cdn.com/images/products/1/4176/629641296/large_DD5D020A-5370-4C6E-8350-BC442E83B211.jpg",
+            isNew: true
+        },
+        {
+            id: 2,
+            name: "ICEBERG ULTRA BLACK",
+            description: "ICEBERG ULTRA BLACK (150 МГ) - ТУТТИ-ФРУТТИ",
+            price: 500,
+            quantity: 10,
+            image: "https://static.insales-cdn.com/images/products/1/4138/629641258/large_418EE6C0-080A-4F12-85FC-011F55E19F86.jpg",
+            isNew: true
+        }
+    ];
+}
+
+// ======================
+// 4. ОТОБРАЖЕНИЕ ТОВАРОВ
+// ======================
 
 function renderProductsByCategory() {
     const catalog = document.getElementById('catalog');
@@ -895,6 +661,7 @@ function renderProductsByCategory() {
         const qty = product.quantity || 0;
         const isAvailable = qty > 0;
         
+        // Определяем цвет категории для бейджа
         const categoryInfo = categories.find(c => c.id === currentCategory) || categories[0];
         const categoryColor = categoryInfo.color || '#FF9800';
         
@@ -933,7 +700,7 @@ function renderProductsByCategory() {
 }
 
 // ======================
-// 6. КОРЗИНА И ЗАКАЗЫ
+// 5. КОРЗИНА
 // ======================
 
 function loadCart() {
@@ -1147,7 +914,7 @@ function showNotification(message) {
 }
 
 // ======================
-// 7. ГЕНЕРАЦИЯ И ОФОРМЛЕНИЕ ЗАКАЗА
+// 6. ГЕНЕРАЦИЯ НОМЕРА ЗАКАЗА
 // ======================
 
 function generateOrderNumber() {
@@ -1160,10 +927,16 @@ function generateOrderNumber() {
     return `ORD-${year}${month}${day}-${random}`;
 }
 
+// ======================
+// 7. УВЕДОМЛЕНИЕ МЕНЕДЖЕРУ В TELEGRAM
+// ======================
+
 async function notifyManager(orderData) {
     try {
+        // Формируем сообщение для менеджера
         let message = `📦 *НОВЫЙ ЗАКАЗ #${orderData.orderNumber}*\n\n`;
         
+        // Информация о пользователе
         if (orderData.user) {
             message += `👤 *Покупатель:*\n`;
             if (orderData.user.id) message += `ID: ${orderData.user.id}\n`;
@@ -1175,6 +948,8 @@ async function notifyManager(orderData) {
         }
         
         message += `\n📅 *Дата:* ${new Date(orderData.timestamp).toLocaleString('ru-RU')}\n`;
+        
+        // Товары
         message += `\n🛒 *Товары:*\n`;
         orderData.products.forEach((item, index) => {
             message += `${index + 1}. ${item.name}\n`;
@@ -1183,19 +958,24 @@ async function notifyManager(orderData) {
             message += `   Сумма: ${item.price * item.quantity} руб.\n\n`;
         });
         
+        // Итоги
         message += `💰 *ИТОГО:*\n`;
         message += `Товаров: ${orderData.items_count} шт.\n`;
         message += `Сумма заказа: *${orderData.total} руб.*\n\n`;
+        
         message += `⚡ *Статус:* Ожидает обработки\n`;
-        message += `🔗 Для связи: @${CONFIG.MANAGER_USERNAME}`;
+        message += `🔗 Для связи: @Chief_68`;
         
         console.log("📤 Сообщение для менеджера:", message);
         
+        // Если это Telegram WebApp, пробуем отправить сообщение через бота
         if (tg && tg.initDataUnsafe?.user) {
             try {
-                const managerUsername = CONFIG.MANAGER_USERNAME;
+                // Пробуем открыть чат с менеджером
+                const managerUsername = 'Chief_68';
                 const tgLink = `https://t.me/${managerUsername}?text=${encodeURIComponent(message)}`;
                 
+                // Открываем ссылку в новом окне (для веба) или в приложении Telegram
                 if (tg.openLink) {
                     tg.openLink(tgLink);
                 } else {
@@ -1215,6 +995,10 @@ async function notifyManager(orderData) {
         return false;
     }
 }
+
+// ======================
+// 8. ОФОРМЛЕНИЕ ЗАКАЗА С УВЕДОМЛЕНИЕМ
+// ======================
 
 async function checkout() {
     if (cart.length === 0) return;
@@ -1253,6 +1037,7 @@ async function checkout() {
         return;
     }
 
+    // Генерируем номер заказа
     const orderNumber = generateOrderNumber();
     
     const orderData = {
@@ -1280,14 +1065,13 @@ async function checkout() {
         status: 'pending'
     });
     
-    // ОБНОВЛЯЕМ СТАТИСТИКУ ПРОДАЖ
-    updateSalesStats(orderData);
-    
+    // Сохраняем историю
     saveCart();
     
     console.log("🛒 Отправка заказа:", orderData);
     
     try {
+        // Пытаемся уведомить менеджера
         const notified = await notifyManager(orderData);
         
         if (tg && tg.showAlert) {
@@ -1297,7 +1081,7 @@ async function checkout() {
                 `📦 Товаров: ${getCartCount()} шт.\n` +
                 `💰 Сумма: ${getCartTotal()} руб.\n\n` +
                 `👤 *Свяжитесь с менеджером:*\n` +
-                `🔗 @${CONFIG.MANAGER_USERNAME}\n\n` +
+                `🔗 @Chief_68\n\n` +
                 `💬 *Сообщите номер заказа менеджеру*\n` +
                 `🔄 Остатки будут обновлены`,
                 () => {
@@ -1312,7 +1096,9 @@ async function checkout() {
                 }
             );
         } else {
+            // Для обычного браузера показываем красивое модальное окно
             showOrderConfirmationModal(orderData, orderNumber);
+            
             cart = [];
             saveCart();
             closeCart();
@@ -1328,11 +1114,16 @@ async function checkout() {
     }
 }
 
-// Функции модальных окон и уведомлений (остаются без изменений из предыдущего кода)
+// ======================
+// 9. МОДАЛЬНОЕ ОКНО ПОДТВЕРЖДЕНИЯ ЗАКАЗА
+// ======================
+
 function showOrderConfirmationModal(orderData, orderNumber) {
+    // Удаляем старые модальные окна
     const oldModals = document.querySelectorAll('.order-confirmation-modal, .manager-notification');
     oldModals.forEach(modal => modal.remove());
     
+    // Создаем модальное окно подтверждения
     const modal = document.createElement('div');
     modal.className = 'order-confirmation-modal';
     modal.innerHTML = `
@@ -1382,16 +1173,19 @@ function showOrderConfirmationModal(orderData, orderNumber) {
     
     document.body.appendChild(modal);
     
+    // Показываем уведомление менеджеру через 1 секунду
     setTimeout(() => {
         showManagerNotification(orderNumber);
     }, 1000);
     
+    // Обработчик закрытия модального окна
     const closeBtn = modal.querySelector('.close-order-modal');
     closeBtn.addEventListener('click', () => {
         modal.style.opacity = '0';
         setTimeout(() => modal.remove(), 300);
     });
     
+    // Автоматическое закрытие через 10 секунд
     setTimeout(() => {
         if (document.body.contains(modal)) {
             modal.style.opacity = '0';
@@ -1400,10 +1194,16 @@ function showOrderConfirmationModal(orderData, orderNumber) {
     }, 10000);
 }
 
+// ======================
+// 10. УВЕДОМЛЕНИЕ "НАПИШИ МЕНЕДЖЕРУ"
+// ======================
+
 function showManagerNotification(orderNumber) {
+    // Удаляем старые уведомления
     const oldNotifications = document.querySelectorAll('.manager-notification');
     oldNotifications.forEach(n => n.remove());
     
+    // Создаем уведомление
     const notification = document.createElement('div');
     notification.className = 'manager-notification';
     notification.innerHTML = `
@@ -1414,7 +1214,7 @@ function showManagerNotification(orderNumber) {
             <div class="manager-notification-text">
                 <h3>Напишите менеджеру</h3>
                 <p>Сообщите номер заказа <strong>#${orderNumber}</strong></p>
-                <p class="manager-username">👤 @${CONFIG.MANAGER_USERNAME}</p>
+                <p class="manager-username">👤 @Chief_68</p>
             </div>
             <button class="manager-notification-close">
                 <i class="fas fa-times"></i>
@@ -1429,11 +1229,13 @@ function showManagerNotification(orderNumber) {
     
     document.body.appendChild(notification);
     
+    // Показываем с анимацией
     setTimeout(() => {
         notification.style.opacity = '1';
         notification.style.transform = 'translateY(0)';
     }, 100);
     
+    // Обработчик закрытия
     const closeBtn = notification.querySelector('.manager-notification-close');
     closeBtn.addEventListener('click', () => {
         notification.style.opacity = '0';
@@ -1441,6 +1243,7 @@ function showManagerNotification(orderNumber) {
         setTimeout(() => notification.remove(), 300);
     });
     
+    // Автоматическое скрытие через 30 секунд
     setTimeout(() => {
         if (document.body.contains(notification)) {
             notification.style.opacity = '0';
@@ -1450,10 +1253,15 @@ function showManagerNotification(orderNumber) {
     }, 30000);
 }
 
+// ======================
+// 11. ОТКРЫТИЕ ЧАТА С МЕНЕДЖЕРОМ
+// ======================
+
 function openManagerChat(orderNumber) {
     const message = `Здравствуйте! У меня оформлен заказ #${orderNumber}. Прошу подтвердить и уточнить детали.`;
-    const managerUsername = CONFIG.MANAGER_USERNAME;
+    const managerUsername = 'Chief_68';
     
+    // Ссылка для открытия чата в Telegram
     const tgLink = `https://t.me/${managerUsername}?text=${encodeURIComponent(message)}`;
     
     if (tg && tg.openLink) {
@@ -1462,6 +1270,7 @@ function openManagerChat(orderNumber) {
         window.open(tgLink, '_blank');
     }
     
+    // Скрываем уведомление после клика
     const notification = document.querySelector('.manager-notification');
     if (notification) {
         notification.style.opacity = '0';
@@ -1483,7 +1292,7 @@ function closeCart() {
 }
 
 // ======================
-// 8. АВТООБНОВЛЕНИЕ
+// 12. АВТООБНОВЛЕНИЕ
 // ======================
 
 async function loadAndRenderProducts() {
@@ -1527,9 +1336,9 @@ async function loadAndRenderProducts() {
 function startAutoUpdate() {
     autoUpdateInterval = setInterval(async () => {
         await loadAndRenderProducts();
-    }, CONFIG.AUTO_UPDATE_INTERVAL);
+    }, 60000);
     
-    console.log('🔄 Автообновление запущено');
+    console.log('🔄 Автообновление запущено (каждые 60 секунд)');
 }
 
 function stopAutoUpdate() {
@@ -1541,7 +1350,7 @@ function stopAutoUpdate() {
 }
 
 // ======================
-// 9. ИНИЦИАЛИЗАЦИЯ
+// 13. ИНИЦИАЛИЗАЦИЯ
 // ======================
 
 async function initApp() {
@@ -1550,7 +1359,6 @@ async function initApp() {
     
     await loadAndRenderProducts();
     loadCart();
-    loadSalesStats(); // Загружаем статистику
     startAutoUpdate();
     
     const themeSwitch = document.createElement('div');
@@ -1566,12 +1374,6 @@ async function initApp() {
     document.getElementById('checkoutButton').onclick = checkout;
     document.getElementById('clearCartButton').onclick = clearCart;
     
-    // Добавляем обработчики для кнопок навигации
-    document.getElementById('categoriesScrollLeft').onclick = () => scrollCategories(-1);
-    document.getElementById('categoriesScrollRight').onclick = () => scrollCategories(1);
-    document.getElementById('subCategoriesScrollLeft').onclick = () => scrollSubCategories(-1);
-    document.getElementById('subCategoriesScrollRight').onclick = () => scrollSubCategories(1);
-    
     window.addToCart = addToCart;
     window.removeFromCart = removeFromCart;
     window.updateQuantity = updateQuantity;
@@ -1583,9 +1385,6 @@ async function initApp() {
     window.switchCategory = switchCategory;
     window.switchSubCategory = switchSubCategory;
     window.openManagerChat = openManagerChat;
-    window.scrollCategories = scrollCategories;
-    window.scrollSubCategories = scrollSubCategories;
-    window.toggleStatsDetails = toggleStatsDetails;
     
     setTimeout(() => {
         const loader = document.getElementById('loader');
@@ -1600,7 +1399,7 @@ async function initApp() {
         }
     }, 500);
     
-    console.log('✅ ICEBERG Shop с навигацией и статистикой инициализирован');
+    console.log('✅ ICEBERG Shop с подразделами и уведомлением менеджеру инициализирован');
 }
 
 if (document.readyState === 'loading') {
