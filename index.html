@@ -69,40 +69,19 @@
                     <span id="cartCounter">0</span>
                 </button>
             </header>
-            
-            <!-- Панель статистики -->
-            <div class="sales-stats-panel" id="salesStats">
-                <!-- Статистика будет загружена через JavaScript -->
-            </div>
 
             <!-- Навигация по основным категориям -->
             <div class="categories-scroll-wrapper">
-                <button class="categories-scroll-btn left" id="categoriesScrollLeft">
-                    <i class="fas fa-chevron-left"></i>
-                </button>
-                
                 <div class="categories-nav" id="categoriesNav">
                     <!-- Категории будут добавлены через JavaScript -->
                 </div>
-                
-                <button class="categories-scroll-btn right" id="categoriesScrollRight">
-                    <i class="fas fa-chevron-right"></i>
-                </button>
             </div>
             
             <!-- Навигация по подкатегориям -->
             <div class="categories-scroll-wrapper">
-                <button class="categories-scroll-btn left sub" id="subCategoriesScrollLeft">
-                    <i class="fas fa-chevron-left"></i>
-                </button>
-                
                 <div class="subcategories-nav" id="subCategoriesNav">
                     <!-- Подкатегории будут добавлены через JavaScript -->
                 </div>
-                
-                <button class="categories-scroll-btn right sub" id="subCategoriesScrollRight">
-                    <i class="fas fa-chevron-right"></i>
-                </button>
             </div>
         </div>
 
@@ -116,8 +95,8 @@
         <!-- Футер -->
         <footer class="footer">
             <p><i class="fas fa-layer-group"></i> LAVKA Shop </p>
-            <p class="small">Используйте кнопки ← → для навигации по категориям</p>
-            <p class="small">Товары и статистика обновляются автоматически</p>
+            <p class="small">Выберите категорию и подраздел из меню выше</p>
+            <p class="small">Товары обновляются автоматически</p>
         </footer>
 
         <!-- Корзина -->
@@ -168,37 +147,64 @@
             lastTouchEnd = now;
         }, false);
         
-        // Функция для обновления кнопок навигации при прокрутке
+        // Функция для прокрутки категорий
         function setupCategoriesScroll() {
             const categoriesNav = document.getElementById('categoriesNav');
             const subCategoriesNav = document.getElementById('subCategoriesNav');
             
-            function setupScroll(element, leftBtnId, rightBtnId) {
+            function setupScroll(element) {
                 if (!element) return;
                 
-                element.addEventListener('scroll', () => {
-                    if (leftBtnId && rightBtnId) {
-                        updateNavButtons(element.id, leftBtnId, rightBtnId);
-                    }
+                let isDown = false;
+                let startX;
+                let scrollLeft;
+                
+                element.addEventListener('mousedown', (e) => {
+                    isDown = true;
+                    element.classList.add('active');
+                    startX = e.pageX - element.offsetLeft;
+                    scrollLeft = element.scrollLeft;
+                });
+                
+                element.addEventListener('mouseleave', () => {
+                    isDown = false;
+                    element.classList.remove('active');
+                });
+                
+                element.addEventListener('mouseup', () => {
+                    isDown = false;
+                    element.classList.remove('active');
+                });
+                
+                element.addEventListener('mousemove', (e) => {
+                    if (!isDown) return;
+                    e.preventDefault();
+                    const x = e.pageX - element.offsetLeft;
+                    const walk = (x - startX) * 2;
+                    element.scrollLeft = scrollLeft - walk;
                 });
                 
                 // Для touch устройств
                 element.addEventListener('touchstart', (e) => {
+                    isDown = true;
                     startX = e.touches[0].pageX - element.offsetLeft;
                     scrollLeft = element.scrollLeft;
                 });
                 
                 element.addEventListener('touchend', () => {
-                    setTimeout(() => {
-                        if (leftBtnId && rightBtnId) {
-                            updateNavButtons(element.id, leftBtnId, rightBtnId);
-                        }
-                    }, 100);
+                    isDown = false;
+                });
+                
+                element.addEventListener('touchmove', (e) => {
+                    if (!isDown) return;
+                    const x = e.touches[0].pageX - element.offsetLeft;
+                    const walk = (x - startX) * 2;
+                    element.scrollLeft = scrollLeft - walk;
                 });
             }
             
-            setupScroll(categoriesNav, 'categoriesScrollLeft', 'categoriesScrollRight');
-            setupScroll(subCategoriesNav, 'subCategoriesScrollLeft', 'subCategoriesScrollRight');
+            setupScroll(categoriesNav);
+            setupScroll(subCategoriesNav);
         }
         
         // Инициализируем прокрутку после загрузки
@@ -208,4 +214,3 @@
     </script>
 </body>
 </html>
-
