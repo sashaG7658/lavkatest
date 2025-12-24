@@ -1,5 +1,5 @@
 // script.js
-// ICEBERG Shop - Версия с разделами категорий и подразделами
+// ICEBERG Shop - Версия с разделами категорий, подразделами и уведомлением менеджеру
 // ======================
 
 let currentTheme = 'light';
@@ -9,6 +9,7 @@ let cart = [];
 let autoUpdateInterval = null;
 let currentCategory = 'all'; // Текущая выбранная категория
 let currentSubCategory = null; // Текущий подраздел
+let orderHistory = []; // История заказов
 
 // ======================
 // 1. ТЕМА И TELEGRAM
@@ -631,30 +632,6 @@ function getDefaultProducts() {
             quantity: 10,
             image: "https://static.insales-cdn.com/images/products/1/4138/629641258/large_418EE6C0-080A-4F12-85FC-011F55E19F86.jpg",
             isNew: true
-        },
-        {
-            id: 3,
-            name: "ARQA 70mg MENTHOL",
-            description: "ARQA 70mg MENTHOL - СИЛЬНЫЙ МЕНТОЛ",
-            price: 550,
-            quantity: 8,
-            image: "https://example.com/arqa70.jpg"
-        },
-        {
-            id: 4,
-            name: "ШОК ENERGY (150 МГ)",
-            description: "ШОК ENERGY 150 МГ - ЭНЕРГЕТИЧЕСКИЙ ВКУС",
-            price: 480,
-            quantity: 12,
-            image: "https://example.com/shok150.jpg"
-        },
-        {
-            id: 5,
-            name: "ST MENTHOL (45 МГ)",
-            description: "ST MENTHOL 45 МГ - ОХЛАЖДАЮЩИЙ",
-            price: 520,
-            quantity: 6,
-            image: "https://example.com/st45.jpg"
         }
     ];
 }
@@ -730,16 +707,22 @@ function loadCart() {
     try {
         const savedCart = localStorage.getItem('iceberg_cart');
         cart = savedCart ? JSON.parse(savedCart) : [];
-        console.log(`🛒 Загружено ${cart.length} товаров в корзину`);
+        
+        const savedOrders = localStorage.getItem('iceberg_orders');
+        orderHistory = savedOrders ? JSON.parse(savedOrders) : [];
+        
+        console.log(`🛒 Загружено ${cart.length} товаров в корзину, ${orderHistory.length} заказов в истории`);
     } catch (error) {
         console.error('❌ Ошибка загрузки корзины:', error);
         cart = [];
+        orderHistory = [];
     }
 }
 
 function saveCart() {
     try {
         localStorage.setItem('iceberg_cart', JSON.stringify(cart));
+        localStorage.setItem('iceberg_orders', JSON.stringify(orderHistory));
         updateCartUI();
         updateTelegramButton();
     } catch (error) {
@@ -931,7 +914,90 @@ function showNotification(message) {
 }
 
 // ======================
-// 6. ОФОРМЛЕНИЕ ЗАКАЗА
+// 6. ГЕНЕРАЦИЯ НОМЕРА ЗАКАЗА
+// ======================
+
+function generateOrderNumber() {
+    const date = new Date();
+    const year = date.getFullYear().toString().slice(-2);
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    
+    return `ORD-${year}${month}${day}-${random}`;
+}
+
+// ======================
+// 7. УВЕДОМЛЕНИЕ МЕНЕДЖЕРУ В TELEGRAM
+// ======================
+
+async function notifyManager(orderData) {
+    try {
+        // Формируем сообщение для менеджера
+        let message = `📦 *НОВЫЙ ЗАКАЗ #${orderData.orderNumber}*\n\n`;
+        
+        // Информация о пользователе
+        if (orderData.user) {
+            message += `👤 *Покупатель:*\n`;
+            if (orderData.user.id) message += `ID: ${orderData.user.id}\n`;
+            if (orderData.user.username) message += `@${orderData.user.username}\n`;
+            if (orderData.user.first_name) message += `Имя: ${orderData.user.first_name}\n`;
+            if (orderData.user.last_name) message += `Фамилия: ${orderData.user.last_name}\n`;
+        } else {
+            message += `👤 *Анонимный покупатель*\n`;
+        }
+        
+        message += `\n📅 *Дата:* ${new Date(orderData.timestamp).toLocaleString('ru-RU')}\n`;
+        
+        // Товары
+        message += `\n🛒 *Товары:*\n`;
+        orderData.products.forEach((item, index) => {
+            message += `${index + 1}. ${item.name}\n`;
+            message += `   Кол-во: ${item.quantity} шт.\n`;
+            message += `   Цена: ${item.price} руб./шт.\n`;
+            message += `   Сумма: ${item.price * item.quantity} руб.\n\n`;
+        });
+        
+        // Итоги
+        message += `💰 *ИТОГО:*\n`;
+        message += `Товаров: ${orderData.items_count} шт.\n`;
+        message += `Сумма заказа: *${orderData.total} руб.*\n\n`;
+        
+        message += `⚡ *Статус:* Ожидает обработки\n`;
+        message += `🔗 Для связи: @Chief_68`;
+        
+        console.log("📤 Сообщение для менеджера:", message);
+        
+        // Если это Telegram WebApp, пробуем отправить сообщение через бота
+        if (tg && tg.initDataUnsafe?.user) {
+            try {
+                // Пробуем открыть чат с менеджером
+                const managerUsername = 'Chief_68';
+                const tgLink = `https://t.me/${managerUsername}?text=${encodeURIComponent(message)}`;
+                
+                // Открываем ссылку в новом окне (для веба) или в приложении Telegram
+                if (tg.openLink) {
+                    tg.openLink(tgLink);
+                } else {
+                    window.open(tgLink, '_blank');
+                }
+                
+                return true;
+            } catch (error) {
+                console.error('❌ Ошибка открытия чата:', error);
+                return false;
+            }
+        }
+        
+        return true;
+    } catch (error) {
+        console.error('❌ Ошибка уведомления менеджера:', error);
+        return false;
+    }
+}
+
+// ======================
+// 8. ОФОРМЛЕНИЕ ЗАКАЗА С УВЕДОМЛЕНИЕМ
 // ======================
 
 async function checkout() {
@@ -971,7 +1037,11 @@ async function checkout() {
         return;
     }
 
+    // Генерируем номер заказа
+    const orderNumber = generateOrderNumber();
+    
     const orderData = {
+        orderNumber: orderNumber,
         products: cart.map(item => ({
             id: item.id,
             name: item.name,
@@ -989,22 +1059,36 @@ async function checkout() {
         } : null
     };
 
+    // Добавляем в историю заказов
+    orderHistory.unshift({
+        ...orderData,
+        status: 'pending'
+    });
+    
+    // Сохраняем историю
+    saveCart();
+    
     console.log("🛒 Отправка заказа:", orderData);
     
     try {
-        if (tg && tg.sendData) {
-            tg.sendData(JSON.stringify(orderData));
-            
+        // Пытаемся уведомить менеджера
+        const notified = await notifyManager(orderData);
+        
+        if (tg && tg.showAlert) {
             tg.showAlert(
-                `✅ Заказ оформлен!\n\n` +
+                `✅ *Заказ оформлен успешно!*\n\n` +
+                `📋 *Номер заказа:* #${orderNumber}\n` +
                 `📦 Товаров: ${getCartCount()} шт.\n` +
                 `💰 Сумма: ${getCartTotal()} руб.\n\n` +
-                `📞 Свяжитесь с продавцом для уточнения деталей:\n` +
-                `👤 @Chief_68`,
+                `👤 *Свяжитесь с менеджером:*\n` +
+                `🔗 @Chief_68\n\n` +
+                `💬 *Сообщите номер заказа менеджеру*\n` +
+                `🔄 Остатки будут обновлены`,
                 () => {
                     cart = [];
                     saveCart();
                     closeCart();
+                    showManagerNotification(orderNumber);
                     
                     setTimeout(() => {
                         loadAndRenderProducts();
@@ -1012,14 +1096,8 @@ async function checkout() {
                 }
             );
         } else {
-            alert(
-                `✅ Заказ оформлен!\n\n` +
-                `📦 Товаров: ${getCartCount()} шт.\n` +
-                `💰 Сумма: ${getCartTotal()} руб.\n\n` +
-                `📞 Свяжитесь с продавцом:\n` +
-                `👤 @Chief_68\n\n` +
-                `🔄 Остатки будут обновлены`
-            );
+            // Для обычного браузера показываем красивое модальное окно
+            showOrderConfirmationModal(orderData, orderNumber);
             
             cart = [];
             saveCart();
@@ -1036,6 +1114,171 @@ async function checkout() {
     }
 }
 
+// ======================
+// 9. МОДАЛЬНОЕ ОКНО ПОДТВЕРЖДЕНИЯ ЗАКАЗА
+// ======================
+
+function showOrderConfirmationModal(orderData, orderNumber) {
+    // Удаляем старые модальные окна
+    const oldModals = document.querySelectorAll('.order-confirmation-modal, .manager-notification');
+    oldModals.forEach(modal => modal.remove());
+    
+    // Создаем модальное окно подтверждения
+    const modal = document.createElement('div');
+    modal.className = 'order-confirmation-modal';
+    modal.innerHTML = `
+        <div class="order-confirmation-content">
+            <div class="order-confirmation-header">
+                <i class="fas fa-check-circle"></i>
+                <h2>Заказ оформлен!</h2>
+            </div>
+            <div class="order-confirmation-body">
+                <div class="order-number">
+                    <i class="fas fa-hashtag"></i>
+                    <span>Номер заказа: <strong>#${orderNumber}</strong></span>
+                </div>
+                <div class="order-summary">
+                    <div class="order-summary-item">
+                        <i class="fas fa-box"></i>
+                        <span>Товаров: ${orderData.items_count} шт.</span>
+                    </div>
+                    <div class="order-summary-item">
+                        <i class="fas fa-ruble-sign"></i>
+                        <span>Сумма: ${orderData.total} руб.</span>
+                    </div>
+                    <div class="order-summary-item">
+                        <i class="fas fa-clock"></i>
+                        <span>Время: ${new Date(orderData.timestamp).toLocaleTimeString('ru-RU')}</span>
+                    </div>
+                </div>
+                <div class="order-products">
+                    <h3>Состав заказа:</h3>
+                    <ul>
+                        ${orderData.products.map(item => `
+                            <li>${item.name} × ${item.quantity} шт. = ${item.price * item.quantity} руб.</li>
+                        `).join('')}
+                    </ul>
+                </div>
+                <div class="order-instructions">
+                    <p><i class="fas fa-info-circle"></i> Сохраните номер заказа для связи с менеджером</p>
+                </div>
+            </div>
+            <div class="order-confirmation-footer">
+                <button class="close-order-modal">
+                    <i class="fas fa-times"></i> Закрыть
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Показываем уведомление менеджеру через 1 секунду
+    setTimeout(() => {
+        showManagerNotification(orderNumber);
+    }, 1000);
+    
+    // Обработчик закрытия модального окна
+    const closeBtn = modal.querySelector('.close-order-modal');
+    closeBtn.addEventListener('click', () => {
+        modal.style.opacity = '0';
+        setTimeout(() => modal.remove(), 300);
+    });
+    
+    // Автоматическое закрытие через 10 секунд
+    setTimeout(() => {
+        if (document.body.contains(modal)) {
+            modal.style.opacity = '0';
+            setTimeout(() => modal.remove(), 300);
+        }
+    }, 10000);
+}
+
+// ======================
+// 10. УВЕДОМЛЕНИЕ "НАПИШИ МЕНЕДЖЕРУ"
+// ======================
+
+function showManagerNotification(orderNumber) {
+    // Удаляем старые уведомления
+    const oldNotifications = document.querySelectorAll('.manager-notification');
+    oldNotifications.forEach(n => n.remove());
+    
+    // Создаем уведомление
+    const notification = document.createElement('div');
+    notification.className = 'manager-notification';
+    notification.innerHTML = `
+        <div class="manager-notification-content">
+            <div class="manager-notification-icon">
+                <i class="fas fa-comment-alt"></i>
+            </div>
+            <div class="manager-notification-text">
+                <h3>Напишите менеджеру</h3>
+                <p>Сообщите номер заказа <strong>#${orderNumber}</strong></p>
+                <p class="manager-username">👤 @Chief_68</p>
+            </div>
+            <button class="manager-notification-close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="manager-notification-action">
+            <button class="contact-manager-btn" onclick="openManagerChat('${orderNumber}')">
+                <i class="fab fa-telegram"></i> Написать менеджеру
+            </button>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Показываем с анимацией
+    setTimeout(() => {
+        notification.style.opacity = '1';
+        notification.style.transform = 'translateY(0)';
+    }, 100);
+    
+    // Обработчик закрытия
+    const closeBtn = notification.querySelector('.manager-notification-close');
+    closeBtn.addEventListener('click', () => {
+        notification.style.opacity = '0';
+        notification.style.transform = 'translateY(100%)';
+        setTimeout(() => notification.remove(), 300);
+    });
+    
+    // Автоматическое скрытие через 30 секунд
+    setTimeout(() => {
+        if (document.body.contains(notification)) {
+            notification.style.opacity = '0';
+            notification.style.transform = 'translateY(100%)';
+            setTimeout(() => notification.remove(), 300);
+        }
+    }, 30000);
+}
+
+// ======================
+// 11. ОТКРЫТИЕ ЧАТА С МЕНЕДЖЕРОМ
+// ======================
+
+function openManagerChat(orderNumber) {
+    const message = `Здравствуйте! У меня оформлен заказ #${orderNumber}. Прошу подтвердить и уточнить детали.`;
+    const managerUsername = 'Chief_68';
+    
+    // Ссылка для открытия чата в Telegram
+    const tgLink = `https://t.me/${managerUsername}?text=${encodeURIComponent(message)}`;
+    
+    if (tg && tg.openLink) {
+        tg.openLink(tgLink);
+    } else {
+        window.open(tgLink, '_blank');
+    }
+    
+    // Скрываем уведомление после клика
+    const notification = document.querySelector('.manager-notification');
+    if (notification) {
+        notification.style.opacity = '0';
+        notification.style.transform = 'translateY(100%)';
+        setTimeout(() => notification.remove(), 300);
+    }
+}
+
 function openCart() {
     document.getElementById('cartSidebar').classList.add('active');
     document.getElementById('cartOverlay').classList.add('active');
@@ -1049,7 +1292,7 @@ function closeCart() {
 }
 
 // ======================
-// 7. АВТООБНОВЛЕНИЕ
+// 12. АВТООБНОВЛЕНИЕ
 // ======================
 
 async function loadAndRenderProducts() {
@@ -1107,7 +1350,7 @@ function stopAutoUpdate() {
 }
 
 // ======================
-// 8. ИНИЦИАЛИЗАЦИЯ
+// 13. ИНИЦИАЛИЗАЦИЯ
 // ======================
 
 async function initApp() {
@@ -1141,6 +1384,7 @@ async function initApp() {
     window.toggleTheme = toggleTheme;
     window.switchCategory = switchCategory;
     window.switchSubCategory = switchSubCategory;
+    window.openManagerChat = openManagerChat;
     
     setTimeout(() => {
         const loader = document.getElementById('loader');
@@ -1155,7 +1399,7 @@ async function initApp() {
         }
     }, 500);
     
-    console.log('✅ ICEBERG Shop с подразделами инициализирован');
+    console.log('✅ ICEBERG Shop с подразделами и уведомлением менеджеру инициализирован');
 }
 
 if (document.readyState === 'loading') {
