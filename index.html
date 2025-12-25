@@ -64,6 +64,13 @@
         <div class="main-header">
             <header class="header">
                 <h1><i class="fas fa-fire"></i> LAVKA Shop</h1>
+                
+                <!-- Кнопка избранного -->
+                <button id="favoritesButton" class="favorites-btn">
+                    <i class="fas fa-heart"></i>
+                    <span id="favoritesCounter">0</span>
+                </button>
+                
                 <button id="cartButton" class="cart-btn">
                     <i class="fas fa-shopping-cart"></i>
                     <span id="cartCounter">0</span>
@@ -121,6 +128,37 @@
                 </button>
                 <button id="clearCartButton" class="clear-btn">
                     <i class="fas fa-trash"></i> Очистить корзину
+                </button>
+            </div>
+        </div>
+        
+        <!-- Панель избранного -->
+        <div id="favoritesSidebar" class="favorites-sidebar">
+            <div class="favorites-header">
+                <h2><i class="fas fa-heart"></i> Избранное</h2>
+                <button class="close-cart" id="closeFavorites">&times;</button>
+            </div>
+            
+            <div class="favorites-tabs">
+                <button class="favorites-tab active" onclick="switchFavoritesTab('all')">Все</button>
+                <button class="favorites-tab" onclick="switchFavoritesTab('available')">В наличии</button>
+                <button class="favorites-tab" onclick="switchFavoritesTab('new')">Новинки</button>
+            </div>
+            
+            <div class="favorites-items" id="favoritesItems">
+                <div class="favorites-empty-msg">
+                    <i class="fas fa-heart fa-2x"></i>
+                    <p>Избранное пусто</p>
+                    <p class="small">Добавляйте товары, нажимая на сердечко</p>
+                </div>
+            </div>
+            
+            <div class="cart-footer">
+                <button onclick="addAllFavoritesToCart()" class="checkout-btn" id="addAllToCartBtn" disabled>
+                    <i class="fas fa-cart-plus"></i> Добавить все в корзину
+                </button>
+                <button onclick="clearFavorites()" class="clear-btn">
+                    <i class="fas fa-trash"></i> Очистить избранное
                 </button>
             </div>
         </div>
