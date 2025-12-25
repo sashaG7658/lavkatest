@@ -1549,3 +1549,316 @@ button:active {
         grid-template-columns: 1fr;
     }
 }
+/* Стили для избранного */
+.favorite-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 36px;
+    height: 36px;
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 2;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+}
+
+.favorite-btn:hover {
+    background: white;
+    transform: scale(1.1);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+}
+
+.favorite-btn i {
+    color: #FF9800;
+    font-size: 1.2rem;
+    transition: all 0.3s ease;
+}
+
+.favorite-btn.active i {
+    color: #F44336;
+    animation: heartBeat 0.5s ease;
+}
+
+@keyframes heartBeat {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.3); }
+    100% { transform: scale(1); }
+}
+
+/* Кнопка избранного в шапке */
+.favorites-btn {
+    background: var(--card-color);
+    color: var(--text-color);
+    border: 2px solid var(--primary-color);
+    padding: 10px 20px;
+    border-radius: 25px;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-weight: 600;
+    margin-right: 10px;
+}
+
+.favorites-btn:hover {
+    background: var(--primary-color);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 152, 0, 0.4);
+}
+
+.favorites-btn.active {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.favorites-counter {
+    background: var(--primary-color);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: bold;
+    font-size: 0.9rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Боковая панель избранного */
+.favorites-sidebar {
+    position: fixed;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100vh;
+    background: var(--card-color);
+    z-index: 1000;
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-right: 1px solid var(--border-color);
+}
+
+.favorites-sidebar.active {
+    left: 0;
+}
+
+.favorites-header {
+    padding: 20px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--card-color);
+}
+
+.favorites-header h2 {
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.3rem;
+    font-weight: 600;
+}
+
+.favorites-items {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 20px;
+    -webkit-overflow-scrolling: touch;
+}
+
+.favorite-item {
+    display: flex;
+    gap: 15px;
+    padding: 15px;
+    background: var(--bg-color);
+    border-radius: 12px;
+    margin-bottom: 15px;
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.favorite-item:hover {
+    transform: translateX(2px);
+    box-shadow: 0 3px 10px var(--shadow-color);
+}
+
+.favorite-item-image {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 8px;
+    flex-shrink: 0;
+    background: linear-gradient(45deg, var(--primary-light), var(--primary-color));
+}
+
+.favorite-item-details {
+    flex-grow: 1;
+    min-width: 0;
+}
+
+.favorite-item-title {
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: var(--text-color);
+    font-size: 0.95rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.favorite-item-price {
+    color: var(--primary-color);
+    font-weight: 600;
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+}
+
+.favorite-item-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.favorite-item-remove {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 30px;
+    height: 30px;
+    background: rgba(244, 67, 54, 0.1);
+    border: 1px solid var(--error-color);
+    color: var(--error-color);
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.favorite-item-remove:hover {
+    background: var(--error-color);
+    color: white;
+    transform: scale(1.1);
+}
+
+.favorites-empty-msg {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-secondary);
+}
+
+.favorites-empty-msg i {
+    font-size: 3rem;
+    margin-bottom: 15px;
+    opacity: 0.5;
+    color: var(--primary-color);
+}
+
+/* Переключатель вкладок */
+.favorites-tabs {
+    display: flex;
+    gap: 5px;
+    padding: 15px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--card-color);
+}
+
+.favorites-tab {
+    flex: 1;
+    padding: 12px;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    cursor: pointer;
+    text-align: center;
+    font-weight: 600;
+    color: var(--text-color);
+    transition: all 0.3s ease;
+}
+
+.favorites-tab:hover {
+    background: var(--primary-light);
+    color: white;
+}
+
+.favorites-tab.active {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .favorites-sidebar {
+        width: 100%;
+        left: -100%;
+    }
+    
+    .favorites-btn {
+        padding: 8px 16px;
+        font-size: 0.9rem;
+    }
+    
+    .favorite-btn {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .favorite-btn i {
+        font-size: 1rem;
+    }
+}
+
+@media (min-width: 769px) {
+    .favorites-sidebar {
+        width: 380px;
+        left: -380px;
+    }
+}
+
+/* Анимация для добавления в избранное */
+@keyframes addToFavorite {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.5); }
+    100% { transform: scale(1); }
+}
+
+.favorite-added {
+    animation: addToFavorite 0.5s ease;
+}
+
+/* Обновляем стиль для шапки с двумя кнопками */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: var(--card-color);
+    border-radius: 15px;
+    box-shadow: 0 2px 10px var(--shadow-color);
+    margin-bottom: 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border: 1px solid var(--border-color);
+}
+
+.header-buttons {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
