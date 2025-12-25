@@ -1,14 +1,16 @@
 // script.js
-// ICEBERG Shop - Версия с правильной категоризацией товаров
+// LAVKA Shop - Полная версия с избранным, категориями и уведомлением менеджеру
 // ======================
 
 let currentTheme = 'light';
 let tg = null;
 let products = [];
 let cart = [];
+let favorites = [];
 let autoUpdateInterval = null;
 let currentCategory = 'all';
 let currentSubCategory = null;
+let currentFavoritesTab = 'all';
 let orderHistory = [];
 
 // ======================
@@ -492,6 +494,7 @@ function renderProductsByCategory() {
     catalog.innerHTML = filteredProducts.map(product => {
         const qty = product.quantity || 0;
         const isAvailable = qty > 0;
+        const isFav = isFavorite(product.id);
         
         const categoryInfo = categories.find(c => c.id === currentCategory) || categories[0];
         const categoryColor = categoryInfo.color || '#FF9800';
@@ -506,6 +509,13 @@ function renderProductsByCategory() {
         return `
             <div class="product-card">
                 ${badge}
+                <!-- Кнопка избранного -->
+                <button class="favorite-btn ${isFav ? 'active' : ''}" 
+                        onclick="toggleFavorite(${product.id})"
+                        data-id="${product.id}">
+                    <i class="fas fa-heart"></i>
+                </button>
+                
                 <img src="${product.image}" 
                      alt="${product.name}" 
                      class="product-image loading"
@@ -745,7 +755,272 @@ function showNotification(message) {
 }
 
 // ======================
-// 6. ГЕНЕРАЦИЯ НОМЕРА ЗАКАЗА
+// 6. ИЗБРАННОЕ
+// ======================
+
+function loadFavorites() {
+    try {
+        const savedFavorites = localStorage.getItem('iceberg_favorites');
+        favorites = savedFavorites ? JSON.parse(savedFavorites) : [];
+        console.log(`💖 Загружено ${favorites.length} товаров в избранное`);
+    } catch (error) {
+        console.error('❌ Ошибка загрузки избранного:', error);
+        favorites = [];
+    }
+}
+
+function saveFavorites() {
+    try {
+        localStorage.setItem('iceberg_favorites', JSON.stringify(favorites));
+        updateFavoritesUI();
+    } catch (error) {
+        console.error('❌ Ошибка сохранения избранного:', error);
+    }
+}
+
+function toggleFavorite(productId) {
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+    
+    const existingIndex = favorites.findIndex(item => item.id === productId);
+    
+    if (existingIndex !== -1) {
+        // Удаляем из избранного
+        favorites.splice(existingIndex, 1);
+        showNotification(`💔 ${product.name} удален из избранного`);
+    } else {
+        // Добавляем в избранное
+        favorites.push({
+            id: product.id,
+            name: product.name,
+            description: product.description,
+            price: product.price,
+            image: product.image,
+            quantity: product.quantity,
+            isNew: product.isNew || false,
+            addedDate: new Date().toISOString()
+        });
+        showNotification(`💖 ${product.name} добавлен в избранное`);
+        
+        // Анимация сердечка
+        const heartBtn = document.querySelector(`.favorite-btn[data-id="${productId}"] i`);
+        if (heartBtn) {
+            heartBtn.classList.add('favorite-added');
+            setTimeout(() => {
+                heartBtn.classList.remove('favorite-added');
+            }, 500);
+        }
+    }
+    
+    saveFavorites();
+}
+
+function removeFromFavorites(productId) {
+    const itemIndex = favorites.findIndex(item => item.id === productId);
+    if (itemIndex === -1) return;
+    
+    const itemName = favorites[itemIndex].name;
+    favorites.splice(itemIndex, 1);
+    
+    saveFavorites();
+    showNotification(`🗑️ ${itemName} удален из избранного`);
+}
+
+function isFavorite(productId) {
+    return favorites.some(item => item.id === productId);
+}
+
+function getFavoritesCount() {
+    return favorites.length;
+}
+
+function updateFavoritesUI() {
+    const favoritesCounter = document.getElementById('favoritesCounter');
+    if (favoritesCounter) {
+        const count = getFavoritesCount();
+        favoritesCounter.textContent = count;
+        favoritesCounter.style.display = count > 0 ? 'inline-block' : 'none';
+    }
+    
+    renderFavoritesItems();
+}
+
+function renderFavoritesItems() {
+    const favoritesItems = document.getElementById('favoritesItems');
+    const addAllToCartBtn = document.getElementById('addAllToCartBtn');
+    
+    if (!favoritesItems || !addAllToCartBtn) return;
+    
+    let filteredFavorites = [...favorites];
+    
+    // Фильтрация по вкладкам
+    switch(currentFavoritesTab) {
+        case 'available':
+            filteredFavorites = favorites.filter(item => {
+                const product = products.find(p => p.id === item.id);
+                return product && product.quantity > 0;
+            });
+            break;
+        case 'new':
+            filteredFavorites = favorites.filter(item => item.isNew);
+            break;
+        case 'all':
+        default:
+            filteredFavorites = favorites;
+    }
+    
+    if (filteredFavorites.length === 0) {
+        let emptyMessage = '';
+        switch(currentFavoritesTab) {
+            case 'available':
+                emptyMessage = 'Нет товаров в наличии';
+                break;
+            case 'new':
+                emptyMessage = 'Нет новинок';
+                break;
+            default:
+                emptyMessage = 'Избранное пусто';
+        }
+        
+        favoritesItems.innerHTML = `
+            <div class="favorites-empty-msg">
+                <i class="fas fa-heart fa-2x"></i>
+                <p>${emptyMessage}</p>
+                <p class="small">Добавляйте товары, нажимая на сердечко</p>
+            </div>
+        `;
+        addAllToCartBtn.disabled = true;
+    } else {
+        favoritesItems.innerHTML = filteredFavorites.map(item => {
+            const product = products.find(p => p.id === item.id);
+            const isAvailable = product && product.quantity > 0;
+            const maxAvailable = product ? product.quantity : 0;
+            
+            return `
+                <div class="favorite-item">
+                    <button class="favorite-item-remove" onclick="removeFromFavorites(${item.id})">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <img src="${item.image}" 
+                         alt="${item.name}" 
+                         class="favorite-item-image"
+                         loading="lazy"
+                         onerror="this.src='https://via.placeholder.com/100x100/FF9800/FFFFFF?text=ICEBERG'">
+                    <div class="favorite-item-details">
+                        <div class="favorite-item-title">${item.name}</div>
+                        <div class="favorite-item-price">${item.price} руб./шт.</div>
+                        ${!isAvailable ? '<div class="cart-item-warning" style="color: #F44336; font-size: 0.8rem; margin-bottom: 5px;">⚠️ Товар закончился</div>' : ''}
+                        <div class="favorite-item-controls">
+                            ${isAvailable ? `
+                                <button class="add-to-cart" onclick="addToCart(${item.id})" style="font-size: 0.85rem;">
+                                    <i class="fas fa-cart-plus"></i> В корзину
+                                </button>
+                            ` : ''}
+                            ${item.isNew ? '<span class="new-badge" style="position: static; font-size: 0.7rem;">NEW</span>' : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        // Проверяем, есть ли хотя бы один доступный товар
+        const hasAvailableItems = filteredFavorites.some(item => {
+            const product = products.find(p => p.id === item.id);
+            return product && product.quantity > 0;
+        });
+        
+        addAllToCartBtn.disabled = !hasAvailableItems;
+        addAllToCartBtn.innerHTML = `<i class="fas fa-cart-plus"></i> Добавить все в корзину (${filteredFavorites.length})`;
+    }
+}
+
+function switchFavoritesTab(tabName) {
+    currentFavoritesTab = tabName;
+    
+    // Обновляем активные вкладки
+    document.querySelectorAll('.favorites-tab').forEach(tab => {
+        tab.classList.remove('active');
+        if (tab.textContent.toLowerCase().includes(tabName)) {
+            tab.classList.add('active');
+        }
+    });
+    
+    // Переименовываем вкладки для соответствия
+    const tabs = document.querySelectorAll('.favorites-tab');
+    if (tabName === 'all') tabs[0].classList.add('active');
+    if (tabName === 'available') tabs[1].classList.add('active');
+    if (tabName === 'new') tabs[2].classList.add('active');
+    
+    renderFavoritesItems();
+}
+
+function addAllFavoritesToCart() {
+    const filteredFavorites = favorites.filter(item => {
+        const product = products.find(p => p.id === item.id);
+        return product && product.quantity > 0;
+    });
+    
+    if (filteredFavorites.length === 0) {
+        showNotification('❌ Нет доступных товаров для добавления в корзину');
+        return;
+    }
+    
+    let addedCount = 0;
+    filteredFavorites.forEach(item => {
+        const product = products.find(p => p.id === item.id);
+        if (product && product.quantity > 0) {
+            const existingItem = cart.find(cartItem => cartItem.id === item.id);
+            
+            if (existingItem) {
+                // Проверяем, не превышает ли количество доступное
+                if (existingItem.quantity < product.quantity) {
+                    existingItem.quantity += 1;
+                    addedCount++;
+                }
+            } else {
+                cart.push({
+                    ...product,
+                    quantity: 1
+                });
+                addedCount++;
+            }
+        }
+    });
+    
+    if (addedCount > 0) {
+        saveCart();
+        showNotification(`✅ Добавлено ${addedCount} товаров в корзину`);
+        closeFavorites();
+    } else {
+        showNotification('❌ Не удалось добавить товары в корзину');
+    }
+}
+
+function clearFavorites() {
+    if (favorites.length === 0) return;
+    
+    if (confirm("Очистить всё избранное?")) {
+        favorites = [];
+        saveFavorites();
+        showNotification("💔 Избранное очищено");
+    }
+}
+
+function openFavorites() {
+    document.getElementById('favoritesSidebar').classList.add('active');
+    document.getElementById('cartOverlay').classList.add('active');
+    document.body.style.overflow = 'hidden';
+    renderFavoritesItems();
+}
+
+function closeFavorites() {
+    document.getElementById('favoritesSidebar').classList.remove('active');
+    document.getElementById('cartOverlay').classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+// ======================
+// 7. ГЕНЕРАЦИЯ НОМЕРА ЗАКАЗА
 // ======================
 
 function generateOrderNumber() {
@@ -759,7 +1034,7 @@ function generateOrderNumber() {
 }
 
 // ======================
-// 7. УВЕДОМЛЕНИЕ МЕНЕДЖЕРУ В TELEGRAM
+// 8. УВЕДОМЛЕНИЕ МЕНЕДЖЕРУ В TELEGRAM
 // ======================
 
 async function notifyManager(orderData) {
@@ -821,7 +1096,7 @@ async function notifyManager(orderData) {
 }
 
 // ======================
-// 8. ОФОРМЛЕНИЕ ЗАКАЗА С УВЕДОМЛЕНИЕМ
+// 9. ОФОРМЛЕНИЕ ЗАКАЗА С УВЕДОМЛЕНИЕМ
 // ======================
 
 async function checkout() {
@@ -934,7 +1209,7 @@ async function checkout() {
 }
 
 // ======================
-// 9. МОДАЛЬНОЕ ОКНО ПОДТВЕРЖДЕНИЯ ЗАКАЗА
+// 10. МОДАЛЬНОЕ ОКНО ПОДТВЕРЖДЕНИЯ ЗАКАЗА
 // ======================
 
 function showOrderConfirmationModal(orderData, orderNumber) {
@@ -1009,7 +1284,7 @@ function showOrderConfirmationModal(orderData, orderNumber) {
 }
 
 // ======================
-// 10. УВЕДОМЛЕНИЕ "НАПИШИ МЕНЕДЖЕРУ"
+// 11. УВЕДОМЛЕНИЕ "НАПИШИ МЕНЕДЖЕРУ"
 // ======================
 
 function showManagerNotification(orderNumber) {
@@ -1063,7 +1338,7 @@ function showManagerNotification(orderNumber) {
 }
 
 // ======================
-// 11. ОТКРЫТИЕ ЧАТА С МЕНЕДЖЕРОМ
+// 12. ОТКРЫТИЕ ЧАТА С МЕНЕДЖЕРОМ
 // ======================
 
 function openManagerChat(orderNumber) {
@@ -1099,7 +1374,7 @@ function closeCart() {
 }
 
 // ======================
-// 12. АВТООБНОВЛЕНИЕ
+// 13. АВТООБНОВЛЕНИЕ
 // ======================
 
 async function loadAndRenderProducts() {
@@ -1111,6 +1386,9 @@ async function loadAndRenderProducts() {
         
         createCategoriesNav();
         renderProductsByCategory();
+        
+        // Обновляем избранное
+        updateFavoritesUI();
         
         let cartUpdated = false;
         cart.forEach(cartItem => {
@@ -1157,7 +1435,7 @@ function stopAutoUpdate() {
 }
 
 // ======================
-// 13. ИНИЦИАЛИЗАЦИЯ
+// 14. ИНИЦИАЛИЗАЦИЯ
 // ======================
 
 async function initApp() {
@@ -1166,6 +1444,7 @@ async function initApp() {
     
     await loadAndRenderProducts();
     loadCart();
+    loadFavorites();
     startAutoUpdate();
     
     const themeSwitch = document.createElement('div');
@@ -1175,12 +1454,18 @@ async function initApp() {
     document.body.appendChild(themeSwitch);
     updateThemeIcon();
     
+    // Обработчики событий
     document.getElementById('cartButton').onclick = openCart;
     document.getElementById('closeCart').onclick = closeCart;
     document.getElementById('cartOverlay').onclick = closeCart;
     document.getElementById('checkoutButton').onclick = checkout;
     document.getElementById('clearCartButton').onclick = clearCart;
     
+    // Обработчики для избранного
+    document.getElementById('favoritesButton').onclick = openFavorites;
+    document.getElementById('closeFavorites').onclick = closeFavorites;
+    
+    // Глобальные функции
     window.addToCart = addToCart;
     window.removeFromCart = removeFromCart;
     window.updateQuantity = updateQuantity;
@@ -1192,6 +1477,15 @@ async function initApp() {
     window.switchCategory = switchCategory;
     window.switchSubCategory = switchSubCategory;
     window.openManagerChat = openManagerChat;
+    
+    // Функции избранного
+    window.toggleFavorite = toggleFavorite;
+    window.removeFromFavorites = removeFromFavorites;
+    window.openFavorites = openFavorites;
+    window.closeFavorites = closeFavorites;
+    window.switchFavoritesTab = switchFavoritesTab;
+    window.addAllFavoritesToCart = addAllFavoritesToCart;
+    window.clearFavorites = clearFavorites;
     
     setTimeout(() => {
         const loader = document.getElementById('loader');
@@ -1206,7 +1500,7 @@ async function initApp() {
         }
     }, 500);
     
-    console.log('✅ ICEBERG Shop с правильной категоризацией инициализирован');
+    console.log('✅ LAVKA Shop с избранным инициализирован');
 }
 
 if (document.readyState === 'loading') {
