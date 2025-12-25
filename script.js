@@ -1,5 +1,5 @@
 // script.js
-// ICEBERG Shop - Версия с разделами категорий, подразделами и уведомлением менеджеру
+// ICEBERG Shop - Версия с правильной категоризацией товаров
 // ======================
 
 let currentTheme = 'light';
@@ -7,9 +7,9 @@ let tg = null;
 let products = [];
 let cart = [];
 let autoUpdateInterval = null;
-let currentCategory = 'all'; // Текущая выбранная категория
-let currentSubCategory = null; // Текущий подраздел
-let orderHistory = []; // История заказов
+let currentCategory = 'all';
+let currentSubCategory = null;
+let orderHistory = [];
 
 // ======================
 // 1. ТЕМА И TELEGRAM
@@ -112,6 +112,7 @@ const categories = [
         name: '🚬 НИКОТИНОВЫЕ ПЛАСТИНКИ', 
         icon: 'fas fa-tablets', 
         color: '#795548',
+        keywords: ['пластин', 'никотин', 'пастил', 'таблет', 'plate', 'nicotine'],
         subCategories: null
     },
     { 
@@ -119,12 +120,13 @@ const categories = [
         name: '🎨 ARQA', 
         icon: 'fas fa-palette', 
         color: '#2196F3',
+        keywords: ['arqa', 'арка'],
         subCategories: [
-            { id: '70mg', name: '70mg' },
-            { id: 'standart', name: 'ARQA STANDART' },
-            { id: 'slim', name: 'ARQA SLIM' },
-            { id: 'csgo', name: 'ARQA CS:GO' },
-            { id: 'slovo', name: 'ARQA СЛОВО ПАЦАНА' }
+            { id: '70mg', name: '70mg', keywords: ['70mg', '70 мг', '70mg arqa'] },
+            { id: 'standart', name: 'ARQA STANDART', keywords: ['standart', 'standard', 'арка стандарт'] },
+            { id: 'slim', name: 'ARQA SLIM', keywords: ['slim', 'арка slim'] },
+            { id: 'csgo', name: 'ARQA CS:GO', keywords: ['cs:go', 'cs go', 'csgo'] },
+            { id: 'slovo', name: 'ARQA СЛОВО ПАЦАНА', keywords: ['слово пацана', 'слово'] }
         ]
     },
     { 
@@ -132,10 +134,11 @@ const categories = [
         name: '⚡ ШОК', 
         icon: 'fas fa-bolt', 
         color: '#FF5722',
+        keywords: ['шок', 'shok'],
         subCategories: [
-            { id: 'shok150', name: 'ШОК (150 МГ)' },
-            { id: 'shok75', name: 'ШОК (75 МГ)' },
-            { id: 'shokbyx', name: 'ШОК BY X' }
+            { id: 'shok150', name: 'ШОК (150 МГ)', keywords: ['шок 150', 'shok 150', '150 мг шок'] },
+            { id: 'shok75', name: 'ШОК (75 МГ)', keywords: ['шок 75', 'shok 75', '75 мг шок'] },
+            { id: 'shokbyx', name: 'ШОК BY X', keywords: ['by x', 'шок by x'] }
         ]
     },
     { 
@@ -143,6 +146,7 @@ const categories = [
         name: '🌪️ STORM BY ШОК', 
         icon: 'fas fa-wind', 
         color: '#9C27B0',
+        keywords: ['storm', 'шторм'],
         subCategories: null
     },
     { 
@@ -150,12 +154,13 @@ const categories = [
         name: '🔬 ST (АНАЛОГ FERDS)', 
         icon: 'fas fa-flask', 
         color: '#009688',
+        keywords: [' st ', ' st,', ' st.', 'стей'],
         subCategories: [
-            { id: 'st45', name: 'ST MENTHOL (45 МГ)' },
-            { id: 'st55', name: 'ST LIME DELIGHT (55 МГ)' },
-            { id: 'st65', name: 'ST LUXURY MINT (65 МГ)' },
-            { id: 'st75', name: 'ST FREEZE MINT (75 МГ)' },
-            { id: 'st120', name: 'ST ROYAL MINT (120 МГ)' }
+            { id: 'st45', name: 'ST MENTHOL (45 МГ)', keywords: ['45 мг', '45mg', 'st 45'] },
+            { id: 'st55', name: 'ST LIME DELIGHT (55 МГ)', keywords: ['55 мг', '55mg', 'st 55', 'lime'] },
+            { id: 'st65', name: 'ST LUXURY MINT (65 МГ)', keywords: ['65 мг', '65mg', 'st 65', 'luxury'] },
+            { id: 'st75', name: 'ST FREEZE MINT (75 МГ)', keywords: ['75 мг', '75mg', 'st 75', 'freeze'] },
+            { id: 'st120', name: 'ST ROYAL MINT (120 МГ)', keywords: ['120 мг', '120mg', 'st 120', 'royal'] }
         ]
     },
     { 
@@ -163,15 +168,16 @@ const categories = [
         name: '👑 KASTA', 
         icon: 'fas fa-crown', 
         color: '#FFC107',
+        keywords: ['kasta', 'каста'],
         subCategories: [
-            { id: 'k101', name: 'KASTA CLASSIC (101 МГ)' },
-            { id: 'k105', name: 'KASTA CLASSIC (105 МГ)' },
-            { id: 'k105le', name: 'KASTA LIMITED EDITION (105 МГ)' },
-            { id: 'k120c', name: 'KASTA COVID (120 МГ)' },
-            { id: 'k120a', name: 'KASTA ANIME (120 МГ)' },
-            { id: 'k125a', name: 'KASTA ANIME (125 МГ)' },
-            { id: 'k120d', name: 'KASTA DOTA (120 МГ)' },
-            { id: 'k125p', name: 'KASTA PHOBIA (125 МГ)' }
+            { id: 'k101', name: 'KASTA CLASSIC (101 МГ)', keywords: ['101 мг', '101mg', 'kasta 101'] },
+            { id: 'k105', name: 'KASTA CLASSIC (105 МГ)', keywords: ['105 мг', '105mg', 'kasta 105 classic'] },
+            { id: 'k105le', name: 'KASTA LIMITED EDITION (105 МГ)', keywords: ['limited', 'limited edition'] },
+            { id: 'k120c', name: 'KASTA COVID (120 МГ)', keywords: ['covid', 'ковид'] },
+            { id: 'k120a', name: 'KASTA ANIME (120 МГ)', keywords: ['anime 120', 'аниме 120'] },
+            { id: 'k125a', name: 'KASTA ANIME (125 МГ)', keywords: ['anime 125', 'аниме 125'] },
+            { id: 'k120d', name: 'KASTA DOTA (120 МГ)', keywords: ['dota', 'дота'] },
+            { id: 'k125p', name: 'KASTA PHOBIA (125 МГ)', keywords: ['phobia', 'фобия'] }
         ]
     },
     { 
@@ -179,10 +185,11 @@ const categories = [
         name: '⚗️ FERDS', 
         icon: 'fas fa-vial', 
         color: '#3F51B5',
+        keywords: ['ferds', 'фердс', 'fedrs', 'feds'],
         subCategories: [
-            { id: 'f30', name: 'FEDRS №5 (30 МГ)' },
-            { id: 'f50', name: 'FEDRS №8 (50 МГ)' },
-            { id: 'f65', name: 'FEDRS №9 (65 МГ)' }
+            { id: 'f30', name: 'FEDRS №5 (30 МГ)', keywords: ['30 мг', '30mg', '№5', 'no5'] },
+            { id: 'f50', name: 'FEDRS №8 (50 МГ)', keywords: ['50 мг', '50mg', '№8', 'no8'] },
+            { id: 'f65', name: 'FEDRS №9 (65 МГ)', keywords: ['65 мг', '65mg', '№9', 'no9'] }
         ]
     },
     { 
@@ -190,12 +197,13 @@ const categories = [
         name: '❄️ ICEBERG', 
         icon: 'fas fa-snowflake', 
         color: '#03A9F4',
+        keywords: ['iceberg', 'айсберг'],
         subCategories: [
-            { id: 'ice75s', name: 'ICEBERG STRONG (75 МГ)' },
-            { id: 'ice75t', name: 'ICEBERG TRIANGLES (75 МГ)' },
-            { id: 'ice100', name: 'ICEBERG EXTRA STRONG (100 МГ)' },
-            { id: 'ice110', name: 'ICEBERG EXTREME (110 МГ)' },
-            { id: 'ice150', name: 'ICEBERG ULTRA (150 МГ)' }
+            { id: 'ice75s', name: 'ICEBERG STRONG (75 МГ)', keywords: ['strong', '75 мг strong'] },
+            { id: 'ice75t', name: 'ICEBERG TRIANGLES (75 МГ)', keywords: ['triangles', 'треугольник'] },
+            { id: 'ice100', name: 'ICEBERG EXTRA STRONG (100 МГ)', keywords: ['extra strong', '100 мг'] },
+            { id: 'ice110', name: 'ICEBERG EXTREME (110 МГ)', keywords: ['extreme', '110 мг'] },
+            { id: 'ice150', name: 'ICEBERG ULTRA (150 МГ)', keywords: ['ultra', '150 мг'] }
         ]
     },
     { 
@@ -203,11 +211,12 @@ const categories = [
         name: '🐉 FAFF', 
         icon: 'fas fa-dragon', 
         color: '#E91E63',
+        keywords: ['faff', 'фафф'],
         subCategories: [
-            { id: 'faff65', name: 'FAFF (65 МГ)' },
-            { id: 'faff75', name: 'FAFF (75 МГ)' },
-            { id: 'faff100', name: 'FAFF (100 МГ)' },
-            { id: 'faff150', name: 'FAFF (150 МГ)' }
+            { id: 'faff65', name: 'FAFF (65 МГ)', keywords: ['65 мг faff', 'faff 65'] },
+            { id: 'faff75', name: 'FAFF (75 МГ)', keywords: ['75 мг faff', 'faff 75'] },
+            { id: 'faff100', name: 'FAFF (100 МГ)', keywords: ['100 мг faff', 'faff 100'] },
+            { id: 'faff150', name: 'FAFF (150 МГ)', keywords: ['150 мг faff', 'faff 150'] }
         ]
     },
     { 
@@ -215,6 +224,7 @@ const categories = [
         name: '🎲 RANDM BY FAFF', 
         icon: 'fas fa-dice', 
         color: '#673AB7',
+        keywords: ['randm', 'рандм'],
         subCategories: null
     },
     { 
@@ -222,6 +232,7 @@ const categories = [
         name: '🎯 SHOOTER BY FAFF', 
         icon: 'fas fa-bullseye', 
         color: '#FF9800',
+        keywords: ['shooter', 'шутер'],
         subCategories: null
     },
     { 
@@ -229,6 +240,7 @@ const categories = [
         name: '✨ ZUZU BY FAFF', 
         icon: 'fas fa-star', 
         color: '#FFEB3B',
+        keywords: ['zuzu', 'зузу'],
         subCategories: null
     },
     { 
@@ -236,11 +248,12 @@ const categories = [
         name: '🇸🇪 ШВЕЦИЯ', 
         icon: 'fas fa-flag', 
         color: '#F44336',
+        keywords: ['швеция', 'sweden', 'odens', 'lyft', 'zyn', 'chn'],
         subCategories: [
-            { id: 'odens', name: 'ODENS' },
-            { id: 'lyft', name: 'LYFT' },
-            { id: 'zyn', name: 'ZYN' },
-            { id: 'chn', name: 'CHN' }
+            { id: 'odens', name: 'ODENS', keywords: ['odens', 'оденс'] },
+            { id: 'lyft', name: 'LYFT', keywords: ['lyft', 'лифт'] },
+            { id: 'zyn', name: 'ZYN', keywords: ['zyn', 'зин'] },
+            { id: 'chn', name: 'CHN', keywords: ['chn'] }
         ]
     },
     { 
@@ -248,10 +261,11 @@ const categories = [
         name: '🔴 RED', 
         icon: 'fas fa-circle', 
         color: '#F44336',
+        keywords: ['red', 'ред'],
         subCategories: [
-            { id: 'red_o', name: 'RED ORIGINAL' },
-            { id: 'red_i', name: 'RED ICE COOL' },
-            { id: 'red_k', name: 'RED KILLER' }
+            { id: 'red_o', name: 'RED ORIGINAL', keywords: ['original', 'оригинал'] },
+            { id: 'red_i', name: 'RED ICE COOL', keywords: ['ice cool'] },
+            { id: 'red_k', name: 'RED KILLER', keywords: ['killer', 'киллер'] }
         ]
     },
     { 
@@ -259,6 +273,7 @@ const categories = [
         name: '😜 MAD', 
         icon: 'fas fa-grin-tongue-wink', 
         color: '#9C27B0',
+        keywords: ['mad'],
         subCategories: null
     },
     { 
@@ -266,6 +281,7 @@ const categories = [
         name: '₿ BITCOIN', 
         icon: 'fab fa-bitcoin', 
         color: '#FF9800',
+        keywords: ['bitcoin', 'биткоин'],
         subCategories: null
     },
     { 
@@ -273,6 +289,7 @@ const categories = [
         name: '💧 DRYMOST', 
         icon: 'fas fa-tint', 
         color: '#2196F3',
+        keywords: ['drymost', 'драймост'],
         subCategories: null
     },
     { 
@@ -280,6 +297,7 @@ const categories = [
         name: '🐦 CORVUS', 
         icon: 'fas fa-crow', 
         color: '#607D8B',
+        keywords: ['corvus', 'корвус'],
         subCategories: null
     }
 ];
@@ -329,14 +347,12 @@ function createCategoriesNav() {
 
 function switchCategory(categoryId) {
     currentCategory = categoryId;
-    currentSubCategory = null; // Сбрасываем подкатегорию при смене основной категории
+    currentSubCategory = null;
     createCategoriesNav();
     renderProductsByCategory();
     
-    // Прокручиваем к началу товаров
     document.getElementById('catalog').scrollIntoView({ behavior: 'smooth' });
     
-    // Показываем уведомление
     const category = categories.find(c => c.id === categoryId);
     if (category) {
         showNotification(`📂 Категория: ${category.name}`);
@@ -362,220 +378,34 @@ function filterProductsByCategory(productsToFilter) {
         return productsToFilter;
     }
     
+    const category = categories.find(c => c.id === currentCategory);
+    if (!category || !category.keywords) {
+        return productsToFilter;
+    }
+    
     let filtered = productsToFilter.filter(product => {
         const productName = product.name.toLowerCase();
+        const productDesc = (product.description || '').toLowerCase();
+        const searchText = productName + ' ' + productDesc;
         
-        // Основная фильтрация по категории
-        switch(currentCategory) {
-            // Никотиновые пластинки
-            case 'nicotine':
-                return productName.includes('пластин') || 
-                       productName.includes('никотин') ||
-                       productName.includes('пастил');
-            
-            // ARQA - все товары ARQA
-            case 'arqa':
-                return productName.includes('arqa') ||
-                       productName.includes('арка');
-            
-            // ШОК - все товары ШОК
-            case 'shok':
-                return productName.includes('шок') ||
-                       productName.includes('shok');
-            
-            // STORM BY ШОК
-            case 'storm':
-                return productName.includes('storm') ||
-                       productName.includes('шторм');
-            
-            // ST (АНАЛОГ FERDS) - все ST товары
-            case 'st':
-                return (productName.includes('st') && !productName.includes('storm')) ||
-                       productName.includes('стей');
-            
-            // KASTA - все KASTA товары
-            case 'kasta':
-                return productName.includes('kasta') ||
-                       productName.includes('каста');
-            
-            // FERDS - все FERDS товары
-            case 'ferds':
-                return productName.includes('ferds') ||
-                       productName.includes('фердс') ||
-                       productName.includes('fedrs') ||
-                       productName.includes('feds');
-            
-            // ICEBERG - все ICEBERG товары
-            case 'iceberg':
-                return productName.includes('iceberg') ||
-                       productName.includes('айсберг');
-            
-            // FAFF - все FAFF товары
-            case 'faff':
-                return productName.includes('faff') ||
-                       productName.includes('фафф');
-            
-            // RANDM BY FAFF
-            case 'randm':
-                return productName.includes('randm') ||
-                       productName.includes('рандм');
-            
-            // SHOOTER BY FAFF
-            case 'shooter':
-                return productName.includes('shooter') ||
-                       productName.includes('шутер');
-            
-            // ZUZU BY FAFF
-            case 'zuzu':
-                return productName.includes('zuzu') ||
-                       productName.includes('зузу');
-            
-            // ШВЕЦИЯ - шведские бренды
-            case 'sweden':
-                return productName.includes('швеция') ||
-                       productName.includes('sweden') ||
-                       productName.includes('odens') ||
-                       productName.includes('lyft') ||
-                       productName.includes('zyn') ||
-                       productName.includes('chn');
-            
-            // RED - все RED товары
-            case 'red':
-                return productName.includes('red') ||
-                       productName.includes('ред');
-            
-            // MAD
-            case 'mad':
-                return productName.includes('mad');
-            
-            // BITCOIN
-            case 'bitcoin':
-                return productName.includes('bitcoin');
-            
-            // DRYMOST
-            case 'drymost':
-                return productName.includes('drymost');
-            
-            // CORVUS
-            case 'corvus':
-                return productName.includes('corvus');
-            
-            default:
-                return true;
-        }
+        // Проверяем по ключевым словам категории
+        return category.keywords.some(keyword => 
+            searchText.includes(keyword.toLowerCase())
+        );
     });
     
-    // Если выбран подраздел, фильтруем дальше
-    if (currentSubCategory) {
-        const category = categories.find(c => c.id === currentCategory);
-        if (category && category.subCategories) {
+    // Дополнительная фильтрация по подкатегории
+    if (currentSubCategory && category.subCategories) {
+        const subCategory = category.subCategories.find(s => s.id === currentSubCategory);
+        if (subCategory && subCategory.keywords) {
             filtered = filtered.filter(product => {
                 const productName = product.name.toLowerCase();
                 const productDesc = (product.description || '').toLowerCase();
+                const searchText = productName + ' ' + productDesc;
                 
-                // Дополнительная фильтрация по подразделу
-                switch(currentSubCategory) {
-                    // ARQA подразделы
-                    case '70mg':
-                        return productName.includes('70') || productName.includes('70mg') || productDesc.includes('70');
-                    case 'standart':
-                        return productName.includes('standart') || productName.includes('standard') || productDesc.includes('standart');
-                    case 'slim':
-                        return productName.includes('slim') || productDesc.includes('slim');
-                    case 'csgo':
-                        return productName.includes('cs') || productDesc.includes('cs:go') || productDesc.includes('cs go');
-                    case 'slovo':
-                        return productName.includes('слово') || productDesc.includes('слово пацана');
-                    
-                    // ШОК подразделы
-                    case 'shok150':
-                        return productName.includes('150') || productDesc.includes('150 мг');
-                    case 'shok75':
-                        return productName.includes('75') || productDesc.includes('75 мг');
-                    case 'shokbyx':
-                        return productName.includes('by x') || productDesc.includes('by x');
-                    
-                    // ST подразделы
-                    case 'st45':
-                        return productName.includes('45') || productDesc.includes('45 мг');
-                    case 'st55':
-                        return productName.includes('lime') || productDesc.includes('55 мг');
-                    case 'st65':
-                        return productName.includes('luxury') || productDesc.includes('65 мг');
-                    case 'st75':
-                        return productName.includes('freeze') || productDesc.includes('75 мг');
-                    case 'st120':
-                        return productName.includes('royal') || productDesc.includes('120 мг');
-                    
-                    // KASTA подразделы
-                    case 'k101':
-                        return productName.includes('101') || productDesc.includes('101 мг');
-                    case 'k105':
-                        return productName.includes('classic') && (productName.includes('105') || productDesc.includes('105 мг'));
-                    case 'k105le':
-                        return productName.includes('limited') || productDesc.includes('limited edition');
-                    case 'k120c':
-                        return productName.includes('covid') || productDesc.includes('covid');
-                    case 'k120a':
-                        return productName.includes('anime') && (productName.includes('120') || productDesc.includes('120 мг'));
-                    case 'k125a':
-                        return productName.includes('anime') && (productName.includes('125') || productDesc.includes('125 мг'));
-                    case 'k120d':
-                        return productName.includes('dota') || productDesc.includes('dota');
-                    case 'k125p':
-                        return productName.includes('phobia') || productDesc.includes('phobia');
-                    
-                    // FERDS подразделы
-                    case 'f30':
-                        return productName.includes('30') || productDesc.includes('30 мг') || productName.includes('№5');
-                    case 'f50':
-                        return productName.includes('50') || productDesc.includes('50 мг') || productName.includes('№8');
-                    case 'f65':
-                        return productName.includes('65') || productDesc.includes('65 мг') || productName.includes('№9');
-                    
-                    // ICEBERG подразделы
-                    case 'ice75s':
-                        return productName.includes('strong') && (productName.includes('75') || productDesc.includes('75 мг'));
-                    case 'ice75t':
-                        return productName.includes('triangles') || productDesc.includes('triangles');
-                    case 'ice100':
-                        return productName.includes('extra') || productDesc.includes('extra strong');
-                    case 'ice110':
-                        return productName.includes('extreme') || productDesc.includes('extreme');
-                    case 'ice150':
-                        return productName.includes('ultra') || productDesc.includes('ultra');
-                    
-                    // FAFF подразделы
-                    case 'faff65':
-                        return productName.includes('65') || productDesc.includes('65 мг');
-                    case 'faff75':
-                        return productName.includes('75') || productDesc.includes('75 мг');
-                    case 'faff100':
-                        return productName.includes('100') || productDesc.includes('100 мг');
-                    case 'faff150':
-                        return productName.includes('150') || productDesc.includes('150 мг');
-                    
-                    // ШВЕЦИЯ подразделы
-                    case 'odens':
-                        return productName.includes('odens') || productDesc.includes('odens');
-                    case 'lyft':
-                        return productName.includes('lyft') || productDesc.includes('lyft');
-                    case 'zyn':
-                        return productName.includes('zyn') || productDesc.includes('zyn');
-                    case 'chn':
-                        return productName.includes('chn') || productDesc.includes('chn');
-                    
-                    // RED подразделы
-                    case 'red_o':
-                        return productName.includes('original') || productDesc.includes('original');
-                    case 'red_i':
-                        return productName.includes('ice cool') || productDesc.includes('ice cool');
-                    case 'red_k':
-                        return productName.includes('killer') || productDesc.includes('killer');
-                    
-                    default:
-                        return true;
-                }
+                return subCategory.keywords.some(keyword => 
+                    searchText.includes(keyword.toLowerCase())
+                );
             });
         }
     }
@@ -598,11 +428,13 @@ async function loadProductsFromGitHub() {
         
         const loadedProducts = await response.json();
         
-        // Добавляем поле quantity если его нет
+        // Добавляем поля для категоризации
         loadedProducts.forEach(product => {
             if (!product.hasOwnProperty('quantity')) {
                 product.quantity = 10;
             }
+            // Добавляем нормализованное название для поиска
+            product.searchText = (product.name + ' ' + (product.description || '')).toLowerCase();
         });
         
         console.log(`✅ Загружено ${loadedProducts.length} товаров с GitHub`);
@@ -661,7 +493,6 @@ function renderProductsByCategory() {
         const qty = product.quantity || 0;
         const isAvailable = qty > 0;
         
-        // Определяем цвет категории для бейджа
         const categoryInfo = categories.find(c => c.id === currentCategory) || categories[0];
         const categoryColor = categoryInfo.color || '#FF9800';
         
@@ -933,10 +764,8 @@ function generateOrderNumber() {
 
 async function notifyManager(orderData) {
     try {
-        // Формируем сообщение для менеджера
         let message = `📦 *НОВЫЙ ЗАКАЗ #${orderData.orderNumber}*\n\n`;
         
-        // Информация о пользователе
         if (orderData.user) {
             message += `👤 *Покупатель:*\n`;
             if (orderData.user.id) message += `ID: ${orderData.user.id}\n`;
@@ -949,7 +778,6 @@ async function notifyManager(orderData) {
         
         message += `\n📅 *Дата:* ${new Date(orderData.timestamp).toLocaleString('ru-RU')}\n`;
         
-        // Товары
         message += `\n🛒 *Товары:*\n`;
         orderData.products.forEach((item, index) => {
             message += `${index + 1}. ${item.name}\n`;
@@ -958,7 +786,6 @@ async function notifyManager(orderData) {
             message += `   Сумма: ${item.price * item.quantity} руб.\n\n`;
         });
         
-        // Итоги
         message += `💰 *ИТОГО:*\n`;
         message += `Товаров: ${orderData.items_count} шт.\n`;
         message += `Сумма заказа: *${orderData.total} руб.*\n\n`;
@@ -968,14 +795,11 @@ async function notifyManager(orderData) {
         
         console.log("📤 Сообщение для менеджера:", message);
         
-        // Если это Telegram WebApp, пробуем отправить сообщение через бота
         if (tg && tg.initDataUnsafe?.user) {
             try {
-                // Пробуем открыть чат с менеджером
                 const managerUsername = 'Chief_68';
                 const tgLink = `https://t.me/${managerUsername}?text=${encodeURIComponent(message)}`;
                 
-                // Открываем ссылку в новом окне (для веба) или в приложении Telegram
                 if (tg.openLink) {
                     tg.openLink(tgLink);
                 } else {
@@ -1037,7 +861,6 @@ async function checkout() {
         return;
     }
 
-    // Генерируем номер заказа
     const orderNumber = generateOrderNumber();
     
     const orderData = {
@@ -1059,19 +882,16 @@ async function checkout() {
         } : null
     };
 
-    // Добавляем в историю заказов
     orderHistory.unshift({
         ...orderData,
         status: 'pending'
     });
     
-    // Сохраняем историю
     saveCart();
     
     console.log("🛒 Отправка заказа:", orderData);
     
     try {
-        // Пытаемся уведомить менеджера
         const notified = await notifyManager(orderData);
         
         if (tg && tg.showAlert) {
@@ -1096,7 +916,6 @@ async function checkout() {
                 }
             );
         } else {
-            // Для обычного браузера показываем красивое модальное окно
             showOrderConfirmationModal(orderData, orderNumber);
             
             cart = [];
@@ -1119,11 +938,9 @@ async function checkout() {
 // ======================
 
 function showOrderConfirmationModal(orderData, orderNumber) {
-    // Удаляем старые модальные окна
     const oldModals = document.querySelectorAll('.order-confirmation-modal, .manager-notification');
     oldModals.forEach(modal => modal.remove());
     
-    // Создаем модальное окно подтверждения
     const modal = document.createElement('div');
     modal.className = 'order-confirmation-modal';
     modal.innerHTML = `
@@ -1173,19 +990,16 @@ function showOrderConfirmationModal(orderData, orderNumber) {
     
     document.body.appendChild(modal);
     
-    // Показываем уведомление менеджеру через 1 секунду
     setTimeout(() => {
         showManagerNotification(orderNumber);
     }, 1000);
     
-    // Обработчик закрытия модального окна
     const closeBtn = modal.querySelector('.close-order-modal');
     closeBtn.addEventListener('click', () => {
         modal.style.opacity = '0';
         setTimeout(() => modal.remove(), 300);
     });
     
-    // Автоматическое закрытие через 10 секунд
     setTimeout(() => {
         if (document.body.contains(modal)) {
             modal.style.opacity = '0';
@@ -1199,11 +1013,9 @@ function showOrderConfirmationModal(orderData, orderNumber) {
 // ======================
 
 function showManagerNotification(orderNumber) {
-    // Удаляем старые уведомления
     const oldNotifications = document.querySelectorAll('.manager-notification');
     oldNotifications.forEach(n => n.remove());
     
-    // Создаем уведомление
     const notification = document.createElement('div');
     notification.className = 'manager-notification';
     notification.innerHTML = `
@@ -1229,13 +1041,11 @@ function showManagerNotification(orderNumber) {
     
     document.body.appendChild(notification);
     
-    // Показываем с анимацией
     setTimeout(() => {
         notification.style.opacity = '1';
         notification.style.transform = 'translateY(0)';
     }, 100);
     
-    // Обработчик закрытия
     const closeBtn = notification.querySelector('.manager-notification-close');
     closeBtn.addEventListener('click', () => {
         notification.style.opacity = '0';
@@ -1243,7 +1053,6 @@ function showManagerNotification(orderNumber) {
         setTimeout(() => notification.remove(), 300);
     });
     
-    // Автоматическое скрытие через 30 секунд
     setTimeout(() => {
         if (document.body.contains(notification)) {
             notification.style.opacity = '0';
@@ -1261,7 +1070,6 @@ function openManagerChat(orderNumber) {
     const message = `Здравствуйте! У меня оформлен заказ #${orderNumber}. Прошу подтвердить и уточнить детали.`;
     const managerUsername = 'Chief_68';
     
-    // Ссылка для открытия чата в Telegram
     const tgLink = `https://t.me/${managerUsername}?text=${encodeURIComponent(message)}`;
     
     if (tg && tg.openLink) {
@@ -1270,7 +1078,6 @@ function openManagerChat(orderNumber) {
         window.open(tgLink, '_blank');
     }
     
-    // Скрываем уведомление после клика
     const notification = document.querySelector('.manager-notification');
     if (notification) {
         notification.style.opacity = '0';
@@ -1399,7 +1206,7 @@ async function initApp() {
         }
     }, 500);
     
-    console.log('✅ ICEBERG Shop с подразделами и уведомлением менеджеру инициализирован');
+    console.log('✅ ICEBERG Shop с правильной категоризацией инициализирован');
 }
 
 if (document.readyState === 'loading') {
