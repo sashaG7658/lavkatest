@@ -11,50 +11,6 @@
     "added_date": "2025-12-18 00:00:00"
   },
   {
-    "id": 2,
-    "name": "ARQA SPECIAL BLUEBERRY",
-    "description": "ARQA SPECIAL BLUEBERRY - ЧЕРНИКА",
-    "price": 550,
-    "quantity": 12,
-    "category": "arqa",
-    "image": "https://example.com/arqa-blueberry.jpg",
-    "added_by": "admin",
-    "added_date": "2025-12-20 10:30:00"
-  },
-  {
-    "id": 3,
-    "name": "SHOK ENERGY DRINK",
-    "description": "SHOK ENERGY DRINK - ЭНЕРГЕТИК",
-    "price": 480,
-    "quantity": 5,
-    "category": "shok",
-    "image": "https://example.com/shok-energy.jpg",
-    "added_by": "admin",
-    "added_date": "2025-12-20 11:15:00"
-  },
-  {
-    "id": 4,
-    "name": "STORM MENTHOL ICE",
-    "description": "STORM BY ШОK MENTHOL ICE - ЛЕДЯНОЙ МЕНТОЛ",
-    "price": 520,
-    "quantity": 0,
-    "category": "storm",
-    "image": "https://example.com/storm-menthol.jpg",
-    "added_by": "admin",
-    "added_date": "2025-12-20 12:00:00"
-  },
-  {
-    "id": 5,
-    "name": "ST TOBACCO",
-    "description": "ST (АНАЛОГ FERDS) TOBACCO - ТАБАК",
-    "price": 450,
-    "quantity": 15,
-    "category": "st",
-    "image": "https://example.com/st-tobacco.jpg",
-    "added_by": "admin",
-    "added_date": "2025-12-20 13:45:00"
-  },
-  {
     "id": 6,
     "name": "ARQA MIX SOUR PINEAPPLE",
     "description": "ARQA MIX SOUR PINEAPPLE (70 МГ) - АНАНАС",
