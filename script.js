@@ -1,5 +1,5 @@
 // script.js
-// LAVKA Shop - Полная версия с избранным, категориями и уведомлением менеджеру
+// LAVKA Shop - Полная версия с выбором подраздела первым
 // ======================
 
 let currentTheme = 'light';
@@ -12,6 +12,8 @@ let currentCategory = 'all';
 let currentSubCategory = null;
 let currentFavoritesTab = 'all';
 let orderHistory = [];
+let showSubcategorySelection = false;
+let pendingCategoryId = null;
 
 // ======================
 // 1. ТЕМА И TELEGRAM
@@ -98,7 +100,7 @@ function initTelegram() {
 }
 
 // ======================
-// 2. КАТЕГОРИИ ТОВАРОВ С ПОДРАЗДЕЛАМИ
+// 2. КАТЕГОРИИ ТОВАРОВ С ВЫБОРОМ ПОДРАЗДЕЛА
 // ======================
 
 const categories = [
@@ -305,60 +307,200 @@ const categories = [
 ];
 
 function createCategoriesNav() {
-    const categoriesContainer = document.getElementById('categoriesNav');
-    const subCategoriesContainer = document.getElementById('subCategoriesNav');
+    const categoriesArea = document.getElementById('categoriesArea');
+    if (!categoriesArea) return;
     
-    if (!categoriesContainer) return;
-    
-    // Создаем основные категории
-    categoriesContainer.innerHTML = categories.map(category => `
-        <button class="category-btn ${currentCategory === category.id ? 'active' : ''}" 
-                onclick="switchCategory('${category.id}')"
-                style="--category-color: ${category.color}">
-            <i class="${category.icon}"></i>
-            <span>${category.name}</span>
-        </button>
-    `).join('');
-    
-    // Создаем подкатегории если они есть
-    if (subCategoriesContainer) {
-        const category = categories.find(c => c.id === currentCategory);
+    // Если нужно показать выбор подраздела
+    if (showSubcategorySelection && pendingCategoryId) {
+        const category = categories.find(c => c.id === pendingCategoryId);
         
         if (category && category.subCategories && category.subCategories.length > 0) {
-            subCategoriesContainer.innerHTML = `
-                <button class="subcategory-btn ${currentSubCategory === null ? 'active' : ''}" 
+            categoriesArea.innerHTML = `
+                <div class="subcategory-selection">
+                    <div class="subcategory-header">
+                        <button class="back-to-categories" onclick="backToCategories()">
+                            <i class="fas fa-arrow-left"></i>
+                        </button>
+                        <h3>${category.name}</h3>
+                        <span class="subcategory-subtitle">Выберите подраздел:</span>
+                    </div>
+                    <div class="subcategory-grid">
+                        <button class="subcategory-option ${currentSubCategory === null ? 'active' : ''}" 
+                                onclick="selectSubCategory('${category.id}', null)">
+                            <i class="fas fa-layer-group"></i>
+                            <span>Все ${category.name}</span>
+                            <div class="sub-arrow">
+                                <i class="fas fa-arrow-right"></i>
+                            </div>
+                        </button>
+                        ${category.subCategories.map(subCat => `
+                            <button class="subcategory-option ${currentSubCategory === subCat.id ? 'active' : ''}" 
+                                    onclick="selectSubCategory('${category.id}', '${subCat.id}')">
+                                <i class="fas fa-tag"></i>
+                                <span>${subCat.name}</span>
+                                <div class="sub-arrow">
+                                    <i class="fas fa-arrow-right"></i>
+                                </div>
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+            updateSelectedPath();
+            return;
+        } else {
+            // Если нет подкатегорий, сразу переходим к товарам
+            pendingCategoryId = null;
+            showSubcategorySelection = false;
+        }
+    }
+    
+    // Показываем обычные категории
+    categoriesArea.innerHTML = `
+        <div class="categories-nav" id="categoriesNav">
+            ${categories.map(category => {
+                const hasSubs = category.subCategories && category.subCategories.length > 0;
+                return `
+                    <button class="category-btn ${currentCategory === category.id ? 'active' : ''} ${hasSubs ? 'has-subs' : ''}" 
+                            onclick="selectCategory('${category.id}')"
+                            style="--category-color: ${category.color}">
+                        <i class="${category.icon}"></i>
+                        <span>${category.name}</span>
+                    </button>
+                `;
+            }).join('')}
+        </div>
+        
+        ${currentCategory !== 'all' && categories.find(c => c.id === currentCategory)?.subCategories?.length > 0 ? `
+            <div class="subcategory-navigation" id="subCategoriesNav">
+                <button class="subcategory-nav-btn ${currentSubCategory === null ? 'active' : ''}" 
                         onclick="switchSubCategory(null)">
                     <i class="fas fa-layer-group"></i>
-                    <span>Все ${category.name}</span>
+                    <span>Все ${categories.find(c => c.id === currentCategory).name}</span>
                 </button>
-                ${category.subCategories.map(subCat => `
-                    <button class="subcategory-btn ${currentSubCategory === subCat.id ? 'active' : ''}" 
+                ${categories.find(c => c.id === currentCategory).subCategories.map(subCat => `
+                    <button class="subcategory-nav-btn ${currentSubCategory === subCat.id ? 'active' : ''}" 
                             onclick="switchSubCategory('${subCat.id}')">
                         <i class="fas fa-tag"></i>
                         <span>${subCat.name}</span>
                     </button>
                 `).join('')}
+            </div>
+        ` : ''}
+    `;
+    
+    updateSelectedPath();
+}
+
+function updateSelectedPath() {
+    const pathElement = document.getElementById('selectedPath');
+    if (!pathElement) return;
+    
+    if (showSubcategorySelection && pendingCategoryId) {
+        const category = categories.find(c => c.id === pendingCategoryId);
+        if (category) {
+            pathElement.innerHTML = `
+                <i class="fas fa-map-marker-alt"></i>
+                <div class="path-item">Категории</div>
+                <div class="path-separator">›</div>
+                <div class="path-item">${category.name}</div>
+                <div class="path-separator">›</div>
+                <div class="path-item" style="color: var(--primary-color); font-weight: 600;">Выбор подраздела</div>
             `;
-            subCategoriesContainer.style.display = 'flex';
-        } else {
-            subCategoriesContainer.innerHTML = '';
-            subCategoriesContainer.style.display = 'none';
+            pathElement.style.display = 'flex';
         }
+    } else if (currentCategory !== 'all') {
+        const category = categories.find(c => c.id === currentCategory);
+        if (category) {
+            let path = `
+                <i class="fas fa-map-marker-alt"></i>
+                <div class="path-item" style="color: var(--primary-color); font-weight: 600;">${category.name}</div>
+            `;
+            
+            if (currentSubCategory) {
+                const subCat = category.subCategories?.find(s => s.id === currentSubCategory);
+                if (subCat) {
+                    path += `
+                        <div class="path-separator">›</div>
+                        <div class="path-item">${subCat.name}</div>
+                    `;
+                }
+            }
+            
+            pathElement.innerHTML = path;
+            pathElement.style.display = 'flex';
+        }
+    } else {
+        pathElement.style.display = 'none';
     }
 }
 
+function selectCategory(categoryId) {
+    const category = categories.find(c => c.id === categoryId);
+    
+    if (!category) return;
+    
+    // Если у категории есть подразделы, показываем их выбор
+    if (category.subCategories && category.subCategories.length > 0) {
+        pendingCategoryId = categoryId;
+        showSubcategorySelection = true;
+        createCategoriesNav();
+        
+        // Показываем сообщение
+        showNotification(`Выберите подраздел для ${category.name}`);
+    } else {
+        // Если нет подразделов, сразу переходим к товарам
+        switchCategory(categoryId);
+    }
+}
+
+function selectSubCategory(categoryId, subCategoryId) {
+    pendingCategoryId = null;
+    showSubcategorySelection = false;
+    currentCategory = categoryId;
+    currentSubCategory = subCategoryId;
+    
+    createCategoriesNav();
+    renderProductsByCategory();
+    
+    const category = categories.find(c => c.id === categoryId);
+    let message = `📂 Категория: ${category.name}`;
+    
+    if (subCategoryId) {
+        const subCat = category.subCategories?.find(s => s.id === subCategoryId);
+        if (subCat) {
+            message += ` → ${subCat.name}`;
+        }
+    }
+    
+    showNotification(message);
+    
+    // Прокручиваем к товарам
+    setTimeout(() => {
+        document.getElementById('catalog').scrollIntoView({ behavior: 'smooth' });
+    }, 300);
+}
+
+function backToCategories() {
+    pendingCategoryId = null;
+    showSubcategorySelection = false;
+    createCategoriesNav();
+}
+
 function switchCategory(categoryId) {
+    pendingCategoryId = null;
+    showSubcategorySelection = false;
     currentCategory = categoryId;
     currentSubCategory = null;
     createCategoriesNav();
     renderProductsByCategory();
     
-    document.getElementById('catalog').scrollIntoView({ behavior: 'smooth' });
-    
     const category = categories.find(c => c.id === categoryId);
     if (category) {
         showNotification(`📂 Категория: ${category.name}`);
     }
+    
+    document.getElementById('catalog').scrollIntoView({ behavior: 'smooth' });
 }
 
 function switchSubCategory(subCategoryId) {
@@ -465,6 +607,33 @@ function getDefaultProducts() {
             price: 500,
             quantity: 10,
             image: "https://static.insales-cdn.com/images/products/1/4138/629641258/large_418EE6C0-080A-4F12-85FC-011F55E19F86.jpg",
+            isNew: true
+        },
+        {
+            id: 3,
+            name: "ШОК (150 МГ) МЕНТОЛ",
+            description: "ШОК (150 МГ) - МЕНТОЛ",
+            price: 450,
+            quantity: 8,
+            image: "https://via.placeholder.com/300x200/FF5722/FFFFFF?text=ШОК+150",
+            isNew: true
+        },
+        {
+            id: 4,
+            name: "ШОК (75 МГ) ЯБЛОКО",
+            description: "ШОК (75 МГ) - ЯБЛОКО",
+            price: 400,
+            quantity: 12,
+            image: "https://via.placeholder.com/300x200/FF5722/FFFFFF?text=ШОК+75",
+            isNew: false
+        },
+        {
+            id: 5,
+            name: "ШОК BY X МЯТА",
+            description: "ШОК BY X - МЯТА",
+            price: 480,
+            quantity: 5,
+            image: "https://via.placeholder.com/300x200/FF5722/FFFFFF?text=ШОК+BY+X",
             isNew: true
         }
     ];
@@ -1474,6 +1643,9 @@ async function initApp() {
     window.checkout = checkout;
     window.clearCart = clearCart;
     window.toggleTheme = toggleTheme;
+    window.selectCategory = selectCategory;
+    window.selectSubCategory = selectSubCategory;
+    window.backToCategories = backToCategories;
     window.switchCategory = switchCategory;
     window.switchSubCategory = switchSubCategory;
     window.openManagerChat = openManagerChat;
@@ -1500,7 +1672,7 @@ async function initApp() {
         }
     }, 500);
     
-    console.log('✅ LAVKA Shop с избранным инициализирован');
+    console.log('✅ LAVKA Shop с выбором подраздела инициализирован');
 }
 
 if (document.readyState === 'loading') {
