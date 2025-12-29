@@ -55,7 +55,7 @@
         <div class="loader-content">
             <div class="loader-logo">🔥</div>
             <h2>LAVKA Shop</h2>
-            <p>Загрузка категорий...</p>
+            <p>Загрузка магазина...</p>
         </div>
     </div>
     
@@ -64,31 +64,29 @@
         <div class="main-header">
             <header class="header">
                 <h1><i class="fas fa-fire"></i> LAVKA Shop</h1>
-                
-                <!-- Кнопка избранного -->
-                <button id="favoritesButton" class="favorites-btn">
-                    <i class="fas fa-heart"></i>
-                    <span id="favoritesCounter">0</span>
-                </button>
-                
-                <button id="cartButton" class="cart-btn">
-                    <i class="fas fa-shopping-cart"></i>
-                    <span id="cartCounter">0</span>
-                </button>
+                <div class="header-buttons">
+                    <!-- Кнопка избранного -->
+                    <button id="favoritesButton" class="favorites-btn">
+                        <i class="fas fa-heart"></i>
+                        <span id="favoritesCounter">0</span>
+                    </button>
+                    
+                    <button id="cartButton" class="cart-btn">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span id="cartCounter">0</span>
+                    </button>
+                </div>
             </header>
 
-            <!-- Навигация по основным категориям -->
-            <div class="categories-scroll-wrapper">
-                <div class="categories-nav" id="categoriesNav">
-                    <!-- Категории будут добавлены через JavaScript -->
-                </div>
+            <!-- Отображение выбранного пути -->
+            <div class="selected-path" id="selectedPath" style="display: none;">
+                <i class="fas fa-map-marker-alt"></i>
+                <div class="path-item">Категории</div>
             </div>
-            
-            <!-- Навигация по подкатегориям -->
-            <div class="categories-scroll-wrapper">
-                <div class="subcategories-nav" id="subCategoriesNav">
-                    <!-- Подкатегории будут добавлены через JavaScript -->
-                </div>
+
+            <!-- Область выбора категорий/подкатегорий -->
+            <div class="categories-area" id="categoriesArea">
+                <!-- Категории будут загружены через JavaScript -->
             </div>
         </div>
 
@@ -101,7 +99,7 @@
 
         <!-- Футер -->
         <footer class="footer">
-            <p><i class="fas fa-layer-group"></i> LAVKA Shop </p>
+            <p><i class="fas fa-layer-group"></i> LAVKA Shop</p>
             <p class="small">Выберите категорию и подраздел из меню выше</p>
             <p class="small">Товары обновляются автоматически</p>
         </footer>
@@ -184,71 +182,6 @@
             }
             lastTouchEnd = now;
         }, false);
-        
-        // Функция для прокрутки категорий
-        function setupCategoriesScroll() {
-            const categoriesNav = document.getElementById('categoriesNav');
-            const subCategoriesNav = document.getElementById('subCategoriesNav');
-            
-            function setupScroll(element) {
-                if (!element) return;
-                
-                let isDown = false;
-                let startX;
-                let scrollLeft;
-                
-                element.addEventListener('mousedown', (e) => {
-                    isDown = true;
-                    element.classList.add('active');
-                    startX = e.pageX - element.offsetLeft;
-                    scrollLeft = element.scrollLeft;
-                });
-                
-                element.addEventListener('mouseleave', () => {
-                    isDown = false;
-                    element.classList.remove('active');
-                });
-                
-                element.addEventListener('mouseup', () => {
-                    isDown = false;
-                    element.classList.remove('active');
-                });
-                
-                element.addEventListener('mousemove', (e) => {
-                    if (!isDown) return;
-                    e.preventDefault();
-                    const x = e.pageX - element.offsetLeft;
-                    const walk = (x - startX) * 2;
-                    element.scrollLeft = scrollLeft - walk;
-                });
-                
-                // Для touch устройств
-                element.addEventListener('touchstart', (e) => {
-                    isDown = true;
-                    startX = e.touches[0].pageX - element.offsetLeft;
-                    scrollLeft = element.scrollLeft;
-                });
-                
-                element.addEventListener('touchend', () => {
-                    isDown = false;
-                });
-                
-                element.addEventListener('touchmove', (e) => {
-                    if (!isDown) return;
-                    const x = e.touches[0].pageX - element.offsetLeft;
-                    const walk = (x - startX) * 2;
-                    element.scrollLeft = scrollLeft - walk;
-                });
-            }
-            
-            setupScroll(categoriesNav);
-            setupScroll(subCategoriesNav);
-        }
-        
-        // Инициализируем прокрутку после загрузки
-        document.addEventListener('DOMContentLoaded', function() {
-            setTimeout(setupCategoriesScroll, 1000);
-        });
     </script>
 </body>
 </html>
