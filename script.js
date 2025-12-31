@@ -1,7 +1,3 @@
-// script.js
-// LAVKA Shop - Полная версия с выбором подраздела первым
-// ======================
-
 let currentTheme = 'light';
 let tg = null;
 let products = [];
@@ -14,10 +10,6 @@ let currentFavoritesTab = 'all';
 let orderHistory = [];
 let showSubcategorySelection = false;
 let pendingCategoryId = null;
-
-// ======================
-// 1. ТЕМА И TELEGRAM
-// ======================
 
 function detectTheme() {
     try {
@@ -37,7 +29,6 @@ function detectTheme() {
                 text_color: isDark ? '#FFFFFF' : '#FFFFFF'
             });
             
-            console.log(`✅ Тема Telegram: ${currentTheme}`);
             return;
         }
         
@@ -54,7 +45,6 @@ function detectTheme() {
         document.body.classList.add(`${currentTheme}-theme`);
         
     } catch (error) {
-        console.error('❌ Ошибка определения темы:', error);
         document.body.classList.add('auto-theme');
     }
 }
@@ -69,7 +59,6 @@ function toggleTheme() {
     updateThemeIcon();
     
     showNotification(`Тема: ${currentTheme === 'dark' ? '🌙 Темная' : '☀️ Светлая'}`);
-    console.log(`🔄 Переключена тема: ${currentTheme}`);
 }
 
 function updateThemeIcon() {
@@ -91,17 +80,10 @@ function initTelegram() {
             
             tg.MainButton.setText("Корзина");
             tg.MainButton.onClick(openCart);
-            
-            console.log('✅ Telegram WebApp инициализирован');
         }
     } catch (error) {
-        console.error('❌ Ошибка инициализации Telegram:', error);
     }
 }
-
-// ======================
-// 2. КАТЕГОРИИ ТОВАРОВ С ВЫБОРОМ ПОДРАЗДЕЛА
-// ======================
 
 const categories = [
     { 
@@ -310,7 +292,6 @@ function createCategoriesNav() {
     const categoriesArea = document.getElementById('categoriesArea');
     if (!categoriesArea) return;
     
-    // Если нужно показать выбор подраздела
     if (showSubcategorySelection && pendingCategoryId) {
         const category = categories.find(c => c.id === pendingCategoryId);
         
@@ -349,13 +330,11 @@ function createCategoriesNav() {
             updateSelectedPath();
             return;
         } else {
-            // Если нет подкатегорий, сразу переходим к товарам
             pendingCategoryId = null;
             showSubcategorySelection = false;
         }
     }
     
-    // Показываем обычные категории
     categoriesArea.innerHTML = `
         <div class="categories-nav" id="categoriesNav">
             ${categories.map(category => {
@@ -440,16 +419,13 @@ function selectCategory(categoryId) {
     
     if (!category) return;
     
-    // Если у категории есть подразделы, показываем их выбор
     if (category.subCategories && category.subCategories.length > 0) {
         pendingCategoryId = categoryId;
         showSubcategorySelection = true;
         createCategoriesNav();
         
-        // Показываем сообщение
         showNotification(`Выберите подраздел для ${category.name}`);
     } else {
-        // Если нет подразделов, сразу переходим к товарам
         switchCategory(categoryId);
     }
 }
@@ -475,7 +451,6 @@ function selectSubCategory(categoryId, subCategoryId) {
     
     showNotification(message);
     
-    // Прокручиваем к товарам
     setTimeout(() => {
         document.getElementById('catalog').scrollIntoView({ behavior: 'smooth' });
     }, 300);
@@ -532,13 +507,11 @@ function filterProductsByCategory(productsToFilter) {
         const productDesc = (product.description || '').toLowerCase();
         const searchText = productName + ' ' + productDesc;
         
-        // Проверяем по ключевым словам категории
         return category.keywords.some(keyword => 
             searchText.includes(keyword.toLowerCase())
         );
     });
     
-    // Дополнительная фильтрация по подкатегории
     if (currentSubCategory && category.subCategories) {
         const subCategory = category.subCategories.find(s => s.id === currentSubCategory);
         if (subCategory && subCategory.keywords) {
@@ -557,10 +530,6 @@ function filterProductsByCategory(productsToFilter) {
     return filtered;
 }
 
-// ======================
-// 3. ЗАГРУЗКА ТОВАРОВ
-// ======================
-
 async function loadProductsFromGitHub() {
     try {
         const timestamp = new Date().getTime();
@@ -572,19 +541,15 @@ async function loadProductsFromGitHub() {
         
         const loadedProducts = await response.json();
         
-        // Добавляем поля для категоризации
         loadedProducts.forEach(product => {
             if (!product.hasOwnProperty('quantity')) {
                 product.quantity = 10;
             }
-            // Добавляем нормализованное название для поиска
             product.searchText = (product.name + ' ' + (product.description || '')).toLowerCase();
         });
         
-        console.log(`✅ Загружено ${loadedProducts.length} товаров с GitHub`);
         return loadedProducts;
     } catch (error) {
-        console.error('❌ Ошибка загрузки товаров с GitHub:', error);
         return getDefaultProducts();
     }
 }
@@ -639,10 +604,6 @@ function getDefaultProducts() {
     ];
 }
 
-// ======================
-// 4. ОТОБРАЖЕНИЕ ТОВАРОВ
-// ======================
-
 function renderProductsByCategory() {
     const catalog = document.getElementById('catalog');
     if (!catalog) return;
@@ -678,11 +639,10 @@ function renderProductsByCategory() {
         return `
             <div class="product-card">
                 ${badge}
-                <!-- Кнопка избранного -->
                 <button class="favorite-btn ${isFav ? 'active' : ''}" 
                         onclick="toggleFavorite(${product.id})"
                         data-id="${product.id}">
-                    <i class="fas fa-heart"></i>
+                    <i class="${isFav ? 'fas fa-heart active' : 'far fa-heart'}"></i>
                 </button>
                 
                 <img src="${product.image}" 
@@ -709,10 +669,6 @@ function renderProductsByCategory() {
     }).join('');
 }
 
-// ======================
-// 5. КОРЗИНА
-// ======================
-
 function loadCart() {
     try {
         const savedCart = localStorage.getItem('iceberg_cart');
@@ -721,9 +677,7 @@ function loadCart() {
         const savedOrders = localStorage.getItem('iceberg_orders');
         orderHistory = savedOrders ? JSON.parse(savedOrders) : [];
         
-        console.log(`🛒 Загружено ${cart.length} товаров в корзину, ${orderHistory.length} заказов в истории`);
     } catch (error) {
-        console.error('❌ Ошибка загрузки корзины:', error);
         cart = [];
         orderHistory = [];
     }
@@ -736,7 +690,6 @@ function saveCart() {
         updateCartUI();
         updateTelegramButton();
     } catch (error) {
-        console.error('❌ Ошибка сохранения корзины:', error);
     }
 }
 
@@ -923,17 +876,11 @@ function showNotification(message) {
     }, 3000);
 }
 
-// ======================
-// 6. ИЗБРАННОЕ
-// ======================
-
 function loadFavorites() {
     try {
         const savedFavorites = localStorage.getItem('iceberg_favorites');
         favorites = savedFavorites ? JSON.parse(savedFavorites) : [];
-        console.log(`💖 Загружено ${favorites.length} товаров в избранное`);
     } catch (error) {
-        console.error('❌ Ошибка загрузки избранного:', error);
         favorites = [];
     }
 }
@@ -943,7 +890,6 @@ function saveFavorites() {
         localStorage.setItem('iceberg_favorites', JSON.stringify(favorites));
         updateFavoritesUI();
     } catch (error) {
-        console.error('❌ Ошибка сохранения избранного:', error);
     }
 }
 
@@ -954,11 +900,9 @@ function toggleFavorite(productId) {
     const existingIndex = favorites.findIndex(item => item.id === productId);
     
     if (existingIndex !== -1) {
-        // Удаляем из избранного
         favorites.splice(existingIndex, 1);
         showNotification(`💔 ${product.name} удален из избранного`);
     } else {
-        // Добавляем в избранное
         favorites.push({
             id: product.id,
             name: product.name,
@@ -971,7 +915,6 @@ function toggleFavorite(productId) {
         });
         showNotification(`💖 ${product.name} добавлен в избранное`);
         
-        // Анимация сердечка
         const heartBtn = document.querySelector(`.favorite-btn[data-id="${productId}"] i`);
         if (heartBtn) {
             heartBtn.classList.add('favorite-added');
@@ -982,6 +925,16 @@ function toggleFavorite(productId) {
     }
     
     saveFavorites();
+    
+    const productCard = document.querySelector(`.favorite-btn[data-id="${productId}"]`);
+    if (productCard) {
+        const heartIcon = productCard.querySelector('i');
+        if (existingIndex !== -1) {
+            heartIcon.className = 'far fa-heart';
+        } else {
+            heartIcon.className = 'fas fa-heart active';
+        }
+    }
 }
 
 function removeFromFavorites(productId) {
@@ -1022,7 +975,6 @@ function renderFavoritesItems() {
     
     let filteredFavorites = [...favorites];
     
-    // Фильтрация по вкладкам
     switch(currentFavoritesTab) {
         case 'available':
             filteredFavorites = favorites.filter(item => {
@@ -1092,7 +1044,6 @@ function renderFavoritesItems() {
             `;
         }).join('');
         
-        // Проверяем, есть ли хотя бы один доступный товар
         const hasAvailableItems = filteredFavorites.some(item => {
             const product = products.find(p => p.id === item.id);
             return product && product.quantity > 0;
@@ -1106,7 +1057,6 @@ function renderFavoritesItems() {
 function switchFavoritesTab(tabName) {
     currentFavoritesTab = tabName;
     
-    // Обновляем активные вкладки
     document.querySelectorAll('.favorites-tab').forEach(tab => {
         tab.classList.remove('active');
         if (tab.textContent.toLowerCase().includes(tabName)) {
@@ -1114,7 +1064,6 @@ function switchFavoritesTab(tabName) {
         }
     });
     
-    // Переименовываем вкладки для соответствия
     const tabs = document.querySelectorAll('.favorites-tab');
     if (tabName === 'all') tabs[0].classList.add('active');
     if (tabName === 'available') tabs[1].classList.add('active');
@@ -1141,7 +1090,6 @@ function addAllFavoritesToCart() {
             const existingItem = cart.find(cartItem => cartItem.id === item.id);
             
             if (existingItem) {
-                // Проверяем, не превышает ли количество доступное
                 if (existingItem.quantity < product.quantity) {
                     existingItem.quantity += 1;
                     addedCount++;
@@ -1188,10 +1136,6 @@ function closeFavorites() {
     document.body.style.overflow = '';
 }
 
-// ======================
-// 7. ГЕНЕРАЦИЯ НОМЕРА ЗАКАЗА
-// ======================
-
 function generateOrderNumber() {
     const date = new Date();
     const year = date.getFullYear().toString().slice(-2);
@@ -1201,10 +1145,6 @@ function generateOrderNumber() {
     
     return `ORD-${year}${month}${day}-${random}`;
 }
-
-// ======================
-// 8. УВЕДОМЛЕНИЕ МЕНЕДЖЕРУ В TELEGRAM
-// ======================
 
 async function notifyManager(orderData) {
     try {
@@ -1237,8 +1177,6 @@ async function notifyManager(orderData) {
         message += `⚡ *Статус:* Ожидает обработки\n`;
         message += `🔗 Для связи: @Chief_68`;
         
-        console.log("📤 Сообщение для менеджера:", message);
-        
         if (tg && tg.initDataUnsafe?.user) {
             try {
                 const managerUsername = 'Chief_68';
@@ -1252,21 +1190,15 @@ async function notifyManager(orderData) {
                 
                 return true;
             } catch (error) {
-                console.error('❌ Ошибка открытия чата:', error);
                 return false;
             }
         }
         
         return true;
     } catch (error) {
-        console.error('❌ Ошибка уведомления менеджера:', error);
         return false;
     }
 }
-
-// ======================
-// 9. ОФОРМЛЕНИЕ ЗАКАЗА С УВЕДОМЛЕНИЕМ
-// ======================
 
 async function checkout() {
     if (cart.length === 0) return;
@@ -1333,8 +1265,6 @@ async function checkout() {
     
     saveCart();
     
-    console.log("🛒 Отправка заказа:", orderData);
-    
     try {
         const notified = await notifyManager(orderData);
         
@@ -1372,14 +1302,9 @@ async function checkout() {
         }, 3000);
         
     } catch (error) {
-        console.error('❌ Ошибка оформления заказа:', error);
         showNotification('❌ Ошибка оформления заказа');
     }
 }
-
-// ======================
-// 10. МОДАЛЬНОЕ ОКНО ПОДТВЕРЖДЕНИЯ ЗАКАЗА
-// ======================
 
 function showOrderConfirmationModal(orderData, orderNumber) {
     const oldModals = document.querySelectorAll('.order-confirmation-modal, .manager-notification');
@@ -1452,10 +1377,6 @@ function showOrderConfirmationModal(orderData, orderNumber) {
     }, 10000);
 }
 
-// ======================
-// 11. УВЕДОМЛЕНИЕ "НАПИШИ МЕНЕДЖЕРУ"
-// ======================
-
 function showManagerNotification(orderNumber) {
     const oldNotifications = document.querySelectorAll('.manager-notification');
     oldNotifications.forEach(n => n.remove());
@@ -1506,10 +1427,6 @@ function showManagerNotification(orderNumber) {
     }, 30000);
 }
 
-// ======================
-// 12. ОТКРЫТИЕ ЧАТА С МЕНЕДЖЕРОМ
-// ======================
-
 function openManagerChat(orderNumber) {
     const message = `Здравствуйте! У меня оформлен заказ #${orderNumber}. Прошу подтвердить и уточнить детали.`;
     const managerUsername = 'Chief_68';
@@ -1542,10 +1459,6 @@ function closeCart() {
     document.body.style.overflow = '';
 }
 
-// ======================
-// 13. АВТООБНОВЛЕНИЕ
-// ======================
-
 async function loadAndRenderProducts() {
     try {
         const newProducts = await loadProductsFromGitHub();
@@ -1556,7 +1469,6 @@ async function loadAndRenderProducts() {
         createCategoriesNav();
         renderProductsByCategory();
         
-        // Обновляем избранное
         updateFavoritesUI();
         
         let cartUpdated = false;
@@ -1577,13 +1489,7 @@ async function loadAndRenderProducts() {
             saveCart();
         }
         
-        const newItems = products.filter(p => !oldProducts.find(op => op.id === p.id));
-        if (newItems.length > 0) {
-            showNotification(`🆕 Добавлено ${newItems.length} новых товаров`);
-        }
-        
     } catch (error) {
-        console.error('❌ Ошибка загрузки товаров:', error);
     }
 }
 
@@ -1591,21 +1497,14 @@ function startAutoUpdate() {
     autoUpdateInterval = setInterval(async () => {
         await loadAndRenderProducts();
     }, 60000);
-    
-    console.log('🔄 Автообновление запущено (каждые 60 секунд)');
 }
 
 function stopAutoUpdate() {
     if (autoUpdateInterval) {
         clearInterval(autoUpdateInterval);
         autoUpdateInterval = null;
-        console.log('🔄 Автообновление остановлено');
     }
 }
-
-// ======================
-// 14. ИНИЦИАЛИЗАЦИЯ
-// ======================
 
 async function initApp() {
     detectTheme();
@@ -1623,18 +1522,15 @@ async function initApp() {
     document.body.appendChild(themeSwitch);
     updateThemeIcon();
     
-    // Обработчики событий
     document.getElementById('cartButton').onclick = openCart;
     document.getElementById('closeCart').onclick = closeCart;
     document.getElementById('cartOverlay').onclick = closeCart;
     document.getElementById('checkoutButton').onclick = checkout;
     document.getElementById('clearCartButton').onclick = clearCart;
     
-    // Обработчики для избранного
     document.getElementById('favoritesButton').onclick = openFavorites;
     document.getElementById('closeFavorites').onclick = closeFavorites;
     
-    // Глобальные функции
     window.addToCart = addToCart;
     window.removeFromCart = removeFromCart;
     window.updateQuantity = updateQuantity;
@@ -1650,7 +1546,6 @@ async function initApp() {
     window.switchSubCategory = switchSubCategory;
     window.openManagerChat = openManagerChat;
     
-    // Функции избранного
     window.toggleFavorite = toggleFavorite;
     window.removeFromFavorites = removeFromFavorites;
     window.openFavorites = openFavorites;
@@ -1667,12 +1562,9 @@ async function initApp() {
             setTimeout(() => {
                 loader.style.display = 'none';
                 app.style.display = 'block';
-                showNotification('✅ Магазин загружен');
             }, 300);
         }
     }, 500);
-    
-    console.log('✅ LAVKA Shop с выбором подраздела инициализирован');
 }
 
 if (document.readyState === 'loading') {
