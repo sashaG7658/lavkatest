@@ -1,5 +1,4 @@
 :root {
-    /* Основные цвета - оранжевая тема */
     --primary-color: #FF9800;
     --primary-light: #FFB74D;
     --primary-dark: #F57C00;
@@ -7,7 +6,6 @@
     --secondary-light: #64B5F6;
     --secondary-dark: #1976D2;
     
-    /* Светлая тема (по умолчанию) */
     --bg-color: #FFFFFF;
     --card-color: #FFFFFF;
     --text-color: #212121;
@@ -20,18 +18,16 @@
     --warning-color: #FFC107;
 }
 
-/* Темная тема */
 body.dark-theme {
     --bg-color: #121212;
     --card-color: #1E1E1E;
     --text-color: #FFFFFF;
-    --text-secondary: #E0E0E0; /* Делаем светлее для лучшей видимости */
+    --text-secondary: #E0E0E0;
     --border-color: #333333;
     --shadow-color: rgba(0, 0, 0, 0.5);
     --overlay-color: rgba(0, 0, 0, 0.8);
 }
 
-/* Автоматическое определение темы Telegram */
 @media (prefers-color-scheme: dark) {
     body.auto-theme {
         --bg-color: #121212;
@@ -70,7 +66,6 @@ body {
     padding: 0;
 }
 
-/* Шапка */
 .header {
     display: flex;
     justify-content: space-between;
@@ -158,7 +153,6 @@ body.dark-theme #cartCounter {
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
-/* Стили для избранного */
 .favorites-btn {
     background: var(--card-color);
     color: var(--text-color);
@@ -187,22 +181,10 @@ body.dark-theme #cartCounter {
     border-color: var(--primary-color);
 }
 
-.favorites-counter {
-    background: var(--primary-color);
-    color: white;
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-weight: bold;
-    font-size: 0.9rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-
-/* Область категорий */
 .categories-area {
     margin-bottom: 20px;
 }
 
-/* НАВИГАЦИЯ ПО ОСНОВНЫМ КАТЕГОРИЯМ - ГОРИЗОНТАЛЬНАЯ ПРОКРУТКА */
 .categories-nav {
     display: flex;
     overflow-x: auto;
@@ -278,7 +260,6 @@ body.dark-theme #cartCounter {
     text-overflow: ellipsis;
 }
 
-/* Индикатор подкатегорий */
 .category-btn.has-subs::after {
     content: '▶';
     position: absolute;
@@ -295,7 +276,6 @@ body.dark-theme #cartCounter {
     right: 6px;
 }
 
-/* Отображение выбранного пути */
 .selected-path {
     background: var(--bg-color);
     padding: 12px 20px;
@@ -332,7 +312,6 @@ body.dark-theme .path-item {
     color: var(--text-secondary);
 }
 
-/* Выбор подраздела - ТАКЖЕ ГОРИЗОНТАЛЬНО */
 .subcategory-selection {
     background: var(--card-color);
     padding: 20px;
@@ -396,7 +375,6 @@ body.dark-theme .path-item {
     transform: translateY(-50%) translateX(-3px);
 }
 
-/* ПОДРАЗДЕЛЫ ТОЖЕ В ГОРИЗОНТАЛЬНОЙ ПРОКРУТКЕ */
 .subcategory-grid {
     display: flex;
     overflow-x: auto;
@@ -486,7 +464,6 @@ body.dark-theme .path-item {
     color: white;
 }
 
-/* Навигация по подкатегориям (после выбора) - ГОРИЗОНТАЛЬНАЯ */
 .subcategory-navigation {
     display: flex;
     overflow-x: auto;
@@ -545,7 +522,6 @@ body.dark-theme .path-item {
     color: white;
 }
 
-/* Сетка товаров - 2 в строке */
 .catalog {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -685,7 +661,6 @@ body.dark-theme .product-description {
     font-size: 1rem;
 }
 
-/* Кнопка избранного на карточке */
 .favorite-btn {
     position: absolute;
     top: 10px;
@@ -735,7 +710,14 @@ body.dark-theme .favorite-btn:hover {
     100% { transform: scale(1); }
 }
 
-/* Загрузка и ошибки */
+.favorite-btn i.fas.fa-heart.active {
+    color: #F44336 !important;
+}
+
+.favorite-btn i.far.fa-heart {
+    color: #FF9800;
+}
+
 .loading, .error {
     grid-column: 1 / -1;
     text-align: center;
@@ -764,7 +746,6 @@ body.dark-theme .favorite-btn:hover {
     margin-bottom: 15px;
 }
 
-/* Пустая категория */
 .empty-category {
     grid-column: 1 / -1;
     text-align: center;
@@ -800,7 +781,6 @@ body.dark-theme .empty-category p {
     color: #E0E0E0;
 }
 
-/* Бейдж для новых товаров */
 .new-badge {
     position: absolute;
     top: 10px;
@@ -825,13 +805,11 @@ body.dark-theme .empty-category p {
     100% { box-shadow: 0 0 0 0 rgba(255, 152, 0, 0); }
 }
 
-/* Бейдж НЕТ В НАЛИЧИИ */
 .new-badge[style*="background: #F44336"] {
     background: linear-gradient(45deg, #F44336, #EF5350);
     color: white;
 }
 
-/* Футер */
 .footer {
     text-align: center;
     padding: 20px;
@@ -863,7 +841,6 @@ body.dark-theme .footer .small {
     color: #B0B0B0;
 }
 
-/* Боковая панель корзины */
 .cart-sidebar {
     position: fixed;
     top: 0;
@@ -1152,7 +1129,6 @@ body.dark-theme .item-quantity {
     transform: translateY(0);
 }
 
-/* Уведомления */
 .notification {
     position: fixed;
     top: 20px;
@@ -1180,7 +1156,6 @@ body.dark-theme .item-quantity {
     }
 }
 
-/* Переключатель темы */
 .theme-switch {
     position: fixed;
     bottom: 20px;
@@ -1213,7 +1188,6 @@ body.dark-theme .item-quantity {
     transform: rotate(180deg);
 }
 
-/* Боковая панель избранного */
 .favorites-sidebar {
     position: fixed;
     top: 0;
@@ -1362,7 +1336,6 @@ body.dark-theme .favorites-empty-msg p {
     color: #E0E0E0;
 }
 
-/* Переключатель вкладок */
 .favorites-tabs {
     display: flex;
     gap: 5px;
@@ -1399,13 +1372,11 @@ body.dark-theme .favorites-tab {
     color: #FFFFFF;
 }
 
-/* Специальные стили для Telegram WebApp */
 body.telegram-dark {
     background-color: #121212 !important;
     color: #FFFFFF !important;
 }
 
-/* Улучшения для темной темы */
 body.dark-theme .product-card {
     background: #1E1E1E;
 }
@@ -1438,7 +1409,6 @@ body.dark-theme .subcategory-nav-btn {
     background: #2D2D2D;
 }
 
-/* Плавные переходы */
 * {
     transition: background-color 0.3s ease, 
                 color 0.3s ease, 
@@ -1447,7 +1417,6 @@ body.dark-theme .subcategory-nav-btn {
                 box-shadow 0.3s ease;
 }
 
-/* Улучшение скроллбара */
 ::-webkit-scrollbar {
     width: 8px;
 }
@@ -1466,12 +1435,10 @@ body.dark-theme .subcategory-nav-btn {
     background: var(--primary-dark);
 }
 
-/* Эффекты для кнопок при нажатии */
 button:active {
     transform: scale(0.98);
 }
 
-/* Анимация для добавления в избранное */
 @keyframes addToFavorite {
     0% { transform: scale(1); }
     50% { transform: scale(1.5); }
@@ -1482,7 +1449,6 @@ button:active {
     animation: addToFavorite 0.5s ease;
 }
 
-/* Стили для уведомления менеджеру */
 .manager-notification {
     position: fixed;
     bottom: 20px;
@@ -1606,7 +1572,6 @@ button:active {
     font-size: 1.2rem;
 }
 
-/* Модальное окно подтверждения заказа */
 .order-confirmation-modal {
     position: fixed;
     top: 0;
@@ -1825,7 +1790,6 @@ body.dark-theme .order-instructions p {
     transform: translateY(0);
 }
 
-/* Адаптивность */
 @media (max-width: 768px) {
     .header h1 {
         font-size: 1.3rem;
