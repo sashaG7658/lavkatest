@@ -13,14 +13,14 @@ let pendingCategoryId = null;
 
 function detectTheme() {
     try {
-        tg = window.Telegram?.WebApp;
+        tg = window.Telegram.WebApp;
         
         if (tg) {
             const isDark = tg.colorScheme === 'dark';
             currentTheme = isDark ? 'dark' : 'light';
             
             document.body.classList.remove('light-theme', 'dark-theme', 'auto-theme');
-            document.body.classList.add(`${currentTheme}-theme`);
+            document.body.classList.add(currentTheme + '-theme');
             
             localStorage.setItem('theme', currentTheme);
             
@@ -42,7 +42,7 @@ function detectTheme() {
         }
         
         document.body.classList.remove('light-theme', 'dark-theme', 'auto-theme');
-        document.body.classList.add(`${currentTheme}-theme`);
+        document.body.classList.add(currentTheme + '-theme');
         
     } catch (error) {
         document.body.classList.add('auto-theme');
@@ -53,7 +53,7 @@ function toggleTheme() {
     currentTheme = currentTheme === 'light' ? 'dark' : 'light';
     
     document.body.classList.remove('light-theme', 'dark-theme');
-    document.body.classList.add(`${currentTheme}-theme`);
+    document.body.classList.add(currentTheme + '-theme');
     
     localStorage.setItem('theme', currentTheme);
     updateThemeIcon();
@@ -80,6 +80,7 @@ function initTelegram() {
             tg.MainButton.onClick(openCart);
         }
     } catch (error) {
+        console.error('Telegram WebApp initialization error:', error);
     }
 }
 
@@ -291,7 +292,7 @@ function createCategoriesNav() {
     if (!categoriesArea) return;
     
     if (showSubcategorySelection && pendingCategoryId) {
-        const category = categories.find(c => c.id === pendingCategoryId);
+        const category = categories.find(function(c) { return c.id === pendingCategoryId; });
         
         if (category && category.subCategories && category.subCategories.length > 0) {
             categoriesArea.innerHTML = `
@@ -312,16 +313,18 @@ function createCategoriesNav() {
                                 <i class="fas fa-arrow-right"></i>
                             </div>
                         </button>
-                        ${category.subCategories.map(subCat => `
-                            <button class="subcategory-option ${currentSubCategory === subCat.id ? 'active' : ''}" 
-                                    onclick="selectSubCategory('${category.id}', '${subCat.id}')">
-                                <i class="fas fa-tag"></i>
-                                <span>${subCat.name}</span>
-                                <div class="sub-arrow">
-                                    <i class="fas fa-arrow-right"></i>
-                                </div>
-                            </button>
-                        `).join('')}
+                        ${category.subCategories.map(function(subCat) {
+                            return `
+                                <button class="subcategory-option ${currentSubCategory === subCat.id ? 'active' : ''}" 
+                                        onclick="selectSubCategory('${category.id}', '${subCat.id}')">
+                                    <i class="fas fa-tag"></i>
+                                    <span>${subCat.name}</span>
+                                    <div class="sub-arrow">
+                                        <i class="fas fa-arrow-right"></i>
+                                    </div>
+                                </button>
+                            `;
+                        }).join('')}
                     </div>
                 </div>
             `;
@@ -335,7 +338,7 @@ function createCategoriesNav() {
     
     categoriesArea.innerHTML = `
         <div class="categories-nav" id="categoriesNav">
-            ${categories.map(category => {
+            ${categories.map(function(category) {
                 const hasSubs = category.subCategories && category.subCategories.length > 0;
                 return `
                     <button class="category-btn ${currentCategory === category.id ? 'active' : ''} ${hasSubs ? 'has-subs' : ''}" 
@@ -348,25 +351,65 @@ function createCategoriesNav() {
             }).join('')}
         </div>
         
-        ${currentCategory !== 'all' && categories.find(c => c.id === currentCategory)?.subCategories?.length > 0 ? `
+        ${currentCategory !== 'all' && categories.find(function(c) { return c.id === currentCategory; }) && categories.find(function(c) { return c.id === currentCategory; }).subCategories && categories.find(function(c) { return c.id === currentCategory; }).subCategories.length > 0 ? `
             <div class="subcategory-navigation" id="subCategoriesNav">
                 <button class="subcategory-nav-btn ${currentSubCategory === null ? 'active' : ''}" 
                         onclick="switchSubCategory(null)">
                     <i class="fas fa-layer-group"></i>
-                    <span>Все ${categories.find(c => c.id === currentCategory).name}</span>
+                    <span>Все ${categories.find(function(c) { return c.id === currentCategory; }).name}</span>
                 </button>
-                ${categories.find(c => c.id === currentCategory).subCategories.map(subCat => `
-                    <button class="subcategory-nav-btn ${currentSubCategory === subCat.id ? 'active' : ''}" 
-                            onclick="switchSubCategory('${subCat.id}')">
-                        <i class="fas fa-tag"></i>
-                        <span>${subCat.name}</span>
-                    </button>
-                `).join('')}
+                ${categories.find(function(c) { return c.id === currentCategory; }).subCategories.map(function(subCat) {
+                    return `
+                        <button class="subcategory-nav-btn ${currentSubCategory === subCat.id ? 'active' : ''}" 
+                                onclick="switchSubCategory('${subCat.id}')">
+                            <i class="fas fa-tag"></i>
+                            <span>${subCat.name}</span>
+                        </button>
+                    `;
+                }).join('')}
             </div>
         ` : ''}
     `;
     
     updateSelectedPath();
+    updateCategoryCounts();
+    initCategoriesScroll();
+}
+
+function updateCategoryCounts() {
+    categories.forEach(function(category) {
+        const categoryBtn = document.querySelector('.category-btn[onclick*="' + category.id + '"]');
+        if (categoryBtn) {
+            const filteredProducts = filterProductsByCategoryForCount(category);
+            const count = filteredProducts.length;
+            
+            const oldCount = categoryBtn.querySelector('.category-count');
+            if (oldCount) oldCount.remove();
+            
+            if (count > 0) {
+                const countSpan = document.createElement('span');
+                countSpan.className = 'category-count';
+                countSpan.textContent = count;
+                categoryBtn.appendChild(countSpan);
+            }
+        }
+    });
+}
+
+function filterProductsByCategoryForCount(category) {
+    if (category.id === 'all') return products;
+    
+    if (!category.keywords) return [];
+    
+    return products.filter(function(product) {
+        const productName = product.name.toLowerCase();
+        const productDesc = (product.description || '').toLowerCase();
+        const searchText = productName + ' ' + productDesc;
+        
+        return category.keywords.some(function(keyword) {
+            return searchText.includes(keyword.toLowerCase());
+        });
+    });
 }
 
 function updateSelectedPath() {
@@ -374,7 +417,7 @@ function updateSelectedPath() {
     if (!pathElement) return;
     
     if (showSubcategorySelection && pendingCategoryId) {
-        const category = categories.find(c => c.id === pendingCategoryId);
+        const category = categories.find(function(c) { return c.id === pendingCategoryId; });
         if (category) {
             pathElement.innerHTML = `
                 <i class="fas fa-map-marker-alt"></i>
@@ -387,7 +430,7 @@ function updateSelectedPath() {
             pathElement.style.display = 'flex';
         }
     } else if (currentCategory !== 'all') {
-        const category = categories.find(c => c.id === currentCategory);
+        const category = categories.find(function(c) { return c.id === currentCategory; });
         if (category) {
             let path = `
                 <i class="fas fa-map-marker-alt"></i>
@@ -395,7 +438,7 @@ function updateSelectedPath() {
             `;
             
             if (currentSubCategory) {
-                const subCat = category.subCategories?.find(s => s.id === currentSubCategory);
+                const subCat = category.subCategories && category.subCategories.find(function(s) { return s.id === currentSubCategory; });
                 if (subCat) {
                     path += `
                         <div class="path-separator">›</div>
@@ -413,7 +456,7 @@ function updateSelectedPath() {
 }
 
 function selectCategory(categoryId) {
-    const category = categories.find(c => c.id === categoryId);
+    const category = categories.find(function(c) { return c.id === categoryId; });
     
     if (!category) return;
     
@@ -435,8 +478,11 @@ function selectSubCategory(categoryId, subCategoryId) {
     createCategoriesNav();
     renderProductsByCategory();
     
-    setTimeout(() => {
-        document.getElementById('catalog').scrollIntoView({ behavior: 'smooth' });
+    setTimeout(function() {
+        const catalog = document.getElementById('catalog');
+        if (catalog) {
+            catalog.scrollIntoView({ behavior: 'smooth' });
+        }
     }, 300);
 }
 
@@ -454,7 +500,10 @@ function switchCategory(categoryId) {
     createCategoriesNav();
     renderProductsByCategory();
     
-    document.getElementById('catalog').scrollIntoView({ behavior: 'smooth' });
+    const catalog = document.getElementById('catalog');
+    if (catalog) {
+        catalog.scrollIntoView({ behavior: 'smooth' });
+    }
 }
 
 function switchSubCategory(subCategoryId) {
@@ -468,32 +517,32 @@ function filterProductsByCategory(productsToFilter) {
         return productsToFilter;
     }
     
-    const category = categories.find(c => c.id === currentCategory);
+    const category = categories.find(function(c) { return c.id === currentCategory; });
     if (!category || !category.keywords) {
         return productsToFilter;
     }
     
-    let filtered = productsToFilter.filter(product => {
+    let filtered = productsToFilter.filter(function(product) {
         const productName = product.name.toLowerCase();
         const productDesc = (product.description || '').toLowerCase();
         const searchText = productName + ' ' + productDesc;
         
-        return category.keywords.some(keyword => 
-            searchText.includes(keyword.toLowerCase())
-        );
+        return category.keywords.some(function(keyword) {
+            return searchText.includes(keyword.toLowerCase());
+        });
     });
     
     if (currentSubCategory && category.subCategories) {
-        const subCategory = category.subCategories.find(s => s.id === currentSubCategory);
+        const subCategory = category.subCategories.find(function(s) { return s.id === currentSubCategory; });
         if (subCategory && subCategory.keywords) {
-            filtered = filtered.filter(product => {
+            filtered = filtered.filter(function(product) {
                 const productName = product.name.toLowerCase();
                 const productDesc = (product.description || '').toLowerCase();
                 const searchText = productName + ' ' + productDesc;
                 
-                return subCategory.keywords.some(keyword => 
-                    searchText.includes(keyword.toLowerCase())
-                );
+                return subCategory.keywords.some(function(keyword) {
+                    return searchText.includes(keyword.toLowerCase());
+                });
             });
         }
     }
@@ -504,15 +553,15 @@ function filterProductsByCategory(productsToFilter) {
 async function loadProductsFromGitHub() {
     try {
         const timestamp = new Date().getTime();
-        const response = await fetch(`https://raw.githubusercontent.com/sashaG7658/lavkatest/main/products.json?t=${timestamp}`);
+        const response = await fetch('https://raw.githubusercontent.com/sashaG7658/lavkatest/main/products.json?t=' + timestamp);
         
         if (!response.ok) {
-            throw new Error(`Ошибка загрузки: ${response.status}`);
+            throw new Error('Ошибка загрузки: ' + response.status);
         }
         
         const loadedProducts = await response.json();
         
-        loadedProducts.forEach(product => {
+        loadedProducts.forEach(function(product) {
             if (!product.hasOwnProperty('quantity')) {
                 product.quantity = 10;
             }
@@ -521,6 +570,7 @@ async function loadProductsFromGitHub() {
         
         return loadedProducts;
     } catch (error) {
+        console.error('Error loading products:', error);
         return getDefaultProducts();
     }
 }
@@ -592,12 +642,12 @@ function renderProductsByCategory() {
         return;
     }
     
-    catalog.innerHTML = filteredProducts.map(product => {
+    catalog.innerHTML = filteredProducts.map(function(product) {
         const qty = product.quantity || 0;
         const isAvailable = qty > 0;
         const isFav = isFavorite(product.id);
         
-        const categoryInfo = categories.find(c => c.id === currentCategory) || categories[0];
+        const categoryInfo = categories.find(function(c) { return c.id === currentCategory; }) || categories[0];
         const categoryColor = categoryInfo.color || '#FF9800';
         
         let badge = '';
@@ -649,6 +699,7 @@ function loadCart() {
         orderHistory = savedOrders ? JSON.parse(savedOrders) : [];
         
     } catch (error) {
+        console.error('Error loading cart:', error);
         cart = [];
         orderHistory = [];
     }
@@ -661,23 +712,28 @@ function saveCart() {
         updateCartUI();
         updateTelegramButton();
     } catch (error) {
+        console.error('Error saving cart:', error);
     }
 }
 
 function addToCart(productId) {
-    const product = products.find(p => p.id === productId);
+    const product = products.find(function(p) { return p.id === productId; });
     if (!product) return;
     
     if (product.quantity <= 0) return;
     
-    const existingItem = cart.find(item => item.id === productId);
+    const existingItem = cart.find(function(item) { return item.id === productId; });
     
     if (existingItem) {
         if (existingItem.quantity >= product.quantity) return;
         existingItem.quantity += 1;
     } else {
         cart.push({
-            ...product,
+            id: product.id,
+            name: product.name,
+            description: product.description,
+            price: product.price,
+            image: product.image,
             quantity: 1
         });
     }
@@ -686,7 +742,7 @@ function addToCart(productId) {
 }
 
 function removeFromCart(productId) {
-    const itemIndex = cart.findIndex(item => item.id === productId);
+    const itemIndex = cart.findIndex(function(item) { return item.id === productId; });
     if (itemIndex === -1) return;
     
     cart.splice(itemIndex, 1);
@@ -695,10 +751,10 @@ function removeFromCart(productId) {
 }
 
 function updateQuantity(productId, change) {
-    const item = cart.find(item => item.id === productId);
+    const item = cart.find(function(item) { return item.id === productId; });
     if (!item) return;
     
-    const product = products.find(p => p.id === productId);
+    const product = products.find(function(p) { return p.id === productId; });
     if (!product) return;
 
     const newQuantity = item.quantity + change;
@@ -730,11 +786,15 @@ function clearCart() {
 }
 
 function getCartTotal() {
-    return cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    return cart.reduce(function(sum, item) {
+        return sum + (item.price * item.quantity);
+    }, 0);
 }
 
 function getCartCount() {
-    return cart.reduce((sum, item) => sum + item.quantity, 0);
+    return cart.reduce(function(sum, item) {
+        return sum + item.quantity;
+    }, 0);
 }
 
 function updateTelegramButton() {
@@ -742,7 +802,7 @@ function updateTelegramButton() {
     
     const count = getCartCount();
     if (count > 0) {
-        tg.MainButton.setText(`Корзина (${count})`);
+        tg.MainButton.setText('Корзина (' + count + ')');
         tg.MainButton.show();
     } else {
         tg.MainButton.hide();
@@ -774,8 +834,8 @@ function updateCartUI() {
         checkoutBtn.disabled = true;
         checkoutBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Оформить заказ';
     } else {
-        cartItems.innerHTML = cart.map(item => {
-            const product = products.find(p => p.id === item.id);
+        cartItems.innerHTML = cart.map(function(item) {
+            const product = products.find(function(p) { return p.id === item.id; });
             const isAvailable = product && product.quantity > 0;
             const maxAvailable = product ? product.quantity : 0;
             
@@ -803,13 +863,13 @@ function updateCartUI() {
             `;
         }).join('');
         
-        checkoutBtn.disabled = !cart.some(item => {
-            const product = products.find(p => p.id === item.id);
+        checkoutBtn.disabled = !cart.some(function(item) {
+            const product = products.find(function(p) { return p.id === item.id; });
             return product && product.quantity > 0;
         });
         
         const total = getCartTotal();
-        checkoutBtn.innerHTML = `<i class="fas fa-paper-plane"></i> Оформить заказ (${total} ₽)`;
+        checkoutBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Оформить заказ (' + total + ' ₽)';
     }
 
     totalPrice.textContent = getCartTotal();
@@ -820,6 +880,7 @@ function loadFavorites() {
         const savedFavorites = localStorage.getItem('iceberg_favorites');
         favorites = savedFavorites ? JSON.parse(savedFavorites) : [];
     } catch (error) {
+        console.error('Error loading favorites:', error);
         favorites = [];
     }
 }
@@ -829,14 +890,15 @@ function saveFavorites() {
         localStorage.setItem('iceberg_favorites', JSON.stringify(favorites));
         updateFavoritesUI();
     } catch (error) {
+        console.error('Error saving favorites:', error);
     }
 }
 
 function toggleFavorite(productId) {
-    const product = products.find(p => p.id === productId);
+    const product = products.find(function(p) { return p.id === productId; });
     if (!product) return;
     
-    const existingIndex = favorites.findIndex(item => item.id === productId);
+    const existingIndex = favorites.findIndex(function(item) { return item.id === productId; });
     
     if (existingIndex !== -1) {
         favorites.splice(existingIndex, 1);
@@ -852,10 +914,10 @@ function toggleFavorite(productId) {
             addedDate: new Date().toISOString()
         });
         
-        const heartBtn = document.querySelector(`.favorite-btn[data-id="${productId}"] i`);
+        const heartBtn = document.querySelector('.favorite-btn[data-id="' + productId + '"] i');
         if (heartBtn) {
             heartBtn.classList.add('favorite-added');
-            setTimeout(() => {
+            setTimeout(function() {
                 heartBtn.classList.remove('favorite-added');
             }, 500);
         }
@@ -863,7 +925,7 @@ function toggleFavorite(productId) {
     
     saveFavorites();
     
-    const productCard = document.querySelector(`.favorite-btn[data-id="${productId}"]`);
+    const productCard = document.querySelector('.favorite-btn[data-id="' + productId + '"]');
     if (productCard) {
         const heartIcon = productCard.querySelector('i');
         if (existingIndex !== -1) {
@@ -875,7 +937,7 @@ function toggleFavorite(productId) {
 }
 
 function removeFromFavorites(productId) {
-    const itemIndex = favorites.findIndex(item => item.id === productId);
+    const itemIndex = favorites.findIndex(function(item) { return item.id === productId; });
     if (itemIndex === -1) return;
     
     favorites.splice(itemIndex, 1);
@@ -884,7 +946,7 @@ function removeFromFavorites(productId) {
 }
 
 function isFavorite(productId) {
-    return favorites.some(item => item.id === productId);
+    return favorites.some(function(item) { return item.id === productId; });
 }
 
 function getFavoritesCount() {
@@ -912,13 +974,13 @@ function renderFavoritesItems() {
     
     switch(currentFavoritesTab) {
         case 'available':
-            filteredFavorites = favorites.filter(item => {
-                const product = products.find(p => p.id === item.id);
+            filteredFavorites = favorites.filter(function(item) {
+                const product = products.find(function(p) { return p.id === item.id; });
                 return product && product.quantity > 0;
             });
             break;
         case 'new':
-            filteredFavorites = favorites.filter(item => item.isNew);
+            filteredFavorites = favorites.filter(function(item) { return item.isNew; });
             break;
         case 'all':
         default:
@@ -947,8 +1009,8 @@ function renderFavoritesItems() {
         `;
         addAllToCartBtn.disabled = true;
     } else {
-        favoritesItems.innerHTML = filteredFavorites.map(item => {
-            const product = products.find(p => p.id === item.id);
+        favoritesItems.innerHTML = filteredFavorites.map(function(item) {
+            const product = products.find(function(p) { return p.id === item.id; });
             const isAvailable = product && product.quantity > 0;
             const maxAvailable = product ? product.quantity : 0;
             
@@ -979,20 +1041,20 @@ function renderFavoritesItems() {
             `;
         }).join('');
         
-        const hasAvailableItems = filteredFavorites.some(item => {
-            const product = products.find(p => p.id === item.id);
+        const hasAvailableItems = filteredFavorites.some(function(item) {
+            const product = products.find(function(p) { return p.id === item.id; });
             return product && product.quantity > 0;
         });
         
         addAllToCartBtn.disabled = !hasAvailableItems;
-        addAllToCartBtn.innerHTML = `<i class="fas fa-cart-plus"></i> Добавить все в корзину (${filteredFavorites.length})`;
+        addAllToCartBtn.innerHTML = '<i class="fas fa-cart-plus"></i> Добавить все в корзину (' + filteredFavorites.length + ')';
     }
 }
 
 function switchFavoritesTab(tabName) {
     currentFavoritesTab = tabName;
     
-    document.querySelectorAll('.favorites-tab').forEach(tab => {
+    document.querySelectorAll('.favorites-tab').forEach(function(tab) {
         tab.classList.remove('active');
         if (tab.textContent.toLowerCase().includes(tabName)) {
             tab.classList.add('active');
@@ -1008,18 +1070,18 @@ function switchFavoritesTab(tabName) {
 }
 
 function addAllFavoritesToCart() {
-    const filteredFavorites = favorites.filter(item => {
-        const product = products.find(p => p.id === item.id);
+    const filteredFavorites = favorites.filter(function(item) {
+        const product = products.find(function(p) { return p.id === item.id; });
         return product && product.quantity > 0;
     });
     
     if (filteredFavorites.length === 0) return;
     
     let addedCount = 0;
-    filteredFavorites.forEach(item => {
-        const product = products.find(p => p.id === item.id);
+    filteredFavorites.forEach(function(item) {
+        const product = products.find(function(p) { return p.id === item.id; });
         if (product && product.quantity > 0) {
-            const existingItem = cart.find(cartItem => cartItem.id === item.id);
+            const existingItem = cart.find(function(cartItem) { return cartItem.id === item.id; });
             
             if (existingItem) {
                 if (existingItem.quantity < product.quantity) {
@@ -1028,7 +1090,11 @@ function addAllFavoritesToCart() {
                 }
             } else {
                 cart.push({
-                    ...product,
+                    id: product.id,
+                    name: product.name,
+                    description: product.description,
+                    price: product.price,
+                    image: product.image,
                     quantity: 1
                 });
                 addedCount++;
@@ -1071,44 +1137,44 @@ function generateOrderNumber() {
     const day = date.getDate().toString().padStart(2, '0');
     const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
     
-    return `ORD-${year}${month}${day}-${random}`;
+    return 'ORD-' + year + month + day + '-' + random;
 }
 
 async function notifyManager(orderData) {
     try {
-        let message = `📦 *НОВЫЙ ЗАКАЗ #${orderData.orderNumber}*\n\n`;
+        let message = '📦 *НОВЫЙ ЗАКАЗ #' + orderData.orderNumber + '*\n\n';
         
         if (orderData.user) {
-            message += `👤 *Покупатель:*\n`;
-            if (orderData.user.id) message += `ID: ${orderData.user.id}\n`;
-            if (orderData.user.username) message += `@${orderData.user.username}\n`;
-            if (orderData.user.first_name) message += `Имя: ${orderData.user.first_name}\n`;
-            if (orderData.user.last_name) message += `Фамилия: ${orderData.user.last_name}\n`;
+            message += '👤 *Покупатель:*\n';
+            if (orderData.user.id) message += 'ID: ' + orderData.user.id + '\n';
+            if (orderData.user.username) message += '@' + orderData.user.username + '\n';
+            if (orderData.user.first_name) message += 'Имя: ' + orderData.user.first_name + '\n';
+            if (orderData.user.last_name) message += 'Фамилия: ' + orderData.user.last_name + '\n';
         } else {
-            message += `👤 *Анонимный покупатель*\n`;
+            message += '👤 *Анонимный покупатель*\n';
         }
         
-        message += `\n📅 *Дата:* ${new Date(orderData.timestamp).toLocaleString('ru-RU')}\n`;
+        message += '\n📅 *Дата:* ' + new Date(orderData.timestamp).toLocaleString('ru-RU') + '\n';
         
-        message += `\n🛒 *Товары:*\n`;
-        orderData.products.forEach((item, index) => {
-            message += `${index + 1}. ${item.name}\n`;
-            message += `   Кол-во: ${item.quantity} шт.\n`;
-            message += `   Цена: ${item.price} руб./шт.\n`;
-            message += `   Сумма: ${item.price * item.quantity} руб.\n\n`;
+        message += '\n🛒 *Товары:*\n';
+        orderData.products.forEach(function(item, index) {
+            message += (index + 1) + '. ' + item.name + '\n';
+            message += '   Кол-во: ' + item.quantity + ' шт.\n';
+            message += '   Цена: ' + item.price + ' руб./шт.\n';
+            message += '   Сумма: ' + (item.price * item.quantity) + ' руб.\n\n';
         });
         
-        message += `💰 *ИТОГО:*\n`;
-        message += `Товаров: ${orderData.items_count} шт.\n`;
-        message += `Сумма заказа: *${orderData.total} руб.*\n\n`;
+        message += '💰 *ИТОГО:*\n';
+        message += 'Товаров: ' + orderData.items_count + ' шт.\n';
+        message += 'Сумма заказа: *' + orderData.total + ' руб.*\n\n';
         
-        message += `⚡ *Статус:* Ожидает обработки\n`;
-        message += `🔗 Для связи: @Chief_68`;
+        message += '⚡ *Статус:* Ожидает обработки\n';
+        message += '🔗 Для связи: @Chief_68';
         
-        if (tg && tg.initDataUnsafe?.user) {
+        if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
             try {
                 const managerUsername = 'Chief_68';
-                const tgLink = `https://t.me/${managerUsername}?text=${encodeURIComponent(message)}`;
+                const tgLink = 'https://t.me/' + managerUsername + '?text=' + encodeURIComponent(message);
                 
                 if (tg.openLink) {
                     tg.openLink(tgLink);
@@ -1118,12 +1184,14 @@ async function notifyManager(orderData) {
                 
                 return true;
             } catch (error) {
+                console.error('Error opening Telegram link:', error);
                 return false;
             }
         }
         
         return true;
     } catch (error) {
+        console.error('Error notifying manager:', error);
         return false;
     }
 }
@@ -1131,14 +1199,14 @@ async function notifyManager(orderData) {
 async function checkout() {
     if (cart.length === 0) return;
     
-    const unavailableItems = cart.filter(item => {
-        const product = products.find(p => p.id === item.id);
+    const unavailableItems = cart.filter(function(item) {
+        const product = products.find(function(p) { return p.id === item.id; });
         return !product || product.quantity <= 0;
     });
     
     if (unavailableItems.length > 0) {
-        cart = cart.filter(item => {
-            const product = products.find(p => p.id === item.id);
+        cart = cart.filter(function(item) {
+            const product = products.find(function(p) { return p.id === item.id; });
             return product && product.quantity > 0;
         });
         
@@ -1146,14 +1214,14 @@ async function checkout() {
         return;
     }
     
-    const exceededItems = cart.filter(item => {
-        const product = products.find(p => p.id === item.id);
+    const exceededItems = cart.filter(function(item) {
+        const product = products.find(function(p) { return p.id === item.id; });
         return product && item.quantity > product.quantity;
     });
     
     if (exceededItems.length > 0) {
-        exceededItems.forEach(item => {
-            const product = products.find(p => p.id === item.id);
+        exceededItems.forEach(function(item) {
+            const product = products.find(function(p) { return p.id === item.id; });
             if (product) {
                 item.quantity = product.quantity;
             }
@@ -1166,25 +1234,32 @@ async function checkout() {
     
     const orderData = {
         orderNumber: orderNumber,
-        products: cart.map(item => ({
-            id: item.id,
-            name: item.name,
-            price: item.price,
-            quantity: item.quantity
-        })),
+        products: cart.map(function(item) {
+            return {
+                id: item.id,
+                name: item.name,
+                price: item.price,
+                quantity: item.quantity
+            };
+        }),
         total: getCartTotal(),
         items_count: getCartCount(),
         timestamp: new Date().toISOString(),
         user: tg ? {
-            id: tg.initDataUnsafe.user?.id,
-            username: tg.initDataUnsafe.user?.username,
-            first_name: tg.initDataUnsafe.user?.first_name,
-            last_name: tg.initDataUnsafe.user?.last_name
+            id: tg.initDataUnsafe.user && tg.initDataUnsafe.user.id,
+            username: tg.initDataUnsafe.user && tg.initDataUnsafe.user.username,
+            first_name: tg.initDataUnsafe.user && tg.initDataUnsafe.user.first_name,
+            last_name: tg.initDataUnsafe.user && tg.initDataUnsafe.user.last_name
         } : null
     };
 
     orderHistory.unshift({
-        ...orderData,
+        orderNumber: orderData.orderNumber,
+        products: orderData.products,
+        total: orderData.total,
+        items_count: orderData.items_count,
+        timestamp: orderData.timestamp,
+        user: orderData.user,
         status: 'pending'
     });
     
@@ -1195,21 +1270,21 @@ async function checkout() {
         
         if (tg && tg.showAlert) {
             tg.showAlert(
-                `✅ *Заказ оформлен успешно!*\n\n` +
-                `📋 *Номер заказа:* #${orderNumber}\n` +
-                `📦 Товаров: ${getCartCount()} шт.\n` +
-                `💰 Сумма: ${getCartTotal()} руб.\n\n` +
-                `👤 *Свяжитесь с менеджером:*\n` +
-                `🔗 @Chief_68\n\n` +
-                `💬 *Сообщите номер заказа менеджеру*\n` +
-                `🔄 Остатки будут обновлены`,
-                () => {
+                '✅ *Заказ оформлен успешно!*\n\n' +
+                '📋 *Номер заказа:* #' + orderNumber + '\n' +
+                '📦 Товаров: ' + getCartCount() + ' шт.\n' +
+                '💰 Сумма: ' + getCartTotal() + ' руб.\n\n' +
+                '👤 *Свяжитесь с менеджером:*\n' +
+                '🔗 @Chief_68\n\n' +
+                '💬 *Сообщите номер заказа менеджеру*\n' +
+                '🔄 Остатки будут обновлены',
+                function() {
                     cart = [];
                     saveCart();
                     closeCart();
                     showManagerNotification(orderNumber);
                     
-                    setTimeout(() => {
+                    setTimeout(function() {
                         loadAndRenderProducts();
                     }, 2000);
                 }
@@ -1222,17 +1297,18 @@ async function checkout() {
             closeCart();
         }
         
-        setTimeout(() => {
+        setTimeout(function() {
             loadAndRenderProducts();
         }, 3000);
         
     } catch (error) {
+        console.error('Checkout error:', error);
     }
 }
 
 function showOrderConfirmationModal(orderData, orderNumber) {
     const oldModals = document.querySelectorAll('.order-confirmation-modal, .manager-notification');
-    oldModals.forEach(modal => modal.remove());
+    oldModals.forEach(function(modal) { modal.remove(); });
     
     const modal = document.createElement('div');
     modal.className = 'order-confirmation-modal';
@@ -1264,9 +1340,11 @@ function showOrderConfirmationModal(orderData, orderNumber) {
                 <div class="order-products">
                     <h3>Состав заказа:</h3>
                     <ul>
-                        ${orderData.products.map(item => `
-                            <li>${item.name} × ${item.quantity} шт. = ${item.price * item.quantity} руб.</li>
-                        `).join('')}
+                        ${orderData.products.map(function(item) {
+                            return `
+                                <li>${item.name} × ${item.quantity} шт. = ${item.price * item.quantity} руб.</li>
+                            `;
+                        }).join('')}
                     </ul>
                 </div>
                 <div class="order-instructions">
@@ -1283,27 +1361,27 @@ function showOrderConfirmationModal(orderData, orderNumber) {
     
     document.body.appendChild(modal);
     
-    setTimeout(() => {
+    setTimeout(function() {
         showManagerNotification(orderNumber);
     }, 1000);
     
     const closeBtn = modal.querySelector('.close-order-modal');
-    closeBtn.addEventListener('click', () => {
+    closeBtn.addEventListener('click', function() {
         modal.style.opacity = '0';
-        setTimeout(() => modal.remove(), 300);
+        setTimeout(function() { modal.remove(); }, 300);
     });
     
-    setTimeout(() => {
+    setTimeout(function() {
         if (document.body.contains(modal)) {
             modal.style.opacity = '0';
-            setTimeout(() => modal.remove(), 300);
+            setTimeout(function() { modal.remove(); }, 300);
         }
     }, 10000);
 }
 
 function showManagerNotification(orderNumber) {
     const oldNotifications = document.querySelectorAll('.manager-notification');
-    oldNotifications.forEach(n => n.remove());
+    oldNotifications.forEach(function(n) { n.remove(); });
     
     const notification = document.createElement('div');
     notification.className = 'manager-notification';
@@ -1330,32 +1408,32 @@ function showManagerNotification(orderNumber) {
     
     document.body.appendChild(notification);
     
-    setTimeout(() => {
+    setTimeout(function() {
         notification.style.opacity = '1';
         notification.style.transform = 'translateY(0)';
     }, 100);
     
     const closeBtn = notification.querySelector('.manager-notification-close');
-    closeBtn.addEventListener('click', () => {
+    closeBtn.addEventListener('click', function() {
         notification.style.opacity = '0';
         notification.style.transform = 'translateY(100%)';
-        setTimeout(() => notification.remove(), 300);
+        setTimeout(function() { notification.remove(); }, 300);
     });
     
-    setTimeout(() => {
+    setTimeout(function() {
         if (document.body.contains(notification)) {
             notification.style.opacity = '0';
             notification.style.transform = 'translateY(100%)';
-            setTimeout(() => notification.remove(), 300);
+            setTimeout(function() { notification.remove(); }, 300);
         }
     }, 30000);
 }
 
 function openManagerChat(orderNumber) {
-    const message = `Здравствуйте! У меня оформлен заказ #${orderNumber}. Прошу подтвердить и уточнить детали.`;
+    const message = 'Здравствуйте! У меня оформлен заказ #' + orderNumber + '. Прошу подтвердить и уточнить детали.';
     const managerUsername = 'Chief_68';
     
-    const tgLink = `https://t.me/${managerUsername}?text=${encodeURIComponent(message)}`;
+    const tgLink = 'https://t.me/' + managerUsername + '?text=' + encodeURIComponent(message);
     
     if (tg && tg.openLink) {
         tg.openLink(tgLink);
@@ -1367,7 +1445,7 @@ function openManagerChat(orderNumber) {
     if (notification) {
         notification.style.opacity = '0';
         notification.style.transform = 'translateY(100%)';
-        setTimeout(() => notification.remove(), 300);
+        setTimeout(function() { notification.remove(); }, 300);
     }
 }
 
@@ -1387,7 +1465,6 @@ async function loadAndRenderProducts() {
     try {
         const newProducts = await loadProductsFromGitHub();
         
-        const oldProducts = [...products];
         products = newProducts;
         
         createCategoriesNav();
@@ -1396,8 +1473,8 @@ async function loadAndRenderProducts() {
         updateFavoritesUI();
         
         let cartUpdated = false;
-        cart.forEach(cartItem => {
-            const product = products.find(p => p.id === cartItem.id);
+        cart.forEach(function(cartItem) {
+            const product = products.find(function(p) { return p.id === cartItem.id; });
             if (!product || product.quantity <= 0) {
                 removeFromCart(cartItem.id);
                 cartUpdated = true;
@@ -1412,11 +1489,12 @@ async function loadAndRenderProducts() {
         }
         
     } catch (error) {
+        console.error('Error loading products:', error);
     }
 }
 
 function startAutoUpdate() {
-    autoUpdateInterval = setInterval(async () => {
+    autoUpdateInterval = setInterval(async function() {
         await loadAndRenderProducts();
     }, 60000);
 }
@@ -1426,6 +1504,107 @@ function stopAutoUpdate() {
         clearInterval(autoUpdateInterval);
         autoUpdateInterval = null;
     }
+}
+
+function initCategoriesScroll() {
+    const categoriesNav = document.getElementById('categoriesNav');
+    if (!categoriesNav) return;
+    
+    categoriesNav.addEventListener('wheel', function(e) {
+        if (window.innerWidth > 768) {
+            e.preventDefault();
+            categoriesNav.scrollLeft += e.deltaY;
+        }
+    });
+    
+    updateScrollIndicators();
+    categoriesNav.addEventListener('scroll', updateScrollIndicators);
+    
+    if (window.innerWidth > 768) {
+        addScrollButtons();
+    }
+    
+    window.addEventListener('resize', function() {
+        updateScrollIndicators();
+        if (window.innerWidth > 768 && !document.querySelector('.scroll-btn-left')) {
+            addScrollButtons();
+        } else {
+            removeScrollButtons();
+        }
+    });
+}
+
+function updateScrollIndicators() {
+    const categoriesNav = document.getElementById('categoriesNav');
+    if (!categoriesNav) return;
+    
+    const container = document.querySelector('.categories-area');
+    if (!container) return;
+    
+    const scrollLeft = categoriesNav.scrollLeft;
+    const maxScrollLeft = categoriesNav.scrollWidth - categoriesNav.clientWidth;
+    
+    if (scrollLeft > 10) {
+        container.classList.add('can-scroll-left');
+    } else {
+        container.classList.remove('can-scroll-left');
+    }
+    
+    if (scrollLeft < maxScrollLeft - 10) {
+        container.classList.add('can-scroll-right');
+    } else {
+        container.classList.remove('can-scroll-right');
+    }
+}
+
+function addScrollButtons() {
+    const categoriesArea = document.querySelector('.categories-area');
+    if (!categoriesArea || document.querySelector('.scroll-btn-left')) return;
+    
+    const scrollLeftBtn = document.createElement('button');
+    scrollLeftBtn.className = 'scroll-btn scroll-btn-left';
+    scrollLeftBtn.innerHTML = '<i class="fas fa-chevron-left"></i>';
+    scrollLeftBtn.onclick = function() {
+        const categoriesNav = document.getElementById('categoriesNav');
+        if (categoriesNav) {
+            categoriesNav.scrollBy({ left: -200, behavior: 'smooth' });
+        }
+    };
+    
+    const scrollRightBtn = document.createElement('button');
+    scrollRightBtn.className = 'scroll-btn scroll-btn-right';
+    scrollRightBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
+    scrollRightBtn.onclick = function() {
+        const categoriesNav = document.getElementById('categoriesNav');
+        if (categoriesNav) {
+            categoriesNav.scrollBy({ left: 200, behavior: 'smooth' });
+        }
+    };
+    
+    categoriesArea.appendChild(scrollLeftBtn);
+    categoriesArea.appendChild(scrollRightBtn);
+}
+
+function removeScrollButtons() {
+    const buttons = document.querySelectorAll('.scroll-btn');
+    buttons.forEach(function(btn) { btn.remove(); });
+}
+
+function initKeyboardNavigation() {
+    document.addEventListener('keydown', function(e) {
+        if (window.innerWidth > 768 && !e.target.matches('input, textarea')) {
+            const categoriesNav = document.getElementById('categoriesNav');
+            if (!categoriesNav) return;
+            
+            if (e.key === 'ArrowLeft') {
+                categoriesNav.scrollBy({ left: -200, behavior: 'smooth' });
+                e.preventDefault();
+            } else if (e.key === 'ArrowRight') {
+                categoriesNav.scrollBy({ left: 200, behavior: 'smooth' });
+                e.preventDefault();
+            }
+        }
+    });
 }
 
 async function initApp() {
@@ -1476,12 +1655,15 @@ async function initApp() {
     window.addAllFavoritesToCart = addAllFavoritesToCart;
     window.clearFavorites = clearFavorites;
     
-    setTimeout(() => {
+    initCategoriesScroll();
+    initKeyboardNavigation();
+    
+    setTimeout(function() {
         const loader = document.getElementById('loader');
         const app = document.getElementById('app');
         if (loader && app) {
             loader.style.opacity = '0';
-            setTimeout(() => {
+            setTimeout(function() {
                 loader.style.display = 'none';
                 app.style.display = 'block';
             }, 300);
