@@ -1946,7 +1946,7 @@ body.dark-theme .order-instructions p {
         overflow-x: auto;
     }
 }
-/* Стили для горизонтальной прокрутки на ПК */
+
 @media (min-width: 769px) {
     .categories-nav {
         display: flex;
@@ -1981,7 +1981,6 @@ body.dark-theme .order-instructions p {
         overflow: hidden;
     }
     
-    /* Индикаторы прокрутки */
     .categories-area.can-scroll-left::before {
         content: '';
         position: absolute;
@@ -2006,7 +2005,6 @@ body.dark-theme .order-instructions p {
         z-index: 1;
     }
     
-    /* Кнопки прокрутки */
     .scroll-btn {
         position: absolute;
         top: 50%;
@@ -2044,7 +2042,6 @@ body.dark-theme .order-instructions p {
         font-size: 16px;
     }
     
-    /* Оптимизация для больших экранов */
     @media (min-width: 1024px) {
         .category-btn {
             min-width: 180px;
@@ -2057,7 +2054,6 @@ body.dark-theme .order-instructions p {
         }
     }
     
-    /* Стили для выбранного пути */
     .selected-path {
         background: linear-gradient(135deg, var(--primary-color-light), var(--primary-color));
         border-radius: 8px;
@@ -2079,7 +2075,6 @@ body.dark-theme .order-instructions p {
         color: white;
     }
     
-    /* Улучшение навигации подкатегорий */
     .subcategory-navigation {
         display: flex;
         flex-wrap: nowrap;
@@ -2094,7 +2089,6 @@ body.dark-theme .order-instructions p {
         white-space: nowrap;
     }
     
-    /* Стили для выбора подкатегорий */
     .subcategory-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -2140,7 +2134,6 @@ body.dark-theme .order-instructions p {
         color: var(--text-muted);
     }
     
-    /* Заголовок выбора подкатегории */
     .subcategory-header {
         background: var(--card-bg);
         border-radius: 10px;
@@ -2179,7 +2172,6 @@ body.dark-theme .order-instructions p {
     }
 }
 
-/* Оптимизация для средних экранов */
 @media (max-width: 768px) {
     .categories-nav {
         display: flex;
@@ -2200,7 +2192,6 @@ body.dark-theme .order-instructions p {
     }
 }
 
-/* Общие улучшения для категорий */
 .category-btn.has-subs::after {
     content: ' ›';
     font-weight: bold;
@@ -2218,7 +2209,6 @@ body.dark-theme .order-instructions p {
     box-shadow: 0 5px 15px rgba(0,0,0,0.2);
 }
 
-/* Анимация перехода между категориями */
 .catalog {
     transition: opacity 0.3s ease;
 }
@@ -2227,7 +2217,6 @@ body.dark-theme .order-instructions p {
     opacity: 0.5;
 }
 
-/* Подсветка активной категории */
 .category-btn.active i {
     animation: pulse 2s infinite;
 }
@@ -2247,4 +2236,5 @@ body.dark-theme .order-instructions p {
     margin-left: 8px;
     font-weight: 500;
 }
+
 
