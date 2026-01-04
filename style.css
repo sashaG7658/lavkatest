@@ -1946,3 +1946,305 @@ body.dark-theme .order-instructions p {
         overflow-x: auto;
     }
 }
+/* Стили для горизонтальной прокрутки на ПК */
+@media (min-width: 769px) {
+    .categories-nav {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scrollbar-width: thin;
+        scrollbar-color: var(--primary-color) transparent;
+        padding-bottom: 10px;
+        scroll-behavior: smooth;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .categories-nav::-webkit-scrollbar {
+        height: 6px;
+    }
+    
+    .categories-nav::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    
+    .categories-nav::-webkit-scrollbar-thumb {
+        background: var(--primary-color);
+        border-radius: 3px;
+    }
+    
+    .categories-nav::-webkit-scrollbar-thumb:hover {
+        background: var(--primary-color-dark);
+    }
+    
+    .categories-area {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    /* Индикаторы прокрутки */
+    .categories-area.can-scroll-left::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 30px;
+        background: linear-gradient(to right, rgba(0,0,0,0.1), transparent);
+        pointer-events: none;
+        z-index: 1;
+    }
+    
+    .categories-area.can-scroll-right::after {
+        content: '';
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 30px;
+        background: linear-gradient(to left, rgba(0,0,0,0.1), transparent);
+        pointer-events: none;
+        z-index: 1;
+    }
+    
+    /* Кнопки прокрутки */
+    .scroll-btn {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        cursor: pointer;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        transition: all 0.3s ease;
+        opacity: 0.8;
+    }
+    
+    .scroll-btn:hover {
+        opacity: 1;
+        transform: translateY(-50%) scale(1.1);
+    }
+    
+    .scroll-btn-left {
+        left: 10px;
+    }
+    
+    .scroll-btn-right {
+        right: 10px;
+    }
+    
+    .scroll-btn i {
+        font-size: 16px;
+    }
+    
+    /* Оптимизация для больших экранов */
+    @media (min-width: 1024px) {
+        .category-btn {
+            min-width: 180px;
+            padding: 12px 20px;
+            font-size: 0.95rem;
+        }
+        
+        .categories-nav {
+            gap: 12px;
+        }
+    }
+    
+    /* Стили для выбранного пути */
+    .selected-path {
+        background: linear-gradient(135deg, var(--primary-color-light), var(--primary-color));
+        border-radius: 8px;
+        padding: 12px 20px;
+        margin: 15px 0;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    }
+    
+    .selected-path .path-item {
+        font-weight: 500;
+        color: white;
+    }
+    
+    .selected-path .path-separator {
+        color: rgba(255,255,255,0.7);
+    }
+    
+    .selected-path i {
+        color: white;
+    }
+    
+    /* Улучшение навигации подкатегорий */
+    .subcategory-navigation {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding: 10px 0;
+        margin: 10px 0;
+        gap: 10px;
+    }
+    
+    .subcategory-nav-btn {
+        flex-shrink: 0;
+        white-space: nowrap;
+    }
+    
+    /* Стили для выбора подкатегорий */
+    .subcategory-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 15px;
+        margin-top: 20px;
+    }
+    
+    .subcategory-option {
+        background: var(--card-bg);
+        border: 2px solid var(--border-color);
+        border-radius: 10px;
+        padding: 20px;
+        text-align: left;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .subcategory-option:hover {
+        border-color: var(--primary-color);
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    .subcategory-option.active {
+        border-color: var(--primary-color);
+        background: var(--primary-color-light);
+    }
+    
+    .subcategory-option i {
+        font-size: 1.5rem;
+        color: var(--primary-color);
+    }
+    
+    .subcategory-option span {
+        flex: 1;
+        font-weight: 500;
+    }
+    
+    .subcategory-option .sub-arrow {
+        color: var(--text-muted);
+    }
+    
+    /* Заголовок выбора подкатегории */
+    .subcategory-header {
+        background: var(--card-bg);
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    }
+    
+    .back-to-categories {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        margin-bottom: 15px;
+        transition: all 0.3s ease;
+    }
+    
+    .back-to-categories:hover {
+        transform: scale(1.1);
+    }
+    
+    .subcategory-header h3 {
+        margin: 0 0 10px 0;
+        color: var(--text-color);
+    }
+    
+    .subcategory-subtitle {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+    }
+}
+
+/* Оптимизация для средних экранов */
+@media (max-width: 768px) {
+    .categories-nav {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 10px;
+        gap: 8px;
+    }
+    
+    .categories-nav::-webkit-scrollbar {
+        display: none;
+    }
+    
+    .category-btn {
+        flex-shrink: 0;
+        white-space: nowrap;
+    }
+}
+
+/* Общие улучшения для категорий */
+.category-btn.has-subs::after {
+    content: ' ›';
+    font-weight: bold;
+    font-size: 1.2em;
+    margin-left: 5px;
+}
+
+.category-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.category-btn.active {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+/* Анимация перехода между категориями */
+.catalog {
+    transition: opacity 0.3s ease;
+}
+
+.catalog.loading {
+    opacity: 0.5;
+}
+
+/* Подсветка активной категории */
+.category-btn.active i {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+/* Информация о количестве товаров в категории */
+.category-count {
+    display: inline-block;
+    background: rgba(255,255,255,0.2);
+    border-radius: 10px;
+    padding: 2px 8px;
+    font-size: 0.8rem;
+    margin-left: 8px;
+    font-weight: 500;
+}
