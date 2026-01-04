@@ -2238,7 +2238,6 @@ body.dark-theme .order-instructions p {
     100% { transform: scale(1); }
 }
 
-/* Информация о количестве товаров в категории */
 .category-count {
     display: inline-block;
     background: rgba(255,255,255,0.2);
@@ -2248,3 +2247,4 @@ body.dark-theme .order-instructions p {
     margin-left: 8px;
     font-weight: 500;
 }
+
