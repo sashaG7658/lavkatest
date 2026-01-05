@@ -351,12 +351,6 @@ function createCategoriesNav() {
                     `;
                 }).join('')}
             </div>
-            <div class="nav-scroll-indicator left" id="scrollLeftIndicator">
-                <i class="fas fa-chevron-left"></i>
-            </div>
-            <div class="nav-scroll-indicator right" id="scrollRightIndicator">
-                <i class="fas fa-chevron-right"></i>
-            </div>
         </div>
         
         ${currentCategory !== 'all' && categories.find(function(c) { return c.id === currentCategory; }) && categories.find(function(c) { return c.id === currentCategory; }).subCategories && categories.find(function(c) { return c.id === currentCategory; }).subCategories.length > 0 ? `
@@ -1140,141 +1134,144 @@ async function notifyManager(orderData) {
         message += 'Сумма заказа: *' + orderData.total + ' руб.*\n\n';
         
         message += '⚡ *Статус:* Ожидает обработки\n';
-        message += '🔗 Для связи: @Chief_68';
+        message += '🔗 Для связи: @Chief_68\n\n';
+        message += '📋 *Номер заказа:* #' + orderData.orderNumber;
         
-        if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+        const managerUsername = 'Chief_68';
+        const encodedMessage = encodeURIComponent(message);
+        
+        if (window.Telegram && window.Telegram.WebApp) {
             try {
-                const managerUsername = 'Chief_68';
-                const tgLink = 'https://t.me/' + managerUsername + '?text=' + encodeURIComponent(message);
+                const tg = window.Telegram.WebApp;
                 
-                if (tg.openLink) {
-                    tg.openLink(tgLink);
-                } else {
-                    window.open(tgLink, '_blank');
+                if (tg.showPopup) {
+                    tg.showPopup({
+                        title: 'Заказ оформлен!',
+                        message: `Номер заказа: #${orderData.orderNumber}\n\nНажмите "Написать менеджеру" для подтверждения`,
+                        buttons: [{
+                            type: 'default',
+                            text: 'Написать менеджеру',
+                            id: 'contact_manager'
+                        }, {
+                            type: 'cancel',
+                            text: 'Закрыть',
+                            id: 'close'
+                        }]
+                    }, function(buttonId) {
+                        if (buttonId === 'contact_manager') {
+                            const tgLink = 'https://t.me/' + managerUsername + '?text=' + encodeURIComponent(
+                                'Здравствуйте! У меня оформлен заказ #' + orderData.orderNumber + 
+                                '. Прошу подтвердить и уточнить детали.'
+                            );
+                            
+                            if (tg.openLink) {
+                                tg.openLink(tgLink);
+                            } else {
+                                window.open(tgLink, '_blank');
+                            }
+                        }
+                    });
                 }
                 
-                return true;
-            } catch (error) {
-                console.error('Error opening Telegram link:', error);
-                return false;
+                if (tg.sendData) {
+                    tg.sendData(JSON.stringify({
+                        type: 'order',
+                        orderNumber: orderData.orderNumber,
+                        total: orderData.total,
+                        items: orderData.items_count,
+                        timestamp: orderData.timestamp
+                    }));
+                }
+                
+            } catch (tgError) {
+                console.log('Telegram API error, using fallback:', tgError);
             }
         }
         
+        try {
+            const tgLink = 'https://t.me/' + managerUsername + '?text=' + encodeURIComponent(
+                'Здравствуйте! У меня оформлен заказ #' + orderData.orderNumber + 
+                ' на сумму ' + orderData.total + ' руб.\n\n' +
+                'Товары:\n' + orderData.products.map((item, idx) => 
+                    `${idx+1}. ${item.name} × ${item.quantity} шт. = ${item.price * item.quantity} руб.`
+                ).join('\n') +
+                '\n\nПрошу подтвердить заказ и уточнить детали доставки.'
+            );
+            
+            window.open(tgLink, '_blank');
+            
+            if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+                showIOSNotification(orderData.orderNumber, tgLink);
+            }
+            
+        } catch (linkError) {
+            console.log('Link opening error:', linkError);
+        }
+        
+        showContactButton(orderData.orderNumber);
+        
         return true;
+        
     } catch (error) {
         console.error('Error notifying manager:', error);
         return false;
     }
 }
 
-async function checkout() {
-    if (cart.length === 0) return;
+function showIOSNotification(orderNumber, tgLink) {
+    const notification = document.createElement('div');
+    notification.className = 'ios-notification';
+    notification.innerHTML = `
+        <div class="ios-notification-content">
+            <div class="ios-notification-header">
+                <i class="fas fa-mobile-alt"></i>
+                <h3>iOS инструкция</h3>
+            </div>
+            <div class="ios-notification-body">
+                <p>Для подтверждения заказа <strong>#${orderNumber}</strong>:</p>
+                <ol>
+                    <li>Нажмите кнопку "Открыть Telegram"</li>
+                    <li>Нажмите "Send" в открывшемся окне</li>
+                    <li>Ожидайте ответа от менеджера</li>
+                </ol>
+            </div>
+            <div class="ios-notification-footer">
+                <button class="ios-open-tg" onclick="window.open('${tgLink}', '_blank')">
+                    <i class="fab fa-telegram"></i> Открыть Telegram
+                </button>
+                <button class="ios-copy-number" onclick="navigator.clipboard.writeText('#${orderNumber}')">
+                    <i class="fas fa-copy"></i> Копировать номер
+                </button>
+            </div>
+        </div>
+    `;
     
-    const unavailableItems = cart.filter(function(item) {
-        const product = products.find(function(p) { return p.id === item.id; });
-        return !product || product.quantity <= 0;
-    });
+    document.body.appendChild(notification);
     
-    if (unavailableItems.length > 0) {
-        cart = cart.filter(function(item) {
-            const product = products.find(function(p) { return p.id === item.id; });
-            return product && product.quantity > 0;
-        });
-        
-        saveCart();
-        return;
-    }
+    setTimeout(() => {
+        notification.classList.add('show');
+    }, 100);
     
-    const exceededItems = cart.filter(function(item) {
-        const product = products.find(function(p) { return p.id === item.id; });
-        return product && item.quantity > product.quantity;
-    });
-    
-    if (exceededItems.length > 0) {
-        exceededItems.forEach(function(item) {
-            const product = products.find(function(p) { return p.id === item.id; });
-            if (product) {
-                item.quantity = product.quantity;
-            }
-        });
-        saveCart();
-        return;
-    }
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 300);
+    }, 30000);
+}
 
-    const orderNumber = generateOrderNumber();
+function showContactButton(orderNumber) {
+    const contactBtn = document.createElement('a');
+    contactBtn.className = 'contact-manager-fixed';
+    contactBtn.href = 'https://t.me/Chief_68?text=' + encodeURIComponent(
+        `Заказ #${orderNumber} - нужна консультация`
+    );
+    contactBtn.target = '_blank';
+    contactBtn.innerHTML = `
+        <i class="fab fa-telegram"></i>
+        <span>Написать менеджеру</span>
+        <small>Заказ #${orderNumber}</small>
+    `;
     
-    const orderData = {
-        orderNumber: orderNumber,
-        products: cart.map(function(item) {
-            return {
-                id: item.id,
-                name: item.name,
-                price: item.price,
-                quantity: item.quantity
-            };
-        }),
-        total: getCartTotal(),
-        items_count: getCartCount(),
-        timestamp: new Date().toISOString(),
-        user: tg ? {
-            id: tg.initDataUnsafe.user && tg.initDataUnsafe.user.id,
-            username: tg.initDataUnsafe.user && tg.initDataUnsafe.user.username,
-            first_name: tg.initDataUnsafe.user && tg.initDataUnsafe.user.first_name,
-            last_name: tg.initDataUnsafe.user && tg.initDataUnsafe.user.last_name
-        } : null
-    };
-
-    orderHistory.unshift({
-        orderNumber: orderData.orderNumber,
-        products: orderData.products,
-        total: orderData.total,
-        items_count: orderData.items_count,
-        timestamp: orderData.timestamp,
-        user: orderData.user,
-        status: 'pending'
-    });
-    
-    saveCart();
-    
-    try {
-        const notified = await notifyManager(orderData);
-        
-        if (tg && tg.showAlert) {
-            tg.showAlert(
-                '✅ *Заказ оформлен успешно!*\n\n' +
-                '📋 *Номер заказа:* #' + orderNumber + '\n' +
-                '📦 Товаров: ' + getCartCount() + ' шт.\n' +
-                '💰 Сумма: ' + getCartTotal() + ' руб.\n\n' +
-                '👤 *Свяжитесь с менеджером:*\n' +
-                '🔗 @Chief_68\n\n' +
-                '💬 *Сообщите номер заказа менеджеру*\n' +
-                '🔄 Остатки будут обновлены',
-                function() {
-                    cart = [];
-                    saveCart();
-                    closeCart();
-                    showManagerNotification(orderNumber);
-                    
-                    setTimeout(function() {
-                        loadAndRenderProducts();
-                    }, 2000);
-                }
-            );
-        } else {
-            showOrderConfirmationModal(orderData, orderNumber);
-            
-            cart = [];
-            saveCart();
-            closeCart();
-        }
-        
-        setTimeout(function() {
-            loadAndRenderProducts();
-        }, 3000);
-        
-    } catch (error) {
-        console.error('Checkout error:', error);
-    }
+    document.body.appendChild(contactBtn);
 }
 
 function showOrderConfirmationModal(orderData, orderNumber) {
@@ -1420,6 +1417,116 @@ function openManagerChat(orderNumber) {
     }
 }
 
+async function checkout() {
+    if (cart.length === 0) return;
+    
+    const unavailableItems = cart.filter(function(item) {
+        const product = products.find(function(p) { return p.id === item.id; });
+        return !product || product.quantity <= 0;
+    });
+    
+    if (unavailableItems.length > 0) {
+        cart = cart.filter(function(item) {
+            const product = products.find(function(p) { return p.id === item.id; });
+            return product && product.quantity > 0;
+        });
+        
+        saveCart();
+        return;
+    }
+    
+    const exceededItems = cart.filter(function(item) {
+        const product = products.find(function(p) { return p.id === item.id; });
+        return product && item.quantity > product.quantity;
+    });
+    
+    if (exceededItems.length > 0) {
+        exceededItems.forEach(function(item) {
+            const product = products.find(function(p) { return p.id === item.id; });
+            if (product) {
+                item.quantity = product.quantity;
+            }
+        });
+        saveCart();
+        return;
+    }
+
+    const orderNumber = generateOrderNumber();
+    
+    const orderData = {
+        orderNumber: orderNumber,
+        products: cart.map(function(item) {
+            return {
+                id: item.id,
+                name: item.name,
+                price: item.price,
+                quantity: item.quantity
+            };
+        }),
+        total: getCartTotal(),
+        items_count: getCartCount(),
+        timestamp: new Date().toISOString(),
+        user: tg ? {
+            id: tg.initDataUnsafe.user && tg.initDataUnsafe.user.id,
+            username: tg.initDataUnsafe.user && tg.initDataUnsafe.user.username,
+            first_name: tg.initDataUnsafe.user && tg.initDataUnsafe.user.first_name,
+            last_name: tg.initDataUnsafe.user && tg.initDataUnsafe.user.last_name
+        } : null
+    };
+
+    orderHistory.unshift({
+        orderNumber: orderData.orderNumber,
+        products: orderData.products,
+        total: orderData.total,
+        items_count: orderData.items_count,
+        timestamp: orderData.timestamp,
+        user: orderData.user,
+        status: 'pending'
+    });
+    
+    saveCart();
+    
+    try {
+        const notified = await notifyManager(orderData);
+        
+        if (tg && tg.showAlert) {
+            tg.showAlert(
+                '✅ *Заказ оформлен успешно!*\n\n' +
+                '📋 *Номер заказа:* #' + orderNumber + '\n' +
+                '📦 Товаров: ' + getCartCount() + ' шт.\n' +
+                '💰 Сумма: ' + getCartTotal() + ' руб.\n\n' +
+                '👤 *Свяжитесь с менеджером:*\n' +
+                '🔗 @Chief_68\n\n' +
+                '💬 *Сообщите номер заказа менеджеру*\n' +
+                '🔄 Остатки будут обновлены',
+                function() {
+                    cart = [];
+                    saveCart();
+                    closeCart();
+                    showManagerNotification(orderNumber);
+                    
+                    setTimeout(function() {
+                        loadAndRenderProducts();
+                    }, 2000);
+                }
+            );
+        } else {
+            showOrderConfirmationModal(orderData, orderNumber);
+            
+            cart = [];
+            saveCart();
+            closeCart();
+        }
+        
+        setTimeout(function() {
+            loadAndRenderProducts();
+        }, 3000);
+        
+    } catch (error) {
+        console.error('Checkout error:', error);
+    }
+}
+
 function openCart() {
     document.getElementById('cartSidebar').classList.add('active');
     document.getElementById('cartOverlay').classList.add('active');
@@ -1481,52 +1588,69 @@ function initCategoriesScroll() {
     const categoriesNav = document.getElementById('categoriesNav');
     if (!categoriesNav) return;
     
-    categoriesNav.addEventListener('wheel', function(e) {
-        if (window.innerWidth > 768) {
-            e.preventDefault();
-            categoriesNav.scrollLeft += e.deltaY;
+    let isDown = false;
+    let startX;
+    let scrollLeft;
+    
+    categoriesNav.addEventListener('mousedown', (e) => {
+        isDown = true;
+        categoriesNav.classList.add('grabbing');
+        startX = e.pageX - categoriesNav.offsetLeft;
+        scrollLeft = categoriesNav.scrollLeft;
+    });
+    
+    categoriesNav.addEventListener('mouseleave', () => {
+        isDown = false;
+        categoriesNav.classList.remove('grabbing');
+    });
+    
+    categoriesNav.addEventListener('mouseup', () => {
+        isDown = false;
+        categoriesNav.classList.remove('grabbing');
+    });
+    
+    categoriesNav.addEventListener('mousemove', (e) => {
+        if (!isDown) return;
+        e.preventDefault();
+        const x = e.pageX - categoriesNav.offsetLeft;
+        const walk = (x - startX) * 2;
+        categoriesNav.scrollLeft = scrollLeft - walk;
+    });
+    
+    categoriesNav.addEventListener('touchstart', (e) => {
+        isDown = true;
+        startX = e.touches[0].pageX - categoriesNav.offsetLeft;
+        scrollLeft = categoriesNav.scrollLeft;
+    });
+    
+    categoriesNav.addEventListener('touchend', () => {
+        isDown = false;
+    });
+    
+    categoriesNav.addEventListener('touchmove', (e) => {
+        if (!isDown) return;
+        const x = e.touches[0].pageX - categoriesNav.offsetLeft;
+        const walk = (x - startX) * 2;
+        categoriesNav.scrollLeft = scrollLeft - walk;
+    });
+    
+    categoriesNav.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        categoriesNav.scrollLeft += e.deltaY * 0.5;
+    });
+    
+    function updateScrollIndicator() {
+        const scrollPercentage = (categoriesNav.scrollLeft / 
+            (categoriesNav.scrollWidth - categoriesNav.clientWidth)) * 100;
+        
+        const indicator = document.querySelector('.scroll-progress');
+        if (indicator) {
+            indicator.style.width = scrollPercentage + '%';
         }
-    });
-    
-    updateScrollIndicators();
-    categoriesNav.addEventListener('scroll', updateScrollIndicators);
-    
-    document.getElementById('scrollLeftIndicator').addEventListener('click', function() {
-        categoriesNav.scrollBy({ left: -200, behavior: 'smooth' });
-    });
-    
-    document.getElementById('scrollRightIndicator').addEventListener('click', function() {
-        categoriesNav.scrollBy({ left: 200, behavior: 'smooth' });
-    });
-    
-    window.addEventListener('resize', updateScrollIndicators);
-}
-
-function updateScrollIndicators() {
-    const categoriesNav = document.getElementById('categoriesNav');
-    const scrollLeftIndicator = document.getElementById('scrollLeftIndicator');
-    const scrollRightIndicator = document.getElementById('scrollRightIndicator');
-    
-    if (!categoriesNav || !scrollLeftIndicator || !scrollRightIndicator) return;
-    
-    const scrollLeft = categoriesNav.scrollLeft;
-    const maxScrollLeft = categoriesNav.scrollWidth - categoriesNav.clientWidth;
-    
-    if (scrollLeft > 10) {
-        scrollLeftIndicator.style.opacity = '1';
-        scrollLeftIndicator.style.pointerEvents = 'auto';
-    } else {
-        scrollLeftIndicator.style.opacity = '0';
-        scrollLeftIndicator.style.pointerEvents = 'none';
     }
     
-    if (scrollLeft < maxScrollLeft - 10) {
-        scrollRightIndicator.style.opacity = '1';
-        scrollRightIndicator.style.pointerEvents = 'auto';
-    } else {
-        scrollRightIndicator.style.opacity = '0';
-        scrollRightIndicator.style.pointerEvents = 'none';
-    }
+    categoriesNav.addEventListener('scroll', updateScrollIndicator);
+    updateScrollIndicator();
 }
 
 function initKeyboardNavigation() {
