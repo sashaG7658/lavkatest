@@ -160,7 +160,7 @@ const categories = [
             { id: 'k105le', name: 'KASTA LIMITED EDITION (105 МГ)', keywords: ['limited', 'limited edition'] },
             { id: 'k120c', name: 'KASTA COVID (120 МГ)', keywords: ['covid', 'ковид'] },
             { id: 'k120a', name: 'KASTA ANIME (120 МГ)', keywords: ['anime 120', 'аниме 120'] },
-            { id: 'k125a', name: 'KASTA ANIME (125 МГ)', keywords: ['anime 125', 'аниме 125'] },
+            { id: 'k125a', name: 'КАSTA ANIME (125 МГ)', keywords: ['anime 125', 'аниме 125'] },
             { id: 'k120d', name: 'KASTA DOTA (120 МГ)', keywords: ['dota', 'дота'] },
             { id: 'k125p', name: 'KASTA PHOBIA (125 МГ)', keywords: ['phobia', 'фобия'] }
         ]
@@ -337,18 +337,26 @@ function createCategoriesNav() {
     }
     
     categoriesArea.innerHTML = `
-        <div class="categories-nav" id="categoriesNav">
-            ${categories.map(function(category) {
-                const hasSubs = category.subCategories && category.subCategories.length > 0;
-                return `
-                    <button class="category-btn ${currentCategory === category.id ? 'active' : ''} ${hasSubs ? 'has-subs' : ''}" 
-                            onclick="selectCategory('${category.id}')"
-                            style="--category-color: ${category.color}">
-                        <i class="${category.icon}"></i>
-                        <span>${category.name}</span>
-                    </button>
-                `;
-            }).join('')}
+        <div class="categories-nav-wrapper">
+            <div class="categories-nav" id="categoriesNav">
+                ${categories.map(function(category) {
+                    const hasSubs = category.subCategories && category.subCategories.length > 0;
+                    return `
+                        <button class="category-btn ${currentCategory === category.id ? 'active' : ''} ${hasSubs ? 'has-subs' : ''}" 
+                                onclick="selectCategory('${category.id}')"
+                                style="--category-color: ${category.color}">
+                            <i class="${category.icon}"></i>
+                            <span>${category.name}</span>
+                        </button>
+                    `;
+                }).join('')}
+            </div>
+            <div class="nav-scroll-indicator left" id="scrollLeftIndicator">
+                <i class="fas fa-chevron-left"></i>
+            </div>
+            <div class="nav-scroll-indicator right" id="scrollRightIndicator">
+                <i class="fas fa-chevron-right"></i>
+            </div>
         </div>
         
         ${currentCategory !== 'all' && categories.find(function(c) { return c.id === currentCategory; }) && categories.find(function(c) { return c.id === currentCategory; }).subCategories && categories.find(function(c) { return c.id === currentCategory; }).subCategories.length > 0 ? `
@@ -372,44 +380,7 @@ function createCategoriesNav() {
     `;
     
     updateSelectedPath();
-    updateCategoryCounts();
     initCategoriesScroll();
-}
-
-function updateCategoryCounts() {
-    categories.forEach(function(category) {
-        const categoryBtn = document.querySelector('.category-btn[onclick*="' + category.id + '"]');
-        if (categoryBtn) {
-            const filteredProducts = filterProductsByCategoryForCount(category);
-            const count = filteredProducts.length;
-            
-            const oldCount = categoryBtn.querySelector('.category-count');
-            if (oldCount) oldCount.remove();
-            
-            if (count > 0) {
-                const countSpan = document.createElement('span');
-                countSpan.className = 'category-count';
-                countSpan.textContent = count;
-                categoryBtn.appendChild(countSpan);
-            }
-        }
-    });
-}
-
-function filterProductsByCategoryForCount(category) {
-    if (category.id === 'all') return products;
-    
-    if (!category.keywords) return [];
-    
-    return products.filter(function(product) {
-        const productName = product.name.toLowerCase();
-        const productDesc = (product.description || '').toLowerCase();
-        const searchText = productName + ' ' + productDesc;
-        
-        return category.keywords.some(function(keyword) {
-            return searchText.includes(keyword.toLowerCase());
-        });
-    });
 }
 
 function updateSelectedPath() {
@@ -1520,74 +1491,42 @@ function initCategoriesScroll() {
     updateScrollIndicators();
     categoriesNav.addEventListener('scroll', updateScrollIndicators);
     
-    if (window.innerWidth > 768) {
-        addScrollButtons();
-    }
-    
-    window.addEventListener('resize', function() {
-        updateScrollIndicators();
-        if (window.innerWidth > 768 && !document.querySelector('.scroll-btn-left')) {
-            addScrollButtons();
-        } else {
-            removeScrollButtons();
-        }
+    document.getElementById('scrollLeftIndicator').addEventListener('click', function() {
+        categoriesNav.scrollBy({ left: -200, behavior: 'smooth' });
     });
+    
+    document.getElementById('scrollRightIndicator').addEventListener('click', function() {
+        categoriesNav.scrollBy({ left: 200, behavior: 'smooth' });
+    });
+    
+    window.addEventListener('resize', updateScrollIndicators);
 }
 
 function updateScrollIndicators() {
     const categoriesNav = document.getElementById('categoriesNav');
-    if (!categoriesNav) return;
+    const scrollLeftIndicator = document.getElementById('scrollLeftIndicator');
+    const scrollRightIndicator = document.getElementById('scrollRightIndicator');
     
-    const container = document.querySelector('.categories-area');
-    if (!container) return;
+    if (!categoriesNav || !scrollLeftIndicator || !scrollRightIndicator) return;
     
     const scrollLeft = categoriesNav.scrollLeft;
     const maxScrollLeft = categoriesNav.scrollWidth - categoriesNav.clientWidth;
     
     if (scrollLeft > 10) {
-        container.classList.add('can-scroll-left');
+        scrollLeftIndicator.style.opacity = '1';
+        scrollLeftIndicator.style.pointerEvents = 'auto';
     } else {
-        container.classList.remove('can-scroll-left');
+        scrollLeftIndicator.style.opacity = '0';
+        scrollLeftIndicator.style.pointerEvents = 'none';
     }
     
     if (scrollLeft < maxScrollLeft - 10) {
-        container.classList.add('can-scroll-right');
+        scrollRightIndicator.style.opacity = '1';
+        scrollRightIndicator.style.pointerEvents = 'auto';
     } else {
-        container.classList.remove('can-scroll-right');
+        scrollRightIndicator.style.opacity = '0';
+        scrollRightIndicator.style.pointerEvents = 'none';
     }
-}
-
-function addScrollButtons() {
-    const categoriesArea = document.querySelector('.categories-area');
-    if (!categoriesArea || document.querySelector('.scroll-btn-left')) return;
-    
-    const scrollLeftBtn = document.createElement('button');
-    scrollLeftBtn.className = 'scroll-btn scroll-btn-left';
-    scrollLeftBtn.innerHTML = '<i class="fas fa-chevron-left"></i>';
-    scrollLeftBtn.onclick = function() {
-        const categoriesNav = document.getElementById('categoriesNav');
-        if (categoriesNav) {
-            categoriesNav.scrollBy({ left: -200, behavior: 'smooth' });
-        }
-    };
-    
-    const scrollRightBtn = document.createElement('button');
-    scrollRightBtn.className = 'scroll-btn scroll-btn-right';
-    scrollRightBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
-    scrollRightBtn.onclick = function() {
-        const categoriesNav = document.getElementById('categoriesNav');
-        if (categoriesNav) {
-            categoriesNav.scrollBy({ left: 200, behavior: 'smooth' });
-        }
-    };
-    
-    categoriesArea.appendChild(scrollLeftBtn);
-    categoriesArea.appendChild(scrollRightBtn);
-}
-
-function removeScrollButtons() {
-    const buttons = document.querySelectorAll('.scroll-btn');
-    buttons.forEach(function(btn) { btn.remove(); });
 }
 
 function initKeyboardNavigation() {
