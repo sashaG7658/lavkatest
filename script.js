@@ -10,6 +10,8 @@ let currentFavoritesTab = 'all';
 let orderHistory = [];
 let showSubcategorySelection = false;
 let pendingCategoryId = null;
+let userPhoneNumber = null;
+let pendingOrderData = null;
 
 function detectTheme() {
     try {
@@ -655,6 +657,241 @@ function renderProductsByCategory() {
     }).join('');
 }
 
+function loadPhoneNumber() {
+    try {
+        const savedPhone = localStorage.getItem('iceberg_phone');
+        userPhoneNumber = savedPhone || null;
+    } catch (error) {
+        console.error('Error loading phone number:', error);
+        userPhoneNumber = null;
+    }
+}
+
+function savePhoneNumber(phone) {
+    try {
+        userPhoneNumber = phone;
+        localStorage.setItem('iceberg_phone', phone);
+        return true;
+    } catch (error) {
+        console.error('Error saving phone number:', error);
+        return false;
+    }
+}
+
+function validatePhoneNumber(phone) {
+    const cleaned = phone.replace(/[^\d+]/g, '');
+    
+    if (cleaned.startsWith('+7') && cleaned.length === 12) {
+        return cleaned;
+    }
+    
+    if (cleaned.startsWith('8') && cleaned.length === 11) {
+        return '+7' + cleaned.slice(1);
+    }
+    
+    if (cleaned.startsWith('7') && cleaned.length === 11) {
+        return '+' + cleaned;
+    }
+    
+    if (cleaned.length >= 10 && cleaned.length <= 15) {
+        return cleaned.startsWith('+') ? cleaned : '+' + cleaned;
+    }
+    
+    return null;
+}
+
+function formatPhoneNumber(phone) {
+    if (!phone) return '';
+    
+    const cleaned = phone.replace(/[^\d+]/g, '');
+    
+    if (cleaned.startsWith('+7')) {
+        return '+7 (' + cleaned.slice(2, 5) + ') ' + cleaned.slice(5, 8) + '-' + cleaned.slice(8, 10) + '-' + cleaned.slice(10, 12);
+    }
+    
+    return phone;
+}
+
+function showPhoneConfirmationModal(orderData) {
+    pendingOrderData = orderData;
+    
+    const modal = document.createElement('div');
+    modal.className = 'phone-confirmation-modal';
+    modal.innerHTML = `
+        <div class="phone-confirmation-content">
+            <div class="phone-confirmation-header">
+                <i class="fas fa-phone-alt"></i>
+                <h2>Подтвердите номер телефона</h2>
+            </div>
+            <div class="phone-confirmation-body">
+                <div class="phone-input-group">
+                    <label for="phoneInput">Номер телефона для связи:</label>
+                    <div class="phone-input-wrapper">
+                        <div class="country-code">+7</div>
+                        <input type="tel" 
+                               id="phoneInput" 
+                               class="phone-input" 
+                               placeholder="999 123-45-67"
+                               value="${userPhoneNumber ? userPhoneNumber.replace('+7', '') : ''}"
+                               maxlength="15"
+                               inputmode="tel">
+                    </div>
+                    <div class="phone-example">
+                        <i class="fas fa-info-circle"></i>
+                        Пример: 912 345-67-89
+                    </div>
+                    <div id="phoneError" class="phone-validation-error" style="display: none;">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span>Введите корректный номер телефона</span>
+                    </div>
+                </div>
+                
+                <div class="phone-info">
+                    <p>
+                        <i class="fas fa-shield-alt"></i>
+                        Номер нужен для связи менеджера по поводу заказа. 
+                        Мы не передаём его третьим лицам и не используем для спама.
+                    </p>
+                </div>
+            </div>
+            <div class="phone-confirmation-footer">
+                <button id="confirmPhoneBtn" class="confirm-phone-btn">
+                    <i class="fas fa-check"></i> Подтвердить и отправить заказ
+                </button>
+                <button id="cancelPhoneBtn" class="cancel-phone-btn">
+                    <i class="fas fa-times"></i> Отмена
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    const phoneInput = document.getElementById('phoneInput');
+    const phoneError = document.getElementById('phoneError');
+    const phoneInputGroup = document.querySelector('.phone-input-group');
+    
+    setTimeout(() => phoneInput.focus(), 300);
+    
+    phoneInput.addEventListener('input', function(e) {
+        let value = e.target.value.replace(/\D/g, '');
+        
+        if (value.length > 0) {
+            if (value.length <= 3) {
+                value = value;
+            } else if (value.length <= 6) {
+                value = value.slice(0, 3) + ' ' + value.slice(3);
+            } else if (value.length <= 8) {
+                value = value.slice(0, 3) + ' ' + value.slice(3, 6) + '-' + value.slice(6);
+            } else {
+                value = value.slice(0, 3) + ' ' + value.slice(3, 6) + '-' + value.slice(6, 8) + '-' + value.slice(8, 10);
+            }
+        }
+        
+        e.target.value = value;
+        phoneError.style.display = 'none';
+        phoneInputGroup.classList.remove('error');
+    });
+    
+    document.getElementById('confirmPhoneBtn').addEventListener('click', function() {
+        const rawPhone = phoneInput.value.replace(/\D/g, '');
+        const fullPhone = '+7' + rawPhone;
+        const validatedPhone = validatePhoneNumber(fullPhone);
+        
+        if (!validatedPhone || rawPhone.length < 10) {
+            phoneError.style.display = 'flex';
+            phoneInputGroup.classList.add('error');
+            phoneInput.focus();
+            return;
+        }
+        
+        savePhoneNumber(validatedPhone);
+        
+        modal.style.opacity = '0';
+        setTimeout(() => modal.remove(), 300);
+        
+        pendingOrderData.userPhone = validatedPhone;
+        completeOrderWithPhone(pendingOrderData);
+        pendingOrderData = null;
+    });
+    
+    document.getElementById('cancelPhoneBtn').addEventListener('click', function() {
+        modal.style.opacity = '0';
+        setTimeout(() => {
+            modal.remove();
+            pendingOrderData = null;
+        }, 300);
+    });
+    
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            modal.style.opacity = '0';
+            setTimeout(() => {
+                modal.remove();
+                pendingOrderData = null;
+            }, 300);
+        }
+    });
+    
+    document.addEventListener('keydown', function closeOnEscape(e) {
+        if (e.key === 'Escape') {
+            modal.style.opacity = '0';
+            setTimeout(() => {
+                modal.remove();
+                pendingOrderData = null;
+                document.removeEventListener('keydown', closeOnEscape);
+            }, 300);
+        }
+    });
+}
+
+async function completeOrderWithPhone(orderData) {
+    try {
+        orderData.user = orderData.user || {};
+        if (userPhoneNumber) {
+            orderData.user.phone = userPhoneNumber;
+        }
+        
+        const notified = await notifyManager(orderData);
+        
+        if (tg && tg.showAlert) {
+            tg.showAlert(
+                `✅ *Заказ оформлен успешно!*\n\n` +
+                `📋 *Номер заказа:* #${orderData.orderNumber}\n` +
+                `📞 *Ваш телефон:* ${formatPhoneNumber(userPhoneNumber)}\n` +
+                `📦 Товаров: ${orderData.items_count} шт.\n` +
+                `💰 Сумма: ${orderData.total} руб.\n\n` +
+                `👤 *Менеджер свяжется с вами в ближайшее время*\n` +
+                `🔗 @Chief_68`,
+                function() {
+                    cart = [];
+                    saveCart();
+                    closeCart();
+                    
+                    showManagerNotification(orderData.orderNumber);
+                    
+                    setTimeout(() => {
+                        loadAndRenderProducts();
+                    }, 2000);
+                }
+            );
+        } else {
+            showOrderConfirmationModal(orderData, orderData.orderNumber);
+            
+            cart = [];
+            saveCart();
+            closeCart();
+        }
+        
+        setTimeout(() => {
+            loadAndRenderProducts();
+        }, 3000);
+        
+    } catch (error) {
+        console.error('Error completing order with phone:', error);
+    }
+}
+
 function loadCart() {
     try {
         const savedCart = localStorage.getItem('iceberg_cart');
@@ -1082,19 +1319,6 @@ function clearFavorites() {
     }
 }
 
-function openFavorites() {
-    document.getElementById('favoritesSidebar').classList.add('active');
-    document.getElementById('cartOverlay').classList.add('active');
-    document.body.style.overflow = 'hidden';
-    renderFavoritesItems();
-}
-
-function closeFavorites() {
-    document.getElementById('favoritesSidebar').classList.remove('active');
-    document.getElementById('cartOverlay').classList.remove('active');
-    document.body.style.overflow = '';
-}
-
 function generateOrderNumber() {
     const date = new Date();
     const year = date.getFullYear().toString().slice(-2);
@@ -1115,8 +1339,15 @@ async function notifyManager(orderData) {
             if (orderData.user.username) message += '@' + orderData.user.username + '\n';
             if (orderData.user.first_name) message += 'Имя: ' + orderData.user.first_name + '\n';
             if (orderData.user.last_name) message += 'Фамилия: ' + orderData.user.last_name + '\n';
+            
+            if (orderData.user.phone) {
+                message += '📞 *Номер телефона клиента:* ' + orderData.user.phone + '\n';
+            } else {
+                message += '📞 *Номер телефона клиента:* Не указан\n';
+            }
         } else {
             message += '👤 *Анонимный покупатель*\n';
+            message += '📞 *Номер телефона клиента:* Не указан\n';
         }
         
         message += '\n📅 *Дата:* ' + new Date(orderData.timestamp).toLocaleString('ru-RU') + '\n';
@@ -1304,6 +1535,12 @@ function showOrderConfirmationModal(orderData, orderNumber) {
                         <i class="fas fa-clock"></i>
                         <span>Время: ${new Date(orderData.timestamp).toLocaleTimeString('ru-RU')}</span>
                     </div>
+                    ${userPhoneNumber ? `
+                    <div class="order-summary-item">
+                        <i class="fas fa-phone"></i>
+                        <span>Телефон: ${formatPhoneNumber(userPhoneNumber)}</span>
+                    </div>
+                    ` : ''}
                 </div>
                 <div class="order-products">
                     <h3>Состав заказа:</h3>
@@ -1473,7 +1710,7 @@ async function checkout() {
             last_name: tg.initDataUnsafe.user && tg.initDataUnsafe.user.last_name
         } : null
     };
-
+    
     orderHistory.unshift({
         orderNumber: orderData.orderNumber,
         products: orderData.products,
@@ -1486,45 +1723,20 @@ async function checkout() {
     
     saveCart();
     
-    try {
-        const notified = await notifyManager(orderData);
-        
-        if (tg && tg.showAlert) {
-            tg.showAlert(
-                '✅ *Заказ оформлен успешно!*\n\n' +
-                '📋 *Номер заказа:* #' + orderNumber + '\n' +
-                '📦 Товаров: ' + getCartCount() + ' шт.\n' +
-                '💰 Сумма: ' + getCartTotal() + ' руб.\n\n' +
-                '👤 *Свяжитесь с менеджером:*\n' +
-                '🔗 @Chief_68\n\n' +
-                '💬 *Сообщите номер заказа менеджеру*\n' +
-                '🔄 Остатки будут обновлены',
-                function() {
-                    cart = [];
-                    saveCart();
-                    closeCart();
-                    showManagerNotification(orderNumber);
-                    
-                    setTimeout(function() {
-                        loadAndRenderProducts();
-                    }, 2000);
-                }
-            );
-        } else {
-            showOrderConfirmationModal(orderData, orderNumber);
-            
-            cart = [];
-            saveCart();
-            closeCart();
-        }
-        
-        setTimeout(function() {
-            loadAndRenderProducts();
-        }, 3000);
-        
-    } catch (error) {
-        console.error('Checkout error:', error);
-    }
+    showPhoneConfirmationModal(orderData);
+}
+
+function openFavorites() {
+    document.getElementById('favoritesSidebar').classList.add('active');
+    document.getElementById('cartOverlay').classList.add('active');
+    document.body.style.overflow = 'hidden';
+    renderFavoritesItems();
+}
+
+function closeFavorites() {
+    document.getElementById('favoritesSidebar').classList.remove('active');
+    document.getElementById('cartOverlay').classList.remove('active');
+    document.body.style.overflow = '';
 }
 
 function openCart() {
@@ -1677,6 +1889,7 @@ async function initApp() {
     await loadAndRenderProducts();
     loadCart();
     loadFavorites();
+    loadPhoneNumber();
     startAutoUpdate();
     
     const themeSwitch = document.createElement('div');
