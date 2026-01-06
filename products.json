@@ -4112,5 +4112,16 @@
     "image": "https://static.insales-cdn.com/images/products/1/4833/967897825/large_IMG_8764.JPG",
     "added_by": "admin",
     "added_date": "2025-12-20 14:00:00"
+  },
+  {
+    "id": 379,
+    "name": "123",
+    "price": 123,
+    "quantity": 2,
+    "description": "123123",
+    "image": "https://static.insales-cdn.com/images/products/1/4176/629641296/large_DD5D020A-5370-4C6E-8350-BC442E83B211.jpg",
+    "category": "other",
+    "added_by": "Chief_68",
+    "added_date": "2026-01-06 00:44:17"
   }
 ]
