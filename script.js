@@ -480,7 +480,7 @@ function switchSubCategory(subCategoryId) {
     renderProductsByCategory();
 }
 
-/*function filterProductsByCategory(productsToFilter) {
+function filterProductsByCategory(productsToFilter) {
     if (currentCategory === 'all') {
         return productsToFilter;
     }
@@ -516,7 +516,7 @@ function switchSubCategory(subCategoryId) {
     }
     
     return filtered;
-}*/
+}
 
 
 
@@ -2014,6 +2014,7 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
+
 
 
 
