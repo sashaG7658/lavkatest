@@ -480,7 +480,7 @@ function switchSubCategory(subCategoryId) {
     renderProductsByCategory();
 }
 
-function filterProductsByCategory(productsToFilter) {
+/*function filterProductsByCategory(productsToFilter) {
     if (currentCategory === 'all') {
         return productsToFilter;
     }
@@ -516,18 +516,23 @@ function filterProductsByCategory(productsToFilter) {
     }
     
     return filtered;
-}
+}*/
 
 async function loadProductsFromGitHub() {
     try {
         const timestamp = new Date().getTime();
         const response = await fetch('https://raw.githubusercontent.com/sashaG7658/lavkatest/main/products.json?t=' + timestamp);
+
+        console.log('Response status:', response.status);
         
         if (!response.ok) {
             throw new Error('Ошибка загрузки: ' + response.status);
         }
         
         const loadedProducts = await response.json();
+
+        console.log('Loaded products:', loadedProducts); 
+        console.log('Products count:', loadedProducts.length); 
         
         loadedProducts.forEach(function(product) {
             if (!product.hasOwnProperty('quantity')) {
@@ -2007,4 +2012,5 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
+
 
