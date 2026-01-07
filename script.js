@@ -518,6 +518,29 @@ function switchSubCategory(subCategoryId) {
     return filtered;
 }*/
 
+async function loadAndRenderProducts() {
+    try {
+        const newProducts = await loadProductsFromGitHub();
+        
+        console.log('Всего товаров загружено:', newProducts.length);
+        
+        products = newProducts;
+        
+        createCategoriesNav();
+        
+        // Показываем все товары без фильтрации для теста
+        const catalog = document.getElementById('catalog');
+        if (catalog) {
+            const testHTML = products.map(p => `<div>${p.name} - ${p.price} руб.</div>`).join('');
+            catalog.innerHTML = testHTML;
+        }
+        
+        // Оставшийся код...
+    } catch (error) {
+        console.error('Error loading products:', error);
+    }
+}
+
 async function loadProductsFromGitHub() {
     try {
         const timestamp = new Date().getTime();
@@ -2012,5 +2035,6 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
+
 
 
