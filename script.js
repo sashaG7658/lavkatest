@@ -1365,9 +1365,9 @@ function generateOrderNumber() {
 
 async function notifyManager(orderData) {
     try {
-        let message = '*НОВЫЙ ЗАКАЗ #' + orderData.orderNumber + '*\n\n';
+        let message = '**НОВЫЙ ЗАКАЗ #' + orderData.orderNumber + '**\n\n';
         
-        message += '👤 *Покупатель:*\n';
+        message += '👤 **Покупатель:**\n';
         
         if (orderData.user && orderData.user.id) {
             message += 'ID: ' + orderData.user.id + '\n';
@@ -1382,26 +1382,20 @@ async function notifyManager(orderData) {
         }
         
         if (orderData.user && orderData.user.first_name) {
-            message += 'Имя: ' + orderData.user.first_name + '\n';
+            message += '**Имя:** ' + orderData.user.first_name + '\n';
         } else {
             message += 'Имя: Не указано\n';
         }
         
-        if (orderData.user && orderData.user.last_name) {
-            message += 'Фамилия: ' + orderData.user.last_name + '\n';
-        } else {
-            message += 'Фамилия: Не указана\n';
-        }
-        
         if (orderData.user && orderData.user.phone) {
-            message += '📞 *Номер телефона клиента:* ' + orderData.user.phone + '\n';
+            message += '📞 **Номер телефона клиента:** ' + orderData.user.phone + '\n';
         } else {
-            message += '📞 *Номер телефона клиента:* Не указан\n';
+            message += '📞 **Номер телефона клиента:** Не указан\n';
         }
         
-        message += '\n📅 *Дата:* ' + new Date(orderData.timestamp).toLocaleString('ru-RU') + '\n';
+        message += '\n📅 **Дата:** ' + new Date(orderData.timestamp).toLocaleString('ru-RU') + '\n';
         
-        message += '\n🛒 *Товары:*\n';
+        message += '\n🛒 **Товары:**\n';
         orderData.products.forEach(function(item, index) {
             message += (index + 1) + '. ' + item.name + '\n';
             message += '   Кол-во: ' + item.quantity + ' шт.\n';
@@ -2013,3 +2007,4 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
+
