@@ -12,6 +12,7 @@ let showSubcategorySelection = false;
 let pendingCategoryId = null;
 let userPhoneNumber = null;
 let pendingOrderData = null;
+let isAddingToCart = false; // Флаг для предотвращения двойного добавления
 
 function detectTheme() {
     try {
@@ -645,7 +646,7 @@ function renderProductsByCategory() {
                     <div class="product-footer">
                         <div class="product-price">${product.price} ₽</div>
                         <button class="add-to-cart" 
-                                onclick="addToCart(${product.id})"
+                                onclick="addToCart(${product.id}, this)"
                                 ${!isAvailable ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>
                             <i class="fas fa-cart-plus"></i> 
                             ${!isAvailable ? 'Нет в наличии' : 'В корзину'}
@@ -918,16 +919,30 @@ function saveCart() {
     }
 }
 
-function addToCart(productId) {
-    const product = products.find(function(p) { return p.id === productId; });
-    if (!product) return;
+function addToCart(productId, buttonElement) {
+    // Защита от двойного добавления
+    if (isAddingToCart) return;
     
-    if (product.quantity <= 0) return;
+    isAddingToCart = true;
+    
+    const product = products.find(function(p) { return p.id === productId; });
+    if (!product) {
+        isAddingToCart = false;
+        return;
+    }
+    
+    if (product.quantity <= 0) {
+        isAddingToCart = false;
+        return;
+    }
     
     const existingItem = cart.find(function(item) { return item.id === productId; });
     
     if (existingItem) {
-        if (existingItem.quantity >= product.quantity) return;
+        if (existingItem.quantity >= product.quantity) {
+            isAddingToCart = false;
+            return;
+        }
         existingItem.quantity += 1;
     } else {
         cart.push({
@@ -941,6 +956,25 @@ function addToCart(productId) {
     }
 
     saveCart();
+    
+    // Блокируем кнопку на короткое время
+    if (buttonElement) {
+        const originalText = buttonElement.innerHTML;
+        buttonElement.innerHTML = '<i class="fas fa-check"></i> Добавлено';
+        buttonElement.disabled = true;
+        buttonElement.style.opacity = '0.7';
+        
+        setTimeout(() => {
+            buttonElement.innerHTML = originalText;
+            buttonElement.disabled = false;
+            buttonElement.style.opacity = '1';
+            isAddingToCart = false;
+        }, 1000);
+    } else {
+        setTimeout(() => {
+            isAddingToCart = false;
+        }, 500);
+    }
 }
 
 function removeFromCart(productId) {
@@ -1331,22 +1365,37 @@ function generateOrderNumber() {
 
 async function notifyManager(orderData) {
     try {
-        let message = '📦 *НОВЫЙ ЗАКАЗ #' + orderData.orderNumber + '*\n\n';
+        let message = '*НОВЫЙ ЗАКАЗ #' + orderData.orderNumber + '*\n\n';
         
-        if (orderData.user) {
-            message += '👤 *Покупатель:*\n';
-            if (orderData.user.id) message += 'ID: ' + orderData.user.id + '\n';
-            if (orderData.user.username) message += '@' + orderData.user.username + '\n';
-            if (orderData.user.first_name) message += 'Имя: ' + orderData.user.first_name + '\n';
-            if (orderData.user.last_name) message += 'Фамилия: ' + orderData.user.last_name + '\n';
-            
-            if (orderData.user.phone) {
-                message += '📞 *Номер телефона клиента:* ' + orderData.user.phone + '\n';
-            } else {
-                message += '📞 *Номер телефона клиента:* Не указан\n';
-            }
+        message += '👤 *Покупатель:*\n';
+        
+        if (orderData.user && orderData.user.id) {
+            message += 'ID: ' + orderData.user.id + '\n';
         } else {
-            message += '👤 *Анонимный покупатель*\n';
+            message += 'ID: Не указан\n';
+        }
+        
+        if (orderData.user && orderData.user.username) {
+            message += '@' + orderData.user.username + '\n';
+        } else {
+            message += '@ Не указан\n';
+        }
+        
+        if (orderData.user && orderData.user.first_name) {
+            message += 'Имя: ' + orderData.user.first_name + '\n';
+        } else {
+            message += 'Имя: Не указано\n';
+        }
+        
+        if (orderData.user && orderData.user.last_name) {
+            message += 'Фамилия: ' + orderData.user.last_name + '\n';
+        } else {
+            message += 'Фамилия: Не указана\n';
+        }
+        
+        if (orderData.user && orderData.user.phone) {
+            message += '📞 *Номер телефона клиента:* ' + orderData.user.phone + '\n';
+        } else {
             message += '📞 *Номер телефона клиента:* Не указан\n';
         }
         
@@ -1364,12 +1413,19 @@ async function notifyManager(orderData) {
         message += 'Товаров: ' + orderData.items_count + ' шт.\n';
         message += 'Сумма заказа: *' + orderData.total + ' руб.*\n\n';
         
-        message += '⚡ *Статус:* Ожидает обработки\n';
+        message += '⚡️ *Статус:* Ожидает обработки\n';
         message += '🔗 Для связи: @Chief_68\n\n';
         message += '📋 *Номер заказа:* #' + orderData.orderNumber;
         
         const managerUsername = 'Chief_68';
-        const encodedMessage = encodeURIComponent(message);
+        
+        // Создаем простое сообщение для открытия в Telegram
+        const simpleMessage = 'Здравствуйте! У меня оформлен заказ #' + orderData.orderNumber + 
+                              ' на сумму ' + orderData.total + ' руб.\n\n' +
+                              'Товары:\n' + orderData.products.map((item, idx) => 
+                                  `${idx+1}. ${item.name} × ${item.quantity} шт. = ${item.price * item.quantity} руб.`
+                              ).join('\n') +
+                              '\n\nПрошу подтвердить заказ и уточнить детали доставки.';
         
         if (window.Telegram && window.Telegram.WebApp) {
             try {
@@ -1390,10 +1446,7 @@ async function notifyManager(orderData) {
                         }]
                     }, function(buttonId) {
                         if (buttonId === 'contact_manager') {
-                            const tgLink = 'https://t.me/' + managerUsername + '?text=' + encodeURIComponent(
-                                'Здравствуйте! У меня оформлен заказ #' + orderData.orderNumber + 
-                                '. Прошу подтвердить и уточнить детали.'
-                            );
+                            const tgLink = 'https://t.me/' + managerUsername + '?text=' + encodeURIComponent(simpleMessage);
                             
                             if (tg.openLink) {
                                 tg.openLink(tgLink);
@@ -1420,14 +1473,7 @@ async function notifyManager(orderData) {
         }
         
         try {
-            const tgLink = 'https://t.me/' + managerUsername + '?text=' + encodeURIComponent(
-                'Здравствуйте! У меня оформлен заказ #' + orderData.orderNumber + 
-                ' на сумму ' + orderData.total + ' руб.\n\n' +
-                'Товары:\n' + orderData.products.map((item, idx) => 
-                    `${idx+1}. ${item.name} × ${item.quantity} шт. = ${item.price * item.quantity} руб.`
-                ).join('\n') +
-                '\n\nПрошу подтвердить заказ и уточнить детали доставки.'
-            );
+            const tgLink = 'https://t.me/' + managerUsername + '?text=' + encodeURIComponent(message);
             
             window.open(tgLink, '_blank');
             
@@ -1635,7 +1681,20 @@ function showManagerNotification(orderNumber) {
 }
 
 function openManagerChat(orderNumber) {
-    const message = 'Здравствуйте! У меня оформлен заказ #' + orderNumber + '. Прошу подтвердить и уточнить детали.';
+    const message = '*НОВЫЙ ЗАКАЗ #' + orderNumber + '*\n\n' +
+                   '👤 *Покупатель:*\n' +
+                   'ID: \n' +
+                   '@ \n' +
+                   'Имя: \n' +
+                   'Фамилия: \n' +
+                   '📞 *Номер телефона клиента:* ' + (userPhoneNumber || 'Не указан') + '\n\n' +
+                   '📅 *Дата:* ' + new Date().toLocaleString('ru-RU') + '\n\n' +
+                   '🛒 *Товары:*\n' +
+                   'Заказ #' + orderNumber + '\n\n' +
+                   '⚡️ *Статус:* Ожидает обработки\n' +
+                   '🔗 Для связи: @Chief_68\n\n' +
+                   '📋 *Номер заказа:* #' + orderNumber;
+    
     const managerUsername = 'Chief_68';
     
     const tgLink = 'https://t.me/' + managerUsername + '?text=' + encodeURIComponent(message);
