@@ -2631,24 +2631,6 @@ body.dark-theme .phone-input-wrapper {
     opacity: 1;
 }
 
-.nav-drag-hint {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    margin-bottom: 10px;
-    color: var(--primary-color);
-    font-size: 0.8rem;
-    opacity: 0.8;
-    animation: pulse-hint 2s infinite;
-    text-align: center;
-    padding: 5px 0;
-}
-
-.nav-drag-hint i {
-    font-size: 1rem;
-}
-
 .subcategory-nav-container {
     display: flex;
     gap: 10px;
@@ -2731,3 +2713,4 @@ body.dark-theme .phone-input-wrapper {
     from { opacity: 1; }
     to { opacity: 0; }
 }
+
