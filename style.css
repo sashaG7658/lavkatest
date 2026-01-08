@@ -2752,3 +2752,15 @@ body.dark-theme .order-products ul {
     from { opacity: 1; }
     to { opacity: 0; }
 }
+
+.subcategory-grid.at-start,
+.subcategory-navigation.at-start {
+    scroll-snap-type: x proximity;
+    scroll-padding-left: 20px;
+}
+
+.subcategory-grid.at-end,
+.subcategory-navigation.at-end {
+    scroll-snap-type: x proximity;
+    scroll-padding-right: 20px;
+}
