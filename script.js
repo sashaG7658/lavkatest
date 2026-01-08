@@ -122,11 +122,11 @@ const categories = [
         name: '⚡ ШОК', 
         icon: 'fas fa-bolt', 
         color: '#FF5722',
-        keywords: ['шок', 'shok'],
+        keywords: ['шок', 'shok', 'шок 150', 'шок 75', 'шок by x'],
         subCategories: [
-            { id: 'shok150', name: 'ШОК (150 МГ)', keywords: ['шок 150', 'shok 150', '150 мг шок', 'ШОК 150'] },
-            { id: 'shok75', name: 'ШОК (75 МГ)', keywords: ['шок 75', 'shok 75', '75 мг шок', 'ШОК 75'] },
-            { id: 'shokbyx', name: 'ШОК BY X', keywords: ['by x', 'шок by x'] }
+            { id: 'shok150', name: 'ШОК (150 МГ)', keywords: ['шок 150', 'shok 150', '150 мг', 'ШОК 150', '(150 мг)', '150мг'] },
+            { id: 'shok75', name: 'ШОК (75 МГ)', keywords: ['шок 75', 'shok 75', '75 мг', 'ШОК 75', '(75 мг)', '75мг'] },
+            { id: 'shokbyx', name: 'ШОК BY X', keywords: ['by x', 'шок by x', 'byx'] }
         ]
     },
     { 
@@ -187,24 +187,24 @@ const categories = [
         color: '#03A9F4',
         keywords: ['iceberg', 'айсберг'],
         subCategories: [
-            { id: 'ice75s', name: 'ICEBERG STRONG (75 МГ)', keywords: ['strong', '75 мг strong'] },
-            { id: 'ice75t', name: 'ICEBERG TRIANGLES (75 МГ)', keywords: ['triangles', 'треугольник', 'ICEBERG TRIANGLES (75 МГ)'] },
-            { id: 'ice100', name: 'ICEBERG EXTRA STRONG (100 МГ)', keywords: ['extra strong', '100 мг','ICEBERG EXTRA STRONG (100 МГ)'] },
-            { id: 'ice110', name: 'ICEBERG EXTREME (110 МГ)', keywords: ['extreme', '110 мг','ICEBERG EXTREME (110 МГ)'] },
-            { id: 'ice150', name: 'ICEBERG ULTRA (150 МГ)', keywords: ['ultra', '150 мг','ICEBERG ULTRA (150 МГ)'] }
+            { id: 'ice75s', name: 'ICEBERG STRONG (75 МГ)', keywords: ['strong', '75 мг strong', 'iceberg strong'] },
+            { id: 'ice75t', name: 'ICEBERG TRIANGLES (75 МГ)', keywords: ['triangles', 'треугольник', 'triangle', 'ICEBERG TRIANGLES'] },
+            { id: 'ice100', name: 'ICEBERG EXTRA STRONG (100 МГ)', keywords: ['extra strong', '100 мг', 'ICEBERG EXTRA'] },
+            { id: 'ice110', name: 'ICEBERG EXTREME (110 МГ)', keywords: ['extreme', '110 мг', 'ICEBERG EXTREME'] },
+            { id: 'ice150', name: 'ICEBERG ULTRA (150 МГ)', keywords: ['ultra', '150 мг', 'ICEBERG ULTRA'] }
         ]
     },
-    { 
+   { 
         id: 'faff', 
         name: '🐉 FAFF', 
         icon: 'fas fa-dragon', 
         color: '#E91E63',
         keywords: ['faff', 'фафф'],
         subCategories: [
-            { id: 'faff65', name: 'FAFF (65 МГ)', keywords: ['65 мг faff', 'faff 65', 'FAFF (65 МГ)'] },
-            { id: 'faff75', name: 'FAFF (75 МГ)', keywords: ['75 мг faff', 'faff 75', 'FAFF (75 МГ)'] },
-            { id: 'faff100', name: 'FAFF (100 МГ)', keywords: ['100 мг faff', 'faff 100', 'FAFF (100 МГ)'] },
-            { id: 'faff150', name: 'FAFF (150 МГ)', keywords: ['150 мг faff', 'faff 150', 'FAFF (150 МГ)'] }
+            { id: 'faff65', name: 'FAFF (65 МГ)', keywords: ['65 мг faff', 'faff 65', 'FAFF (65 МГ)', '(65 мг)', '65мг'] },
+            { id: 'faff75', name: 'FAFF (75 МГ)', keywords: ['75 мг faff', 'faff 75', 'FAFF (75 МГ)', '(75 мг)', '75мг'] },
+            { id: 'faff100', name: 'FAFF (100 МГ)', keywords: ['100 мг faff', 'faff 100', 'FAFF (100 МГ)', '(100 мг)', '100мг'] },
+            { id: 'faff150', name: 'FAFF (150 МГ)', keywords: ['150 мг faff', 'faff 150', 'FAFF (150 МГ)', '(150 мг)', '150мг'] }
         ]
     },
     { 
@@ -2728,4 +2728,5 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
+
 
