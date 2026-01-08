@@ -258,6 +258,7 @@ const categories = [
     },
     { 
         id: 'mad', 
+
         name: '😜 MAD', 
         icon: 'fas fa-grin-tongue-wink', 
         color: '#9C27B0',
@@ -363,26 +364,37 @@ function createCategoriesNav() {
         
         ${currentCategory !== 'all' && categories.find(function(c) { return c.id === currentCategory; }) && categories.find(function(c) { return c.id === currentCategory; }).subCategories && categories.find(function(c) { return c.id === currentCategory; }).subCategories.length > 0 ? `
             <div class="subcategory-navigation" id="subCategoriesNav">
-                <button class="subcategory-nav-btn ${currentSubCategory === null ? 'active' : ''}" 
-                        onclick="switchSubCategory(null)">
-                    <i class="fas fa-layer-group"></i>
-                    <span>Все ${categories.find(function(c) { return c.id === currentCategory; }).name}</span>
-                </button>
-                ${categories.find(function(c) { return c.id === currentCategory; }).subCategories.map(function(subCat) {
-                    return `
-                        <button class="subcategory-nav-btn ${currentSubCategory === subCat.id ? 'active' : ''}" 
-                                onclick="switchSubCategory('${subCat.id}')">
-                            <i class="fas fa-tag"></i>
-                            <span>${subCat.name}</span>
-                        </button>
-                    `;
-                }).join('')}
+                <div class="nav-drag-hint">
+                    <i class="fas fa-arrows-alt-h"></i>
+                    <span>Перетащите для прокрутки</span>
+                </div>
+                <div class="subcategory-nav-container">
+                    <button class="subcategory-nav-btn ${currentSubCategory === null ? 'active' : ''}" 
+                            onclick="switchSubCategory(null)">
+                        <i class="fas fa-layer-group"></i>
+                        <span>Все ${categories.find(function(c) { return c.id === currentCategory; }).name}</span>
+                    </button>
+                    ${categories.find(function(c) { return c.id === currentCategory; }).subCategories.map(function(subCat) {
+                        return `
+                            <button class="subcategory-nav-btn ${currentSubCategory === subCat.id ? 'active' : ''}" 
+                                    onclick="switchSubCategory('${subCat.id}')">
+                                <i class="fas fa-tag"></i>
+                                <span>${subCat.name}</span>
+                            </button>
+                        `;
+                    }).join('')}
+                </div>
             </div>
         ` : ''}
     `;
     
     updateSelectedPath();
     initCategoriesScroll();
+    
+    // Инициализируем drag для горизонтальной навигации подразделов
+    if (currentCategory !== 'all') {
+        initSubcategoryNavDrag();
+    }
 }
 
 // Новая функция для инициализации drag прокрутки подразделов
@@ -492,6 +504,132 @@ function initSubcategoryDrag() {
     // Вызываем при инициализации
     updateScrollBoundaries();
     updateScrollIndicator();
+}
+
+// Новая функция для инициализации drag горизонтальной навигации подразделов
+function initSubcategoryNavDrag() {
+    const subCategoriesNav = document.getElementById('subCategoriesNav');
+    if (!subCategoriesNav) return;
+    
+    const navContainer = subCategoriesNav.querySelector('.subcategory-nav-container');
+    if (!navContainer) return;
+    
+    let isDragging = false;
+    let startX;
+    let scrollLeft;
+    
+    // Обработчики для мыши (ПК)
+    subCategoriesNav.addEventListener('mousedown', (e) => {
+        // Проверяем, что клик был на самом контейнере или его содержимом
+        if (!e.target.closest('.subcategory-nav-btn')) {
+            isDragging = true;
+            subCategoriesNav.classList.add('grabbing');
+            startX = e.pageX - subCategoriesNav.offsetLeft;
+            scrollLeft = subCategoriesNav.scrollLeft;
+            e.preventDefault();
+        }
+    });
+    
+    subCategoriesNav.addEventListener('mouseleave', () => {
+        isDragging = false;
+        subCategoriesNav.classList.remove('grabbing');
+    });
+    
+    subCategoriesNav.addEventListener('mouseup', () => {
+        isDragging = false;
+        subCategoriesNav.classList.remove('grabbing');
+    });
+    
+    subCategoriesNav.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        e.preventDefault();
+        const x = e.pageX - subCategoriesNav.offsetLeft;
+        const walk = (x - startX) * 2;
+        subCategoriesNav.scrollLeft = scrollLeft - walk;
+    });
+    
+    // Обработчики для тач-устройств (телефоны)
+    subCategoriesNav.addEventListener('touchstart', (e) => {
+        isDragging = true;
+        subCategoriesNav.classList.add('grabbing');
+        startX = e.touches[0].pageX - subCategoriesNav.offsetLeft;
+        scrollLeft = subCategoriesNav.scrollLeft;
+        e.preventDefault();
+    });
+    
+    subCategoriesNav.addEventListener('touchend', () => {
+        isDragging = false;
+        subCategoriesNav.classList.remove('grabbing');
+    });
+    
+    subCategoriesNav.addEventListener('touchmove', (e) => {
+        if (!isDragging) return;
+        e.preventDefault();
+        const x = e.touches[0].pageX - subCategoriesNav.offsetLeft;
+        const walk = (x - startX) * 2;
+        subCategoriesNav.scrollLeft = scrollLeft - walk;
+    });
+    
+    // Отключаем стандартную прокрутку колесиком мыши
+    subCategoriesNav.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        subCategoriesNav.scrollLeft += e.deltaY * 0.5;
+    });
+    
+    // Индикатор прокрутки для навигации
+    function updateNavScrollIndicator() {
+        const scrollPercentage = (subCategoriesNav.scrollLeft / 
+            (subCategoriesNav.scrollWidth - subCategoriesNav.clientWidth)) * 100;
+        
+        // Создаем или обновляем индикатор
+        let indicator = document.querySelector('.nav-scroll-progress-indicator');
+        if (!indicator) {
+            indicator = document.createElement('div');
+            indicator.className = 'nav-scroll-progress-indicator';
+            subCategoriesNav.appendChild(indicator);
+        }
+        
+        indicator.style.width = Math.max(0, Math.min(100, scrollPercentage)) + '%';
+        indicator.style.opacity = scrollPercentage > 0 ? '1' : '0';
+    }
+    
+    function updateNavScrollBoundaries() {
+        const scrollLeft = subCategoriesNav.scrollLeft;
+        const scrollWidth = subCategoriesNav.scrollWidth;
+        const clientWidth = subCategoriesNav.clientWidth;
+        
+        // Убираем все классы
+        subCategoriesNav.classList.remove('nav-scroll-start', 'nav-scroll-end');
+        
+        // Добавляем соответствующие классы
+        if (scrollLeft <= 0) {
+            subCategoriesNav.classList.add('nav-scroll-start');
+        }
+        
+        if (scrollLeft >= scrollWidth - clientWidth - 1) {
+            subCategoriesNav.classList.add('nav-scroll-end');
+        }
+    }
+    
+    subCategoriesNav.addEventListener('scroll', () => {
+        updateNavScrollBoundaries();
+        updateNavScrollIndicator();
+    });
+    
+    // Вызываем при инициализации
+    updateNavScrollBoundaries();
+    updateNavScrollIndicator();
+    
+    // Скрываем подсказку через 5 секунд
+    setTimeout(() => {
+        const dragHint = subCategoriesNav.querySelector('.nav-drag-hint');
+        if (dragHint) {
+            dragHint.style.opacity = '0';
+            setTimeout(() => {
+                dragHint.style.display = 'none';
+            }, 300);
+        }
+    }, 5000);
 }
 
 function updateSelectedPath() {
