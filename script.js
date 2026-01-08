@@ -319,8 +319,8 @@ function debugTrianglesProducts() {
     return trianglesProducts;
 }
 
-// Добавьте эту функцию в глобальную область видимости
 window.debugTrianglesProducts = debugTrianglesProducts;
+
 function createCategoriesNav() {
     const categoriesArea = document.getElementById('categoriesArea');
     if (!categoriesArea) return;
@@ -368,8 +368,8 @@ function createCategoriesNav() {
                     </div>
                 </div>
             `;
+            updateSelectedPath();
             initSmoothDrag('subcategoryGrid');
-            initSmoothDrag('subCategoriesNav');
             return;
         } else {
             pendingCategoryId = null;
@@ -424,11 +424,11 @@ function createCategoriesNav() {
     initCategoriesScroll();
     
     if (currentCategory !== 'all') {
-        initSubcategoryNavDrag();
+        initSmoothDrag('subCategoriesNav');
     }
 }
 
-function initSmoothDrag(containerId, options = {}) {
+function initSmoothDrag(containerId) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
@@ -493,19 +493,17 @@ function initSmoothDrag(containerId, options = {}) {
         velocity *= damping;
 
         if (container.scrollLeft <= 0 || container.scrollLeft >= container.scrollWidth - container.clientWidth) {
-            velocity *= 0.5; // elastic slowdown
+            velocity *= 0.5;
         }
 
         momentumID = requestAnimationFrame(momentum);
     }
 
-    // Mouse
     container.addEventListener('mousedown', startDrag);
     container.addEventListener('mouseleave', endDrag);
     container.addEventListener('mouseup', endDrag);
     container.addEventListener('mousemove', moveDrag);
 
-    // Touch
     container.addEventListener('touchstart', (e) => {
         if (e.touches.length === 1) startDrag(e);
     }, { passive: true });
@@ -516,13 +514,11 @@ function initSmoothDrag(containerId, options = {}) {
         if (e.touches.length === 1) moveDrag(e);
     }, { passive: false });
 
-    // Wheel
     container.addEventListener('wheel', (e) => {
         e.preventDefault();
         container.scrollLeft += e.deltaY * 0.4;
     }, { passive: false });
 
-    // Elastic bounce visual
     container.addEventListener('scroll', () => {
         const maxScroll = container.scrollWidth - container.clientWidth;
         const atStart = container.scrollLeft <= 0;
@@ -531,153 +527,6 @@ function initSmoothDrag(containerId, options = {}) {
         container.classList.toggle('at-start', atStart);
         container.classList.toggle('at-end', atEnd);
     });
-}
-    
-    function moveDrag(e) {
-        if (!isDragging) return;
-        
-        e.preventDefault();
-        const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
-        const currentTime = Date.now();
-        const deltaTime = currentTime - lastTime;
-        
-        if (deltaTime > 0) {
-            const deltaX = clientX - lastX;
-            velocity = deltaX / deltaTime;
-            lastX = clientX;
-            lastTime = currentTime;
-        }
-        
-        const x = clientX - subCategoriesNav.getBoundingClientRect().left;
-        const walk = (x - startX) * 1.5;
-        subCategoriesNav.scrollLeft = scrollLeft - walk;
-    }
-    
-    function endDrag() {
-        if (!isDragging) return;
-        
-        isDragging = false;
-        subCategoriesNav.classList.remove('grabbing');
-        momentum();
-    }
-    
-    function momentum() {
-        if (Math.abs(velocity) < 0.1) return;
-        
-        subCategoriesNav.scrollLeft -= velocity * 15;
-        velocity *= 0.95;
-        
-        momentumID = requestAnimationFrame(momentum);
-    }
-    
-    subCategoriesNav.addEventListener('mousedown', startDrag);
-    subCategoriesNav.addEventListener('mouseleave', endDrag);
-    subCategoriesNav.addEventListener('mouseup', endDrag);
-    subCategoriesNav.addEventListener('mousemove', moveDrag);
-    
-    subCategoriesNav.addEventListener('touchstart', function(e) {
-        if (e.touches.length === 1) {
-            startDrag(e);
-        }
-    }, { passive: true });
-    
-    subCategoriesNav.addEventListener('touchend', endDrag);
-    subCategoriesNav.addEventListener('touchcancel', endDrag);
-    
-    subCategoriesNav.addEventListener('touchmove', function(e) {
-        if (e.touches.length === 1) {
-            moveDrag(e);
-        }
-    }, { passive: false });
-    
-    subCategoriesNav.addEventListener('wheel', function(e) {
-        e.preventDefault();
-        subCategoriesNav.scrollLeft += e.deltaY * 0.3;
-    }, { passive: false });
-    
-    subCategoriesNav.style.touchAction = 'pan-y pinch-zoom';
-    
-    updateNavScrollBoundaries();
-    updateNavScrollIndicator();
-    
-    window.addEventListener('resize', function() {
-        updateNavScrollBoundaries();
-        updateNavScrollIndicator();
-    });
-
-
-function updateScrollIndicator() {
-    const subcategoryGrid = document.getElementById('subcategoryGrid');
-    if (!subcategoryGrid) return;
-    
-    const scrollPercentage = (subcategoryGrid.scrollLeft / 
-        (subcategoryGrid.scrollWidth - subcategoryGrid.clientWidth)) * 100;
-    
-    let indicator = document.querySelector('.scroll-progress-indicator');
-    if (!indicator) {
-        indicator = document.createElement('div');
-        indicator.className = 'scroll-progress-indicator';
-        subcategoryGrid.parentElement.appendChild(indicator);
-    }
-    
-    indicator.style.width = Math.max(0, Math.min(100, scrollPercentage)) + '%';
-    indicator.style.opacity = scrollPercentage > 0 ? '1' : '0';
-}
-
-function updateScrollBoundaries() {
-    const subcategoryGrid = document.getElementById('subcategoryGrid');
-    if (!subcategoryGrid) return;
-    
-    const scrollLeft = subcategoryGrid.scrollLeft;
-    const scrollWidth = subcategoryGrid.scrollWidth;
-    const clientWidth = subcategoryGrid.clientWidth;
-    
-    subcategoryGrid.classList.remove('scroll-start', 'scroll-end');
-    
-    if (scrollLeft <= 0) {
-        subcategoryGrid.classList.add('scroll-start');
-    }
-    
-    if (scrollLeft >= scrollWidth - clientWidth - 1) {
-        subcategoryGrid.classList.add('scroll-end');
-    }
-}
-
-function updateNavScrollIndicator() {
-    const subCategoriesNav = document.getElementById('subCategoriesNav');
-    if (!subCategoriesNav) return;
-    
-    const scrollPercentage = (subCategoriesNav.scrollLeft / 
-        (subCategoriesNav.scrollWidth - subCategoriesNav.clientWidth)) * 100;
-    
-    let indicator = document.querySelector('.nav-scroll-progress-indicator');
-    if (!indicator) {
-        indicator = document.createElement('div');
-        indicator.className = 'nav-scroll-progress-indicator';
-        subCategoriesNav.appendChild(indicator);
-    }
-    
-    indicator.style.width = Math.max(0, Math.min(100, scrollPercentage)) + '%';
-    indicator.style.opacity = scrollPercentage > 0 ? '1' : '0';
-}
-
-function updateNavScrollBoundaries() {
-    const subCategoriesNav = document.getElementById('subCategoriesNav');
-    if (!subCategoriesNav) return;
-    
-    const scrollLeft = subCategoriesNav.scrollLeft;
-    const scrollWidth = subCategoriesNav.scrollWidth;
-    const clientWidth = subCategoriesNav.clientWidth;
-    
-    subCategoriesNav.classList.remove('nav-scroll-start', 'nav-scroll-end');
-    
-    if (scrollLeft <= 0) {
-        subCategoriesNav.classList.add('nav-scroll-start');
-    }
-    
-    if (scrollLeft >= scrollWidth - clientWidth - 1) {
-        subCategoriesNav.classList.add('nav-scroll-end');
-    }
 }
 
 function updateSelectedPath() {
@@ -2737,11 +2586,3 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
-
-
-
-
-
-
-
-
