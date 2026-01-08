@@ -189,17 +189,23 @@ const categories = [
         subCategories: [
             { id: 'ice75s', name: 'ICEBERG STRONG (75 МГ)', keywords: ['strong', '75 мг strong', 'iceberg strong'] },
             { 
-            id: 'ice75t', 
-            name: 'ICEBERG TRIANGLES (75 МГ)', 
+            id: 'icepie75', 
+            name: 'ICEBERG PIE (75 МГ)', 
             keywords: [
-                'triangles', 
-                'треугольник', 
-                'triangle', 
-                'ICEBERG TRIANGLES',
-                'TRIANGLES',
-                'триангуляр',
-                'триангл',
-                'треугольники'
+                'pie',
+                'пирог',
+                'apple pie',
+                'banoffee',
+                'blueberry pie',
+                'cheesecake',
+                'cherry pie',
+                'key lime pie',
+                'яблочный пирог',
+                'баноффи',
+                'черничный пирог',
+                'чизкейк',
+                'вишневый пирог',
+                'лаймовый пирог'
             ] 
         },
             { id: 'ice100', name: 'ICEBERG EXTRA STRONG (100 МГ)', keywords: ['extra strong', '100 мг', 'ICEBERG EXTRA'] },
@@ -2753,6 +2759,7 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
+
 
 
 
