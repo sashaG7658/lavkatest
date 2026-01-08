@@ -188,7 +188,20 @@ const categories = [
         keywords: ['iceberg', 'айсберг'],
         subCategories: [
             { id: 'ice75s', name: 'ICEBERG STRONG (75 МГ)', keywords: ['strong', '75 мг strong', 'iceberg strong'] },
-            { id: 'ice75t', name: 'ICEBERG TRIANGLES (75 МГ)', keywords: ['triangles', 'треугольник', 'triangle', 'ICEBERG TRIANGLES'] },
+            { 
+            id: 'ice75t', 
+            name: 'ICEBERG TRIANGLES (75 МГ)', 
+            keywords: [
+                'triangles', 
+                'треугольник', 
+                'triangle', 
+                'ICEBERG TRIANGLES',
+                'TRIANGLES',
+                'триангуляр',
+                'триангл',
+                'треугольники'
+            ] 
+        },
             { id: 'ice100', name: 'ICEBERG EXTRA STRONG (100 МГ)', keywords: ['extra strong', '100 мг', 'ICEBERG EXTRA'] },
             { id: 'ice110', name: 'ICEBERG EXTREME (110 МГ)', keywords: ['extreme', '110 мг', 'ICEBERG EXTREME'] },
             { id: 'ice150', name: 'ICEBERG ULTRA (150 МГ)', keywords: ['ultra', '150 мг', 'ICEBERG ULTRA'] }
@@ -290,6 +303,18 @@ const categories = [
     }
 ];
 
+function debugTrianglesProducts() {
+    const trianglesProducts = products.filter(function(product) {
+        const searchText = (product.name + ' ' + (product.description || '')).toLowerCase();
+        return searchText.includes('triangle') || searchText.includes('треугольник');
+    });
+    
+    console.log('Найденные товары с triangles:', trianglesProducts);
+    return trianglesProducts;
+}
+
+// Добавьте эту функцию в глобальную область видимости
+window.debugTrianglesProducts = debugTrianglesProducts;
 function createCategoriesNav() {
     const categoriesArea = document.getElementById('categoriesArea');
     if (!categoriesArea) return;
@@ -2728,5 +2753,6 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
+
 
 
