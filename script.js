@@ -162,8 +162,8 @@ const categories = [
             { id: 'k105', name: 'KASTA CLASSIC (105 МГ)', keywords: ['105 мг', '105mg', 'kasta 105 classic'] },
             { id: 'k105le', name: 'KASTA LIMITED EDITION (105 МГ)', keywords: ['limited', 'limited edition'] },
             { id: 'k120c', name: 'KASTA COVID (120 МГ)', keywords: ['covid', 'ковид'] },
-            { id: 'k120a', name: 'KASTA ANIME (120 МГ)', keywords: ['anime 120', 'аниме 120'] },
-            { id: 'k125a', name: 'КАSTA ANIME (125 МГ)', keywords: ['anime 125', 'аниме 125'] },
+            { id: 'k120a', name: 'KASTA ANIME (120 МГ)', keywords: ['anime 120', 'аниме 120', 'NARUTO', 'ITACHI', 'SASUKE', 'PAIN', 'KAKASHI', 'OBITO'] },
+            { id: 'k125a', name: 'КАSTA ANIME (125 МГ)', keywords: ['anime 125', 'аниме 125', 'JIRAYA', 'GUY', 'MADARA', 'TOBIRAMA', 'HASHIRAMA', 'MINATO'] },
             { id: 'k120d', name: 'KASTA DOTA (120 МГ)', keywords: ['dota', 'дота'] },
             { id: 'k125p', name: 'KASTA PHOBIA (125 МГ)', keywords: ['phobia', 'фобия'] }
         ]
@@ -258,7 +258,7 @@ const categories = [
         keywords: ['швеция', 'sweden', 'odens', 'lyft', 'zyn', 'chn'],
         subCategories: [
             { id: 'odens', name: 'ODENS', keywords: ['odens', 'оденс'] },
-            { id: 'lyft', name: 'LYFT', keywords: ['lyft', 'лифт'] },
+            { id: 'lyft', name: 'LYFT', keywords: ['lyft', 'лифт', 'lyft 16', 'LYFT (16)', 'LYFT 16'] },
             { id: 'zyn', name: 'ZYN', keywords: ['zyn', 'зин'] },
             { id: 'chn', name: 'CHN', keywords: ['chn'] }
         ]
@@ -2586,3 +2586,4 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
+
