@@ -428,102 +428,108 @@ function createCategoriesNav() {
     }
 }
 
-function initSubcategoryDrag() {
-    const subcategoryGrid = document.getElementById('subcategoryGrid');
-    if (!subcategoryGrid) return;
-    
+function initSmoothDrag(containerId, options = {}) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
     let isDragging = false;
-    let startX;
-    let scrollLeft;
-    let momentumID;
+    let startX = 0;
+    let scrollLeft = 0;
     let velocity = 0;
-    let lastX;
-    let lastTime;
-    
+    let lastX = 0;
+    let lastTime = 0;
+    let momentumID = null;
+
+    const damping = 0.92;
+    const sensitivity = 1.8;
+    const maxVelocity = 25;
+
     function startDrag(e) {
+        if (e.target.closest('.subcategory-option, .subcategory-nav-btn')) return;
+
         isDragging = true;
-        subcategoryGrid.classList.add('grabbing');
-        
-        const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
-        startX = clientX - subcategoryGrid.getBoundingClientRect().left;
-        scrollLeft = subcategoryGrid.scrollLeft;
-        
+        container.classList.add('grabbing');
         cancelAnimationFrame(momentumID);
+
+        const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+        startX = clientX - container.getBoundingClientRect().left;
+        scrollLeft = container.scrollLeft;
         velocity = 0;
         lastX = clientX;
         lastTime = Date.now();
     }
-    
+
     function moveDrag(e) {
         if (!isDragging) return;
-        
         e.preventDefault();
+
         const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
-        const currentTime = Date.now();
-        const deltaTime = currentTime - lastTime;
-        
+        const now = Date.now();
+        const deltaTime = now - lastTime;
+
         if (deltaTime > 0) {
             const deltaX = clientX - lastX;
-            velocity = deltaX / deltaTime;
+            velocity = Math.max(-maxVelocity, Math.min(maxVelocity, deltaX / deltaTime * sensitivity));
             lastX = clientX;
-            lastTime = currentTime;
+            lastTime = now;
         }
-        
-        const x = clientX - subcategoryGrid.getBoundingClientRect().left;
-        const walk = (x - startX) * 1.5;
-        subcategoryGrid.scrollLeft = scrollLeft - walk;
+
+        const x = clientX - container.getBoundingClientRect().left;
+        const walk = (x - startX) * sensitivity;
+        container.scrollLeft = scrollLeft - walk;
     }
-    
+
     function endDrag() {
         if (!isDragging) return;
-        
         isDragging = false;
-        subcategoryGrid.classList.remove('grabbing');
+        container.classList.remove('grabbing');
         momentum();
     }
-    
+
     function momentum() {
         if (Math.abs(velocity) < 0.1) return;
-        
-        subcategoryGrid.scrollLeft -= velocity * 15;
-        velocity *= 0.95;
-        
+
+        container.scrollLeft -= velocity * 12;
+        velocity *= damping;
+
+        if (container.scrollLeft <= 0 || container.scrollLeft >= container.scrollWidth - container.clientWidth) {
+            velocity *= 0.5; // elastic slowdown
+        }
+
         momentumID = requestAnimationFrame(momentum);
     }
-    
-    subcategoryGrid.addEventListener('mousedown', startDrag);
-    subcategoryGrid.addEventListener('mouseleave', endDrag);
-    subcategoryGrid.addEventListener('mouseup', endDrag);
-    subcategoryGrid.addEventListener('mousemove', moveDrag);
-    
-    subcategoryGrid.addEventListener('touchstart', function(e) {
-        if (e.touches.length === 1) {
-            startDrag(e);
-        }
+
+    // Mouse
+    container.addEventListener('mousedown', startDrag);
+    container.addEventListener('mouseleave', endDrag);
+    container.addEventListener('mouseup', endDrag);
+    container.addEventListener('mousemove', moveDrag);
+
+    // Touch
+    container.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 1) startDrag(e);
     }, { passive: true });
-    
-    subcategoryGrid.addEventListener('touchend', endDrag);
-    subcategoryGrid.addEventListener('touchcancel', endDrag);
-    
-    subcategoryGrid.addEventListener('touchmove', function(e) {
-        if (e.touches.length === 1) {
-            moveDrag(e);
-        }
+
+    container.addEventListener('touchend', endDrag);
+    container.addEventListener('touchcancel', endDrag);
+    container.addEventListener('touchmove', (e) => {
+        if (e.touches.length === 1) moveDrag(e);
     }, { passive: false });
-    
-    subcategoryGrid.addEventListener('wheel', function(e) {
+
+    // Wheel
+    container.addEventListener('wheel', (e) => {
         e.preventDefault();
-        subcategoryGrid.scrollLeft += e.deltaY * 0.3;
+        container.scrollLeft += e.deltaY * 0.4;
     }, { passive: false });
-    
-    subcategoryGrid.style.touchAction = 'pan-y pinch-zoom';
-    
-    updateScrollBoundaries();
-    updateScrollIndicator();
-    
-    window.addEventListener('resize', function() {
-        updateScrollBoundaries();
-        updateScrollIndicator();
+
+    // Elastic bounce visual
+    container.addEventListener('scroll', () => {
+        const maxScroll = container.scrollWidth - container.clientWidth;
+        const atStart = container.scrollLeft <= 0;
+        const atEnd = container.scrollLeft >= maxScroll - 1;
+
+        container.classList.toggle('at-start', atStart);
+        container.classList.toggle('at-end', atEnd);
     });
 }
 
@@ -2759,6 +2765,7 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
+
 
 
 
