@@ -368,8 +368,8 @@ function createCategoriesNav() {
                     </div>
                 </div>
             `;
-            updateSelectedPath();
-            initSubcategoryDrag();
+            initSmoothDrag('subcategoryGrid');
+            initSmoothDrag('subCategoriesNav');
             return;
         } else {
             pendingCategoryId = null;
@@ -2737,6 +2737,7 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
+
 
 
 
