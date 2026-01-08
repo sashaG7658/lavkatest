@@ -291,7 +291,7 @@ const categories = [
 ];
 
 function createCategoriesNav() {
-     const categoriesArea = document.getElementById('categoriesArea');
+    const categoriesArea = document.getElementById('categoriesArea');
     if (!categoriesArea) return;
     
     if (showSubcategorySelection && pendingCategoryId) {
@@ -343,53 +343,6 @@ function createCategoriesNav() {
             showSubcategorySelection = false;
         }
     }
-    const categoriesArea = document.getElementById('categoriesArea');
-    if (!categoriesArea) return;
-    
-    if (showSubcategorySelection && pendingCategoryId) {
-        const category = categories.find(function(c) { return c.id === pendingCategoryId; });
-        
-        if (category && category.subCategories && category.subCategories.length > 0) {
-            categoriesArea.innerHTML = `
-                <div class="subcategory-selection">
-                    <div class="subcategory-header">
-                        <button class="back-to-categories" onclick="backToCategories()">
-                            <i class="fas fa-arrow-left"></i>
-                        </button>
-                        <h3>${category.name}</h3>
-                        <span class="subcategory-subtitle">Выберите подраздел:</span>
-                    </div>
-                    <div class="subcategory-grid">
-                        <button class="subcategory-option ${currentSubCategory === null ? 'active' : ''}" 
-                                onclick="selectSubCategory('${category.id}', null)">
-                            <i class="fas fa-layer-group"></i>
-                            <span>Все ${category.name}</span>
-                            <div class="sub-arrow">
-                                <i class="fas fa-arrow-right"></i>
-                            </div>
-                        </button>
-                        ${category.subCategories.map(function(subCat) {
-                            return `
-                                <button class="subcategory-option ${currentSubCategory === subCat.id ? 'active' : ''}" 
-                                        onclick="selectSubCategory('${category.id}', '${subCat.id}')">
-                                    <i class="fas fa-tag"></i>
-                                    <span>${subCat.name}</span>
-                                    <div class="sub-arrow">
-                                        <i class="fas fa-arrow-right"></i>
-                                    </div>
-                                </button>
-                            `;
-                        }).join('')}
-                    </div>
-                </div>
-            `;
-            updateSelectedPath();
-            return;
-        } else {
-            pendingCategoryId = null;
-            showSubcategorySelection = false;
-        }
-    }
     
     categoriesArea.innerHTML = `
         <div class="categories-nav-wrapper">
@@ -432,6 +385,7 @@ function createCategoriesNav() {
     initCategoriesScroll();
 }
 
+// Новая функция для инициализации drag прокрутки подразделов
 function initSubcategoryDrag() {
     const subcategoryGrid = document.getElementById('subcategoryGrid');
     if (!subcategoryGrid) return;
@@ -489,13 +443,13 @@ function initSubcategoryDrag() {
         subcategoryGrid.scrollLeft = scrollLeft - walk;
     });
     
-
+    // Отключаем стандартную прокрутку колесиком мыши
     subcategoryGrid.addEventListener('wheel', (e) => {
         e.preventDefault();
         subcategoryGrid.scrollLeft += e.deltaY * 0.5;
     });
     
-
+    // Индикатор прокрутки
     function updateScrollIndicator() {
         const scrollPercentage = (subcategoryGrid.scrollLeft / 
             (subcategoryGrid.scrollWidth - subcategoryGrid.clientWidth)) * 100;
@@ -508,11 +462,35 @@ function initSubcategoryDrag() {
             subcategoryGrid.parentElement.appendChild(indicator);
         }
         
-        indicator.style.width = scrollPercentage + '%';
+        indicator.style.width = Math.max(0, Math.min(100, scrollPercentage)) + '%';
         indicator.style.opacity = scrollPercentage > 0 ? '1' : '0';
     }
     
-    subcategoryGrid.addEventListener('scroll', updateScrollIndicator);
+    function updateScrollBoundaries() {
+        const scrollLeft = subcategoryGrid.scrollLeft;
+        const scrollWidth = subcategoryGrid.scrollWidth;
+        const clientWidth = subcategoryGrid.clientWidth;
+        
+        // Убираем все классы
+        subcategoryGrid.classList.remove('scroll-start', 'scroll-end');
+        
+        // Добавляем соответствующие классы
+        if (scrollLeft <= 0) {
+            subcategoryGrid.classList.add('scroll-start');
+        }
+        
+        if (scrollLeft >= scrollWidth - clientWidth - 1) {
+            subcategoryGrid.classList.add('scroll-end');
+        }
+    }
+    
+    subcategoryGrid.addEventListener('scroll', () => {
+        updateScrollBoundaries();
+        updateScrollIndicator();
+    });
+    
+    // Вызываем при инициализации
+    updateScrollBoundaries();
     updateScrollIndicator();
 }
 
@@ -2143,5 +2121,3 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
-
-
