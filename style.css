@@ -2461,3 +2461,172 @@ body.dark-theme .phone-input-wrapper {
     transform: scale(1.1);
     box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
 }
+[file name]: style.css
+/* Добавьте эти стили в конец файла */
+
+/* Стили для drag-подсказки */
+.drag-hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 10px;
+    color: var(--primary-color);
+    font-size: 0.8rem;
+    opacity: 0.8;
+    animation: pulse-hint 2s infinite;
+}
+
+.drag-hint i {
+    font-size: 1rem;
+}
+
+@keyframes pulse-hint {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+}
+
+/* Индикатор прокрутки для подразделов */
+.scroll-progress-indicator {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary-color), var(--primary-light));
+    border-radius: 2px;
+    transition: width 0.2s ease, opacity 0.3s ease;
+    z-index: 10;
+}
+
+/* Стили для состояния drag */
+.subcategory-grid.grabbing {
+    cursor: grabbing !important;
+    user-select: none;
+}
+
+.subcategory-grid {
+    cursor: grab;
+    user-select: none;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+}
+
+.subcategory-grid:active {
+    cursor: grabbing;
+}
+
+.subcategory-option {
+    scroll-snap-align: start;
+    flex-shrink: 0;
+}
+
+/* Улучшенная обратная связь при перетаскивании */
+.subcategory-grid::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.subcategory-grid.grabbing::after {
+    opacity: 1;
+    background: radial-gradient(
+        circle at var(--mouse-x, 50%) var(--mouse-y, 50%), 
+        rgba(255, 152, 0, 0.1) 0%, 
+        transparent 100px
+    );
+}
+
+/* Адаптивные стили для телефонов */
+@media (max-width: 768px) {
+    .drag-hint {
+        font-size: 0.7rem;
+    }
+    
+    .drag-hint i {
+        font-size: 0.9rem;
+    }
+    
+    .subcategory-grid {
+        scroll-snap-type: x proximity;
+    }
+    
+    .subcategory-option {
+        min-width: 45vw;
+    }
+}
+
+/* Стили для ПК */
+@media (min-width: 769px) {
+    .drag-hint {
+        position: absolute;
+        top: 50%;
+        right: 20px;
+        transform: translateY(-50%);
+        margin-top: 0;
+    }
+    
+    .subcategory-option:hover {
+        transform: translateY(-5px) scale(1.02);
+    }
+    
+    .subcategory-grid.grabbing .subcategory-option:hover {
+        transform: none;
+    }
+}
+
+/* Анимация для активного элемента */
+.subcategory-option.active {
+    animation: select-pulse 2s infinite;
+}
+
+@keyframes select-pulse {
+    0%, 100% { 
+        box-shadow: 0 8px 25px rgba(255, 152, 0, 0.4); 
+    }
+    50% { 
+        box-shadow: 0 8px 35px rgba(255, 152, 0, 0.6); 
+    }
+}
+
+/* Стили для индикатора границ прокрутки */
+.subcategory-grid::before,
+.subcategory-grid::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    width: 30px;
+    height: 100%;
+    pointer-events: none;
+    z-index: 5;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.subcategory-grid::before {
+    left: 0;
+    background: linear-gradient(to right, var(--card-color), transparent);
+}
+
+.subcategory-grid::after {
+    right: 0;
+    background: linear-gradient(to left, var(--card-color), transparent);
+}
+
+.subcategory-grid.scroll-start::before {
+    opacity: 0;
+}
+
+.subcategory-grid.scroll-end::after {
+    opacity: 0;
+}
+
+.subcategory-grid:not(.scroll-start):not(.scroll-end)::before,
+.subcategory-grid:not(.scroll-start):not(.scroll-end)::after {
+    opacity: 1;
+}
