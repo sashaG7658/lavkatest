@@ -604,7 +604,7 @@ function initSmoothDrag(containerId, options = {}) {
         updateNavScrollBoundaries();
         updateNavScrollIndicator();
     });
-}
+
 
 function updateScrollIndicator() {
     const subcategoryGrid = document.getElementById('subcategoryGrid');
@@ -2737,6 +2737,7 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
+
 
 
 
