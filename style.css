@@ -265,6 +265,7 @@ body.dark-theme #cartCounter {
     user-select: none;
     -webkit-user-drag: element;
     cursor: grab;
+    min-height: 80px;
 }
 
 .category-btn:active {
@@ -423,6 +424,42 @@ body.dark-theme .path-item {
     transform: translateY(-50%) translateX(-3px);
 }
 
+.subcategory-grid-wrapper {
+    position: relative;
+    padding: 10px 0 20px 0;
+}
+
+.subcategory-grid-wrapper .drag-hint {
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--primary-color);
+    font-size: 0.8rem;
+    opacity: 0.8;
+    animation: pulse-hint 2s infinite;
+    text-align: center;
+    padding: 8px;
+    background: rgba(255, 152, 0, 0.1);
+    border-radius: 10px;
+}
+
+@keyframes pulse-hint {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+}
+
+.drag-hint i {
+    font-size: 1rem;
+    animation: gentle-pulse 2s infinite;
+}
+
+@keyframes gentle-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.8; }
+}
+
 .subcategory-grid {
     display: flex;
     overflow-x: auto;
@@ -430,10 +467,27 @@ body.dark-theme .path-item {
     padding: 10px 5px;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    overscroll-behavior-x: contain;
 }
 
 .subcategory-grid::-webkit-scrollbar {
     display: none;
+}
+
+.subcategory-grid.grabbing {
+    cursor: grabbing !important;
+    user-select: none;
+}
+
+.subcategory-grid:active {
+    cursor: grabbing;
 }
 
 .subcategory-option {
@@ -454,6 +508,13 @@ body.dark-theme .path-item {
     min-height: 120px;
     flex-shrink: 0;
     color: var(--text-color);
+    scroll-snap-align: start;
+    min-height: 120px;
+}
+
+.subcategory-option:active {
+    transform: scale(0.98);
+    transition: transform 0.1s ease;
 }
 
 .subcategory-option:hover {
@@ -468,6 +529,16 @@ body.dark-theme .path-item {
     color: white;
     transform: translateY(-5px);
     box-shadow: 0 8px 25px rgba(255, 152, 0, 0.4);
+    animation: select-pulse 2s infinite;
+}
+
+@keyframes select-pulse {
+    0%, 100% { 
+        box-shadow: 0 8px 25px rgba(255, 152, 0, 0.4); 
+    }
+    50% { 
+        box-shadow: 0 8px 35px rgba(255, 152, 0, 0.6); 
+    }
 }
 
 .subcategory-option i {
@@ -524,10 +595,50 @@ body.dark-theme .path-item {
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     flex-wrap: nowrap;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    overscroll-behavior-x: contain;
+    position: relative;
 }
 
 .subcategory-navigation::-webkit-scrollbar {
     display: none;
+}
+
+.subcategory-navigation.grabbing {
+    cursor: grabbing !important;
+    user-select: none;
+}
+
+.subcategory-navigation:active {
+    cursor: grabbing;
+}
+
+.nav-drag-hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--primary-color);
+    font-size: 0.8rem;
+    opacity: 0.8;
+    animation: pulse-hint 2s infinite;
+    text-align: center;
+    padding: 5px;
+    background: rgba(255, 152, 0, 0.05);
+    border-radius: 8px;
+    margin: 5px 0;
+}
+
+.subcategory-nav-container {
+    display: flex;
+    gap: 10px;
+    padding: 0 5px;
 }
 
 .subcategory-nav-btn {
@@ -545,6 +656,13 @@ body.dark-theme .path-item {
     font-weight: 600;
     font-size: 0.85rem;
     white-space: nowrap;
+    scroll-snap-align: start;
+    min-height: 44px;
+}
+
+.subcategory-nav-btn:active {
+    transform: scale(0.95);
+    transition: transform 0.1s ease;
 }
 
 .subcategory-nav-btn:hover {
@@ -1964,233 +2082,6 @@ body.dark-theme .order-instructions p {
     opacity: 0.9;
 }
 
-@media (max-width: 768px) {
-    .header h1 {
-        font-size: 1.3rem;
-    }
-    
-    .cart-btn, .favorites-btn {
-        padding: 8px 16px;
-        font-size: 0.9rem;
-    }
-    
-    .category-btn {
-        min-width: 110px;
-        max-width: 130px;
-        padding: 10px 12px;
-    }
-    
-    .category-btn span {
-        font-size: 0.7rem;
-    }
-    
-    .category-btn i {
-        font-size: 1.3rem;
-    }
-    
-    .subcategory-grid {
-        gap: 12px;
-    }
-    
-    .subcategory-option {
-        padding: 15px 12px;
-        min-width: 140px;
-        min-height: 110px;
-    }
-    
-    .subcategory-option i {
-        font-size: 1.7rem;
-    }
-    
-    .subcategory-option span {
-        font-size: 0.8rem;
-    }
-    
-    .catalog {
-        grid-template-columns: repeat(2, 1fr) !important;
-        gap: 12px;
-    }
-    
-    .product-image {
-        height: 140px;
-    }
-    
-    .product-card {
-        min-height: 280px;
-    }
-    
-    .cart-sidebar, .favorites-sidebar {
-        width: 100%;
-    }
-    
-    .cart-sidebar {
-        right: -100%;
-    }
-    
-    .favorites-sidebar {
-        left: -100%;
-    }
-    
-    .manager-notification {
-        width: calc(100% - 40px);
-        right: 20px;
-        left: 20px;
-    }
-    
-    .order-confirmation-content {
-        max-height: 90vh;
-    }
-    
-    .order-summary {
-        grid-template-columns: 1fr;
-    }
-    
-    .categories-nav {
-        padding-bottom: 15px;
-    }
-    
-    .categories-nav::-webkit-scrollbar {
-        height: 6px;
-    }
-    
-    .contact-manager-fixed {
-        bottom: 70px;
-        right: 15px;
-        padding: 10px 15px;
-    }
-}
-
-@media (max-width: 480px) {
-    .header {
-        padding: 12px;
-    }
-    
-    .category-btn {
-        min-width: 100px;
-        max-width: 115px;
-        padding: 8px 10px;
-    }
-    
-    .category-btn span {
-        font-size: 0.65rem;
-    }
-    
-    .category-btn i {
-        font-size: 1.2rem;
-    }
-    
-    .subcategory-selection {
-        padding: 15px;
-    }
-    
-    .subcategory-header h3 {
-        font-size: 1.2rem;
-    }
-    
-    .subcategory-option {
-        min-width: 130px;
-        min-height: 100px;
-        padding: 12px 10px;
-    }
-    
-    .catalog {
-        grid-template-columns: repeat(2, 1fr) !important;
-        gap: 10px;
-    }
-    
-    .product-info {
-        padding: 12px;
-    }
-    
-    .product-title {
-        font-size: 0.95rem;
-    }
-    
-    .product-price {
-        font-size: 1.1rem;
-    }
-    
-    .add-to-cart {
-        padding: 6px 12px;
-        font-size: 0.85rem;
-    }
-}
-
-@media (min-width: 769px) {
-    .cart-sidebar, .favorites-sidebar {
-        width: 380px;
-    }
-    
-    .cart-sidebar {
-        right: -380px;
-    }
-    
-    .favorites-sidebar {
-        left: -380px;
-    }
-    
-    .categories-nav {
-        flex-wrap: nowrap;
-        overflow-x: auto;
-    }
-}
-
-@media (min-width: 1024px) {
-    .categories-nav-wrapper:hover::before {
-        content: '💡 Перетащите для прокрутки';
-        position: absolute;
-        top: 5px;
-        left: 0;
-        right: 0;
-        text-align: center;
-        font-size: 0.8rem;
-        color: var(--primary-color);
-        opacity: 0;
-        animation: fadeInOut 3s ease-in-out;
-    }
-}
-
-@keyframes fadeInOut {
-    0%, 100% { opacity: 0; }
-    10%, 90% { opacity: 0.7; }
-}
-
-.categories-nav.grabbing {
-    cursor: grabbing;
-}
-
-.category-btn.active i {
-    animation: pulse 2s infinite;
-}
-
-@keyframes addToFavorite {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.5); }
-    100% { transform: scale(1); }
-}
-
-.favorite-added {
-    animation: addToFavorite 0.5s ease;
-}
-
-body.dark-theme .order-summary-item {
-    background: #2D2D2D;
-}
-
-body.dark-theme .order-number {
-    background: #2D2D2D;
-}
-
-body.dark-theme .order-instructions {
-    background: linear-gradient(135deg, rgba(255, 152, 0, 0.2), rgba(255, 87, 34, 0.2));
-}
-
-body.dark-theme .order-products ul {
-    background: #2D2D2D;
-    padding: 10px;
-    border-radius: 8px;
-}
-
 .phone-confirmation-modal {
     position: fixed;
     top: 0;
@@ -2425,67 +2316,6 @@ body.dark-theme .phone-input-wrapper {
     background: #2D2D2D;
 }
 
-@media (max-width: 480px) {
-    .phone-confirmation-content {
-        max-width: 95%;
-    }
-    
-    .phone-confirmation-footer {
-        flex-direction: column;
-        gap: 10px;
-    }
-    
-    .confirm-phone-btn,
-    .cancel-phone-btn {
-        width: 100%;
-        flex: none;
-    }
-}
-.phone-btn {
-    background: var(--secondary-color);
-    color: white;
-    border: none;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
-}
-
-.phone-btn:hover {
-    background: var(--secondary-dark);
-    transform: scale(1.1);
-    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
-}
-[file name]: style.css
-/* Добавьте эти стили в конец файла */
-
-/* Стили для drag-подсказки */
-.drag-hint {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    margin-top: 10px;
-    color: var(--primary-color);
-    font-size: 0.8rem;
-    opacity: 0.8;
-    animation: pulse-hint 2s infinite;
-}
-
-.drag-hint i {
-    font-size: 1rem;
-}
-
-@keyframes pulse-hint {
-    0%, 100% { opacity: 0.6; }
-    50% { opacity: 1; }
-}
-
 /* Индикатор прокрутки для подразделов */
 .scroll-progress-indicator {
     position: absolute;
@@ -2498,103 +2328,18 @@ body.dark-theme .phone-input-wrapper {
     z-index: 10;
 }
 
-/* Стили для состояния drag */
-.subcategory-grid.grabbing {
-    cursor: grabbing !important;
-    user-select: none;
-}
-
-.subcategory-grid {
-    cursor: grab;
-    user-select: none;
-    scroll-snap-type: x mandatory;
-    scroll-behavior: smooth;
-}
-
-.subcategory-grid:active {
-    cursor: grabbing;
-}
-
-.subcategory-option {
-    scroll-snap-align: start;
-    flex-shrink: 0;
-}
-
-/* Улучшенная обратная связь при перетаскивании */
-.subcategory-grid::after {
-    content: '';
+.nav-scroll-progress-indicator {
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
     bottom: 0;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.3s ease;
+    left: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--primary-color), var(--primary-light));
+    border-radius: 2px;
+    transition: width 0.2s ease, opacity 0.3s ease;
+    z-index: 10;
 }
 
-.subcategory-grid.grabbing::after {
-    opacity: 1;
-    background: radial-gradient(
-        circle at var(--mouse-x, 50%) var(--mouse-y, 50%), 
-        rgba(255, 152, 0, 0.1) 0%, 
-        transparent 100px
-    );
-}
-
-/* Адаптивные стили для телефонов */
-@media (max-width: 768px) {
-    .drag-hint {
-        font-size: 0.7rem;
-    }
-    
-    .drag-hint i {
-        font-size: 0.9rem;
-    }
-    
-    .subcategory-grid {
-        scroll-snap-type: x proximity;
-    }
-    
-    .subcategory-option {
-        min-width: 45vw;
-    }
-}
-
-/* Стили для ПК */
-@media (min-width: 769px) {
-    .drag-hint {
-        position: absolute;
-        top: 50%;
-        right: 20px;
-        transform: translateY(-50%);
-        margin-top: 0;
-    }
-    
-    .subcategory-option:hover {
-        transform: translateY(-5px) scale(1.02);
-    }
-    
-    .subcategory-grid.grabbing .subcategory-option:hover {
-        transform: none;
-    }
-}
-
-/* Анимация для активного элемента */
-.subcategory-option.active {
-    animation: select-pulse 2s infinite;
-}
-
-@keyframes select-pulse {
-    0%, 100% { 
-        box-shadow: 0 8px 25px rgba(255, 152, 0, 0.4); 
-    }
-    50% { 
-        box-shadow: 0 8px 35px rgba(255, 152, 0, 0.6); 
-    }
-}
-
-/* Стили для индикатора границ прокрутки */
+/* Стили для индикаторов границ прокрутки */
 .subcategory-grid::before,
 .subcategory-grid::after {
     content: '';
@@ -2631,46 +2376,6 @@ body.dark-theme .phone-input-wrapper {
     opacity: 1;
 }
 
-.subcategory-nav-container {
-    display: flex;
-    gap: 10px;
-    padding: 0 5px;
-}
-
-.subcategory-navigation.grabbing {
-    cursor: grabbing !important;
-    user-select: none;
-}
-
-.subcategory-navigation {
-    cursor: grab;
-    user-select: none;
-    scroll-snap-type: x mandatory;
-    scroll-behavior: smooth;
-    overflow-x: auto;
-    position: relative;
-}
-
-.subcategory-navigation:active {
-    cursor: grabbing;
-}
-
-.subcategory-nav-btn {
-    scroll-snap-align: start;
-    flex-shrink: 0;
-}
-
-.nav-scroll-progress-indicator {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    height: 3px;
-    background: linear-gradient(90deg, var(--primary-color), var(--primary-light));
-    border-radius: 2px;
-    transition: width 0.2s ease, opacity 0.3s ease;
-    z-index: 10;
-}
-
 .subcategory-navigation.nav-scroll-start::before {
     opacity: 0;
 }
@@ -2684,16 +2389,118 @@ body.dark-theme .phone-input-wrapper {
     opacity: 1;
 }
 
-.subcategory-navigation::-webkit-scrollbar {
-    display: none;
-}
-
-.subcategory-navigation {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-}
-
+/* Адаптивные стили для телефонов */
 @media (max-width: 768px) {
+    .header h1 {
+        font-size: 1.3rem;
+    }
+    
+    .cart-btn, .favorites-btn {
+        padding: 8px 16px;
+        font-size: 0.9rem;
+    }
+    
+    .category-btn {
+        min-width: 110px;
+        max-width: 130px;
+        padding: 10px 12px;
+        min-height: 90px;
+    }
+    
+    .category-btn span {
+        font-size: 0.7rem;
+    }
+    
+    .category-btn i {
+        font-size: 1.3rem;
+    }
+    
+    .subcategory-grid {
+        gap: 12px;
+    }
+    
+    .subcategory-option {
+        padding: 15px 12px;
+        min-width: 140px;
+        min-height: 110px;
+    }
+    
+    .subcategory-option i {
+        font-size: 1.7rem;
+    }
+    
+    .subcategory-option span {
+        font-size: 0.8rem;
+    }
+    
+    .catalog {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 12px;
+    }
+    
+    .product-image {
+        height: 140px;
+    }
+    
+    .product-card {
+        min-height: 280px;
+    }
+    
+    .cart-sidebar, .favorites-sidebar {
+        width: 100%;
+    }
+    
+    .cart-sidebar {
+        right: -100%;
+    }
+    
+    .favorites-sidebar {
+        left: -100%;
+    }
+    
+    .manager-notification {
+        width: calc(100% - 40px);
+        right: 20px;
+        left: 20px;
+    }
+    
+    .order-confirmation-content {
+        max-height: 90vh;
+    }
+    
+    .order-summary {
+        grid-template-columns: 1fr;
+    }
+    
+    .categories-nav {
+        padding-bottom: 15px;
+    }
+    
+    .categories-nav::-webkit-scrollbar {
+        height: 6px;
+    }
+    
+    .contact-manager-fixed {
+        bottom: 70px;
+        right: 15px;
+        padding: 10px 15px;
+    }
+    
+    .drag-hint {
+        font-size: 0.75rem;
+        text-align: center;
+    }
+    
+    .drag-hint i {
+        font-size: 0.9rem;
+    }
+    
+    .subcategory-nav-btn {
+        font-size: 0.8rem;
+        padding: 8px 12px;
+        min-height: 44px;
+    }
+    
     .nav-drag-hint {
         font-size: 0.7rem;
         padding: 3px 0;
@@ -2702,15 +2509,246 @@ body.dark-theme .phone-input-wrapper {
     .nav-drag-hint i {
         font-size: 0.9rem;
     }
-    
-    .subcategory-nav-btn {
-        font-size: 0.8rem;
-        padding: 8px 12px;
+}
+
+@media (max-width: 480px) {
+    .header {
+        padding: 12px;
     }
+    
+    .category-btn {
+        min-width: 100px;
+        max-width: 115px;
+        padding: 8px 10px;
+        min-height: 85px;
+    }
+    
+    .category-btn span {
+        font-size: 0.65rem;
+    }
+    
+    .category-btn i {
+        font-size: 1.2rem;
+    }
+    
+    .subcategory-selection {
+        padding: 15px;
+    }
+    
+    .subcategory-header h3 {
+        font-size: 1.2rem;
+    }
+    
+    .subcategory-option {
+        min-width: 130px;
+        min-height: 100px;
+        padding: 12px 10px;
+    }
+    
+    .catalog {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px;
+    }
+    
+    .product-info {
+        padding: 12px;
+    }
+    
+    .product-title {
+        font-size: 0.95rem;
+    }
+    
+    .product-price {
+        font-size: 1.1rem;
+    }
+    
+    .add-to-cart {
+        padding: 6px 12px;
+        font-size: 0.85rem;
+    }
+    
+    .phone-confirmation-content {
+        max-width: 95%;
+    }
+    
+    .phone-confirmation-footer {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .confirm-phone-btn,
+    .cancel-phone-btn {
+        width: 100%;
+        flex: none;
+    }
+}
+
+@media (min-width: 769px) {
+    .cart-sidebar, .favorites-sidebar {
+        width: 380px;
+    }
+    
+    .cart-sidebar {
+        right: -380px;
+    }
+    
+    .favorites-sidebar {
+        left: -380px;
+    }
+    
+    .categories-nav {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+    }
+    
+    .drag-hint {
+        position: absolute;
+        top: 50%;
+        right: 20px;
+        transform: translateY(-50%);
+        margin-top: 0;
+    }
+    
+    .subcategory-option:hover {
+        transform: translateY(-5px) scale(1.02);
+    }
+    
+    .subcategory-grid.grabbing .subcategory-option:hover {
+        transform: none;
+    }
+}
+
+@media (min-width: 1024px) {
+    .categories-nav-wrapper:hover::before {
+        content: '💡 Перетащите для прокрутки';
+        position: absolute;
+        top: 5px;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-size: 0.8rem;
+        color: var(--primary-color);
+        opacity: 0;
+        animation: fadeInOut 3s ease-in-out;
+    }
+}
+
+@keyframes fadeInOut {
+    0%, 100% { opacity: 0; }
+    10%, 90% { opacity: 0.7; }
+}
+
+.categories-nav.grabbing {
+    cursor: grabbing;
+}
+
+.category-btn.active i {
+    animation: pulse 2s infinite;
+}
+
+body.dark-theme .order-summary-item {
+    background: #2D2D2D;
+}
+
+body.dark-theme .order-number {
+    background: #2D2D2D;
+}
+
+body.dark-theme .order-instructions {
+    background: linear-gradient(135deg, rgba(255, 152, 0, 0.2), rgba(255, 87, 34, 0.2));
+}
+
+body.dark-theme .order-products ul {
+    background: #2D2D2D;
+    padding: 10px;
+    border-radius: 8px;
+}
+
+.phone-btn {
+    background: var(--secondary-color);
+    color: white;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+}
+
+.phone-btn:hover {
+    background: var(--secondary-dark);
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
+}
+
+/* Улучшенные стили для drag на мобильных устройствах */
+.subcategory-grid,
+.subcategory-navigation {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+}
+
+/* Улучшенный скроллбар для веб-браузеров */
+.subcategory-grid::-webkit-scrollbar,
+.subcategory-navigation::-webkit-scrollbar {
+    height: 6px;
+}
+
+.subcategory-grid::-webkit-scrollbar-track,
+.subcategory-navigation::-webkit-scrollbar-track {
+    background: rgba(255, 152, 0, 0.1);
+    border-radius: 3px;
+}
+
+.subcategory-grid::-webkit-scrollbar-thumb,
+.subcategory-navigation::-webkit-scrollbar-thumb {
+    background: rgba(255, 152, 0, 0.3);
+    border-radius: 3px;
+}
+
+.subcategory-grid::-webkit-scrollbar-thumb:hover,
+.subcategory-navigation::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 152, 0, 0.5);
+}
+
+/* Для сенсорных устройств */
+@media (hover: none) and (pointer: coarse) {
+    .subcategory-grid,
+    .subcategory-navigation {
+        scroll-snap-type: x mandatory;
+    }
+    
+    .subcategory-option,
+    .subcategory-nav-btn {
+        scroll-snap-align: center;
+    }
+    
+    .drag-hint span::after {
+        content: " (коснитесь и проведите)";
+        font-size: 0.7em;
+        opacity: 0.8;
+    }
+}
+
+/* Убираем стандартный скроллбар на мобильных */
+.subcategory-navigation::-webkit-scrollbar,
+.subcategory-grid::-webkit-scrollbar {
+    display: none;
+}
+
+.subcategory-navigation,
+.subcategory-grid {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
 
 @keyframes fadeOut {
     from { opacity: 1; }
     to { opacity: 0; }
 }
-
