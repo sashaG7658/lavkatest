@@ -291,6 +291,58 @@ const categories = [
 ];
 
 function createCategoriesNav() {
+     const categoriesArea = document.getElementById('categoriesArea');
+    if (!categoriesArea) return;
+    
+    if (showSubcategorySelection && pendingCategoryId) {
+        const category = categories.find(function(c) { return c.id === pendingCategoryId; });
+        
+        if (category && category.subCategories && category.subCategories.length > 0) {
+            categoriesArea.innerHTML = `
+                <div class="subcategory-selection">
+                    <div class="subcategory-header">
+                        <button class="back-to-categories" onclick="backToCategories()">
+                            <i class="fas fa-arrow-left"></i>
+                        </button>
+                        <h3>${category.name}</h3>
+                        <span class="subcategory-subtitle">Выберите подраздел:</span>
+                        <div class="drag-hint">
+                            <i class="fas fa-arrows-alt-h"></i>
+                            <span>Перетащите для прокрутки</span>
+                        </div>
+                    </div>
+                    <div class="subcategory-grid" id="subcategoryGrid">
+                        <button class="subcategory-option ${currentSubCategory === null ? 'active' : ''}" 
+                                onclick="selectSubCategory('${category.id}', null)">
+                            <i class="fas fa-layer-group"></i>
+                            <span>Все ${category.name}</span>
+                            <div class="sub-arrow">
+                                <i class="fas fa-arrow-right"></i>
+                            </div>
+                        </button>
+                        ${category.subCategories.map(function(subCat) {
+                            return `
+                                <button class="subcategory-option ${currentSubCategory === subCat.id ? 'active' : ''}" 
+                                        onclick="selectSubCategory('${category.id}', '${subCat.id}')">
+                                    <i class="fas fa-tag"></i>
+                                    <span>${subCat.name}</span>
+                                    <div class="sub-arrow">
+                                        <i class="fas fa-arrow-right"></i>
+                                    </div>
+                                </button>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+            updateSelectedPath();
+            initSubcategoryDrag(); // Инициализируем drag для подразделов
+            return;
+        } else {
+            pendingCategoryId = null;
+            showSubcategorySelection = false;
+        }
+    }
     const categoriesArea = document.getElementById('categoriesArea');
     if (!categoriesArea) return;
     
@@ -378,6 +430,90 @@ function createCategoriesNav() {
     
     updateSelectedPath();
     initCategoriesScroll();
+}
+
+function initSubcategoryDrag() {
+    const subcategoryGrid = document.getElementById('subcategoryGrid');
+    if (!subcategoryGrid) return;
+    
+    let isDragging = false;
+    let startX;
+    let scrollLeft;
+    
+    // Обработчики для мыши (ПК)
+    subcategoryGrid.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        subcategoryGrid.classList.add('grabbing');
+        startX = e.pageX - subcategoryGrid.offsetLeft;
+        scrollLeft = subcategoryGrid.scrollLeft;
+        e.preventDefault();
+    });
+    
+    subcategoryGrid.addEventListener('mouseleave', () => {
+        isDragging = false;
+        subcategoryGrid.classList.remove('grabbing');
+    });
+    
+    subcategoryGrid.addEventListener('mouseup', () => {
+        isDragging = false;
+        subcategoryGrid.classList.remove('grabbing');
+    });
+    
+    subcategoryGrid.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        e.preventDefault();
+        const x = e.pageX - subcategoryGrid.offsetLeft;
+        const walk = (x - startX) * 2; // Множитель для скорости прокрутки
+        subcategoryGrid.scrollLeft = scrollLeft - walk;
+    });
+    
+    // Обработчики для тач-устройств (телефоны)
+    subcategoryGrid.addEventListener('touchstart', (e) => {
+        isDragging = true;
+        subcategoryGrid.classList.add('grabbing');
+        startX = e.touches[0].pageX - subcategoryGrid.offsetLeft;
+        scrollLeft = subcategoryGrid.scrollLeft;
+        e.preventDefault();
+    });
+    
+    subcategoryGrid.addEventListener('touchend', () => {
+        isDragging = false;
+        subcategoryGrid.classList.remove('grabbing');
+    });
+    
+    subcategoryGrid.addEventListener('touchmove', (e) => {
+        if (!isDragging) return;
+        e.preventDefault();
+        const x = e.touches[0].pageX - subcategoryGrid.offsetLeft;
+        const walk = (x - startX) * 2;
+        subcategoryGrid.scrollLeft = scrollLeft - walk;
+    });
+    
+
+    subcategoryGrid.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        subcategoryGrid.scrollLeft += e.deltaY * 0.5;
+    });
+    
+
+    function updateScrollIndicator() {
+        const scrollPercentage = (subcategoryGrid.scrollLeft / 
+            (subcategoryGrid.scrollWidth - subcategoryGrid.clientWidth)) * 100;
+        
+        // Создаем или обновляем индикатор
+        let indicator = document.querySelector('.scroll-progress-indicator');
+        if (!indicator) {
+            indicator = document.createElement('div');
+            indicator.className = 'scroll-progress-indicator';
+            subcategoryGrid.parentElement.appendChild(indicator);
+        }
+        
+        indicator.style.width = scrollPercentage + '%';
+        indicator.style.opacity = scrollPercentage > 0 ? '1' : '0';
+    }
+    
+    subcategoryGrid.addEventListener('scroll', updateScrollIndicator);
+    updateScrollIndicator();
 }
 
 function updateSelectedPath() {
@@ -2007,4 +2143,5 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
+
 
