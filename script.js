@@ -532,34 +532,6 @@ function initSmoothDrag(containerId, options = {}) {
         container.classList.toggle('at-end', atEnd);
     });
 }
-
-function initSubcategoryNavDrag() {
-    const subCategoriesNav = document.getElementById('subCategoriesNav');
-    if (!subCategoriesNav) return;
-    
-    let isDragging = false;
-    let startX;
-    let scrollLeft;
-    let momentumID;
-    let velocity = 0;
-    let lastX;
-    let lastTime;
-    
-    function startDrag(e) {
-        if (e.target.closest('.subcategory-nav-btn')) return;
-        
-        isDragging = true;
-        subCategoriesNav.classList.add('grabbing');
-        
-        const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
-        startX = clientX - subCategoriesNav.getBoundingClientRect().left;
-        scrollLeft = subCategoriesNav.scrollLeft;
-        
-        cancelAnimationFrame(momentumID);
-        velocity = 0;
-        lastX = clientX;
-        lastTime = Date.now();
-    }
     
     function moveDrag(e) {
         if (!isDragging) return;
@@ -2765,6 +2737,7 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
+
 
 
 
