@@ -717,7 +717,7 @@ function getLocalProducts() {
             id: 1001,
             name: "ШОК СДЕЛКА С КОКОСОМ И КЛУБНИКОЙ (150 МГ)",
             description: "ЖВАЧКА С КЛУБНИКОЙ И КОКОСОМ",
-            price: 450,
+            price: 500,
             quantity: 10,
             image: "https://static.insales-cdn.com/images/products/1/7732/889290292/large_%D0%BA%D0%BB%D1%83%D0%B1%D0%BD%D0%B8%D0%BA%D0%B0__5_.png",
             isNew: false
@@ -726,7 +726,7 @@ function getLocalProducts() {
             id: 1002,
             name: "ШОК МЯТНО-ХОЛОДНОЕ ПОХИЩЕНИЕ (150 МГ)",
             description: "ЖВАЧКА С МЯТОЙ",
-            price: 450,
+            price: 500,
             quantity: 8,
             image: "https://static.insales-cdn.com/images/products/1/7754/889290314/large_%D0%BC%D1%8F%D1%82%D0%B0__6_.png",
             isNew: false
@@ -735,7 +735,7 @@ function getLocalProducts() {
             id: 1003,
             name: "ШОК МАНГОВО-ЧЕРНАЯ БУХГАЛТЕРИЯ (150 МГ)",
             description: "ЖВАЧКА С МАНГО",
-            price: 450,
+            price: 500,
             quantity: 12,
             image: "https://static.insales-cdn.com/images/products/1/8106/889290666/large_%D0%BC%D0%B0%D0%BD%D0%B3%D0%BE__5_.png",
             isNew: false
@@ -744,7 +744,7 @@ function getLocalProducts() {
             id: 1004,
             name: "ШОК АЗАРТ ЙОГУРТА ПЕРСИКА И БАНАНА (150 МГ)",
             description: "ЖВАЧКА С ЙОГУРТОМ БАНАНОМ И ПЕРСИКОМ",
-            price: 450,
+            price: 500,
             quantity: 5,
             image: "https://static.insales-cdn.com/images/products/1/773/889291525/large_%D0%B0%D0%B7%D0%B0%D1%80%D1%82__3_.png",
             isNew: false
@@ -753,7 +753,7 @@ function getLocalProducts() {
             id: 1005,
             name: "ШОК ЯБЛОЧНО-ЗЕЛЕНОЕ ОГРАБЛЕНИЕ (150 МГ)",
             description: "ЖВАЧКА С ЗЕЛЕНЫМ ЯБЛОКОМ",
-            price: 450,
+            price: 500,
             quantity: 7,
             image: "https://static.insales-cdn.com/images/products/1/804/889291556/large_%D1%8F%D0%B1%D0%BB%D0%BE%D0%BA%D0%BE.png",
             isNew: false
@@ -762,7 +762,7 @@ function getLocalProducts() {
             id: 1006,
             name: "ШОК ОБЛАВА НА ЧЕРНУЮ СМОРОДИНУ И ХВОЮ (150 МГ)",
             description: "ЖВАЧКА С ЧЕРНОЙ СМОРОДИНОЙ И ХВОЕЙ",
-            price: 450,
+            price: 500,
             quantity: 9,
             image: "https://static.insales-cdn.com/images/products/1/824/889291576/large_%D1%87%D0%B5%D1%80%D0%BD%D0%B0%D1%8F_%D1%81%D0%BC%D0%BE%D1%80%D0%BE%D0%B4%D0%B8%D0%BD%D0%B0_%D0%B8_%D1%85%D0%B2%D0%BE%D1%8F.png",
             isNew: false
@@ -771,7 +771,7 @@ function getLocalProducts() {
             id: 1007,
             name: "ШОК БАБЛ-БОСС (150 МГ)",
             description: "ЖВАЧКА БАБЛ ГАМ",
-            price: 450,
+            price: 500,
             quantity: 6,
             image: "https://static.insales-cdn.com/images/products/1/840/889291592/large_%D0%B1%D0%B0%D0%B1%D0%BB%D0%B1%D0%BE%D1%81%D1%81__4_.png",
             isNew: false
@@ -780,7 +780,7 @@ function getLocalProducts() {
             id: 1008,
             name: "ШОК ГРАНЧЕР (75 МГ)",
             description: "ЭНЕРГЕТИК С ГОЛУБИКОЙ И ГРАНАТОМ",
-            price: 400,
+            price: 500,
             quantity: 10,
             image: "https://static.insales-cdn.com/images/products/1/7505/889290065/large_%D0%BF%D0%BB%D0%BE%D1%82%D0%BE%D1%8F%D0%B7__6_.png",
             isNew: false
@@ -789,7 +789,7 @@ function getLocalProducts() {
             id: 1009,
             name: "ШОК ДЕМОНИКС (75 МГ)",
             description: "ЭНЕРГЕТИК С МИНДАЛЕМ И ЛИМОННЫМ КРЕМОМ",
-            price: 400,
+            price: 500,
             quantity: 8,
             image: "https://static.insales-cdn.com/images/products/1/7526/889290086/large_%D0%B4%D0%B5%D0%BC%D0%BE%D0%BD%D0%B8%D0%BA%D1%81___2_.png",
             isNew: false
@@ -798,7 +798,7 @@ function getLocalProducts() {
             id: 1010,
             name: "ШОК ЗЛОКС (75 МГ)",
             description: "ЭНЕРГЕТИК С ВИШНЕЙ КИВИ И ЛАЙМОМ",
-            price: 400,
+            price: 500,
             quantity: 12,
             image: "https://static.insales-cdn.com/images/products/1/7573/889290133/large_%D0%B7%D0%BB%D0%BE%D0%BA%D1%81__3_.png",
             isNew: false
@@ -807,7 +807,7 @@ function getLocalProducts() {
             id: 1011,
             name: "ШОК КРАКСТЕР (75 МГ)",
             description: "ЭНЕРГЕТИК С ДЫНЕЙ И КРЫЖОВНИКОМ",
-            price: 400,
+            price: 500,
             quantity: 5,
             image: "https://static.insales-cdn.com/images/products/1/7595/889290155/large_%D0%BA%D1%80%D0%B0%D0%BA%D1%81%D1%82%D0%B5%D1%80_.png",
             isNew: false
@@ -816,7 +816,7 @@ function getLocalProducts() {
             id: 1012,
             name: "ICEBERG APPLE PIE (75 МГ)",
             description: "ЯБЛОЧНЫЙ ПИРОГ",
-            price: 420,
+            price: 700,
             quantity: 10,
             image: "https://static.insales-cdn.com/images/products/1/1089/2396644417/large_Apple_Pie_1.png",
             isNew: false
@@ -825,7 +825,7 @@ function getLocalProducts() {
             id: 1013,
             name: "ICEBERG BANOFFEE (75 МГ)",
             description: "ПИРОГ БАНОФФИ",
-            price: 420,
+            price: 700,
             quantity: 8,
             image: "https://static.insales-cdn.com/images/products/1/7785/2396667497/large_Banoffee_1.png",
             isNew: false
@@ -834,7 +834,7 @@ function getLocalProducts() {
             id: 1014,
             name: "ICEBERG BLUEBERRY PIE (75 МГ)",
             description: "ЧЕРНИЧНЫЙ ПИРОГ",
-            price: 420,
+            price: 700,
             quantity: 12,
             image: "https://static.insales-cdn.com/images/products/1/6873/2396748505/large_Blueberry_Pie_1.png",
             isNew: false
@@ -843,7 +843,7 @@ function getLocalProducts() {
             id: 1015,
             name: "ICEBERG CHEESECAKE (75 МГ)",
             description: "ЧИЗКЕЙК",
-            price: 420,
+            price: 700,
             quantity: 5,
             image: "https://static.insales-cdn.com/images/products/1/2657/2396768865/large_Cheesecake_1.png",
             isNew: false
@@ -852,7 +852,7 @@ function getLocalProducts() {
             id: 1016,
             name: "ICEBERG CHERRY PIE (75 МГ)",
             description: "ВИШНЕВЫЙ ПИРОГ",
-            price: 420,
+            price: 700,
             quantity: 7,
             image: "https://static.insales-cdn.com/images/products/1/6065/2396772273/large_Cherry_Pie_1.png",
             isNew: false
@@ -861,7 +861,7 @@ function getLocalProducts() {
             id: 1017,
             name: "ICEBERG KEY LIME PIE (75 МГ)",
             description: "ЛАЙМОВЫЙ ПИРОГ",
-            price: 420,
+            price: 500,
             quantity: 9,
             image: "https://static.insales-cdn.com/images/products/1/2273/2396784865/large_Key_Lime_1.png",
             isNew: false
@@ -870,7 +870,7 @@ function getLocalProducts() {
             id: 1018,
             name: "FAFF SPEARMINT (65 МГ)",
             description: "МЯТА",
-            price: 380,
+            price: 500,
             quantity: 10,
             image: "https://static.insales-cdn.com/r/3L_rHm50iO8/rs:fit:1000:0:1/q:100/plain/images/products/1/3833/748211961/%D0%9C%D0%AF%D0%A2%D0%90_%D0%A8%D0%90%D0%99%D0%91%D0%90.png@webp",
             isNew: false
@@ -879,7 +879,7 @@ function getLocalProducts() {
             id: 1019,
             name: "FAFF RASPBERRY JINGLE (75 МГ)",
             description: "МАЛИНА",
-            price: 400,
+            price: 500,
             quantity: 10,
             image: "https://static.insales-cdn.com/images/products/1/3834/748211962/large_%D0%9C%D0%90%D0%9B%D0%98%D0%9D%D0%9E%D0%92%D0%AB%D0%99_%D0%97%D0%92%D0%9E%D0%9D.png",
             isNew: false
@@ -888,7 +888,7 @@ function getLocalProducts() {
             id: 1020,
             name: "FAFF CITRON (75 МГ)",
             description: "СПРАЙТ",
-            price: 400,
+            price: 500,
             quantity: 8,
             image: "https://static.insales-cdn.com/images/products/1/3839/748211967/large_%D0%A1%D0%9F%D0%A0%D0%90%D0%99%D0%A2.png",
             isNew: false
@@ -897,7 +897,7 @@ function getLocalProducts() {
             id: 1021,
             name: "FAFF COLA (75 МГ)",
             description: "КОЛА",
-            price: 400,
+            price: 500,
             quantity: 12,
             image: "https://static.insales-cdn.com/images/products/1/3842/748211970/large_%D0%9A%D0%9E%D0%9A%D0%90_%D0%92%D0%9A%D0%A3%D0%A1_%D0%9A%D0%9E%D0%9B%D0%AB.png",
             isNew: false
@@ -906,7 +906,7 @@ function getLocalProducts() {
             id: 1022,
             name: "FAFF DOUBLE APPLE (75 МГ)",
             description: "ДВОЙНОЕ ЯБЛОКО",
-            price: 400,
+            price: 500,
             quantity: 5,
             image: "https://static.insales-cdn.com/images/products/1/3853/748211981/large_%D0%AF%D0%91%D0%9B%D0%9E%D0%9A%D0%9E.png",
             isNew: false
@@ -915,7 +915,7 @@ function getLocalProducts() {
             id: 1023,
             name: "FAFF PINA COLADA (75 МГ)",
             description: "ПИНА КОЛАДА",
-            price: 400,
+            price: 500,
             quantity: 7,
             image: "https://static.insales-cdn.com/images/products/1/3856/748211984/large_%D0%9F%D0%98%D0%9D%D0%90_%D0%BA.png",
             isNew: false
@@ -924,7 +924,7 @@ function getLocalProducts() {
             id: 1024,
             name: "FAFF STRAWBERRY GUM (75 МГ)",
             description: "КЛУБНИЧНАЯ ЖВАЧКА",
-            price: 400,
+            price: 500,
             quantity: 9,
             image: "https://static.insales-cdn.com/images/products/1/3858/748211986/large_%D0%9A%D0%9B%D0%A3%D0%91%D0%9D%D0%98%D0%A7%D0%9D%D0%90%D0%AF_%D0%96%D0%92%D0%90%D0%A7%D0%9A%D0%90.png",
             isNew: false
@@ -933,7 +933,7 @@ function getLocalProducts() {
             id: 1025,
             name: "FAFF MELON CHILL (75 МГ)",
             description: "ДЫНЯ",
-            price: 400,
+            price: 500,
             quantity: 6,
             image: "https://static.insales-cdn.com/images/products/1/3865/748211993/large_%D0%94%D0%AB%D0%9D%D0%AF.png",
             isNew: false
@@ -942,7 +942,7 @@ function getLocalProducts() {
             id: 1026,
             name: "FAFF STRAWBERRY CHEESECAKE (75 МГ)",
             description: "КЛУБНИЧНЫЙ ЧИЗКЕЙК",
-            price: 400,
+            price: 500,
             quantity: 10,
             image: "https://static.insales-cdn.com/images/products/1/3874/748212002/large_%D0%A7%D0%98%D0%97%D0%9A%D0%95%D0%99%D0%9A.png",
             isNew: false
@@ -951,7 +951,7 @@ function getLocalProducts() {
             id: 1027,
             name: "FAFF IZABELLA (75 МГ)",
             description: "ВИНОГРАД ИЗАБЕЛЛА",
-            price: 400,
+            price: 500,
             quantity: 8,
             image: "https://static.insales-cdn.com/images/products/1/3890/748212018/large_%D0%92%D0%98%D0%9D%D0%9E%D0%93%D0%A0%D0%90%D0%94_%D0%98%D0%97%D0%90%D0%91%D0%95%D0%9B%D0%9B%D0%90.png",
             isNew: false
@@ -960,7 +960,7 @@ function getLocalProducts() {
             id: 1028,
             name: "FAFF ENERGY (75 МГ)",
             description: "РЕД БУЛЛ",
-            price: 400,
+            price: 500,
             quantity: 12,
             image: "https://static.insales-cdn.com/images/products/1/3895/748212023/large_%D0%AD%D0%9D%D0%95%D0%A0%D0%93%D0%95%D0%A2%D0%98%D0%9A_%D0%A0%D0%95%D0%94%D0%91%D0%A3%D0%9B.png",
             isNew: false
@@ -969,7 +969,7 @@ function getLocalProducts() {
             id: 1029,
             name: "FAFF TROPIC STORM (100 МГ)",
             description: "МАНГО, АПЕЛЬСИН",
-            price: 450,
+            price: 500,
             quantity: 10,
             image: "https://static.insales-cdn.com/images/products/1/3896/748212024/large_%D0%A2%D0%A0%D0%9E%D0%9F%D0%98%D0%9A%D0%98.png",
             isNew: false
@@ -2586,4 +2586,5 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
+
 
