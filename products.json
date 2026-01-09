@@ -2547,7 +2547,7 @@
     "price": 500,
     "quantity": 10,
     "category": "faff",
-    "image": https://static.insales-cdn.com/images/products/1/3833/748211961/large_%D0%9C%D0%AF%D0%A2%D0%90_%D0%A8%D0%90%D0%99%D0%91%D0%90.png,
+    "image": "https://static.insales-cdn.com/images/products/1/3833/748211961/large_%D0%9C%D0%AF%D0%A2%D0%90_%D0%A8%D0%90%D0%99%D0%91%D0%90.png",
     "added_by": "admin",
     "added_date": "2025-12-20 14:00:00"
   },
