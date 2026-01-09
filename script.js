@@ -162,8 +162,8 @@ const categories = [
             { id: 'k105', name: 'KASTA CLASSIC (105 МГ)', keywords: ['105 мг', '105mg', 'kasta 105 classic'] },
             { id: 'k105le', name: 'KASTA LIMITED EDITION (105 МГ)', keywords: ['limited', 'limited edition'] },
             { id: 'k120c', name: 'KASTA COVID (120 МГ)', keywords: ['covid', 'ковид'] },
-            { id: 'k120a', name: 'KASTA ANIME (120 МГ)', keywords: ['anime 120', 'аниме 120', 'NARUTO', 'ITACHI', 'SASUKE', 'PAIN', 'KAKASHI', 'OBITO'] },
-            { id: 'k125a', name: 'КАSTA ANIME (125 МГ)', keywords: ['anime 125', 'аниме 125', 'JIRAYA', 'GUY', 'MADARA', 'TOBIRAMA', 'HASHIRAMA', 'MINATO'] },
+            { id: 'k120a', name: 'KASTA ANIME (120 МГ)', keywords: ['anime 120', 'аниме 120'] },
+            { id: 'k125a', name: 'КАSTA ANIME (125 МГ)', keywords: ['anime 125', 'аниме 125'] },
             { id: 'k120d', name: 'KASTA DOTA (120 МГ)', keywords: ['dota', 'дота'] },
             { id: 'k125p', name: 'KASTA PHOBIA (125 МГ)', keywords: ['phobia', 'фобия'] }
         ]
@@ -258,7 +258,7 @@ const categories = [
         keywords: ['швеция', 'sweden', 'odens', 'lyft', 'zyn', 'chn'],
         subCategories: [
             { id: 'odens', name: 'ODENS', keywords: ['odens', 'оденс'] },
-            { id: 'lyft', name: 'LYFT', keywords: ['lyft', 'лифт', 'lyft 16', 'LYFT (16)', 'LYFT 16'] },
+            { id: 'lyft', name: 'LYFT', keywords: ['lyft', 'лифт'] },
             { id: 'zyn', name: 'ZYN', keywords: ['zyn', 'зин'] },
             { id: 'chn', name: 'CHN', keywords: ['chn'] }
         ]
@@ -319,8 +319,8 @@ function debugTrianglesProducts() {
     return trianglesProducts;
 }
 
+// Добавьте эту функцию в глобальную область видимости
 window.debugTrianglesProducts = debugTrianglesProducts;
-
 function createCategoriesNav() {
     const categoriesArea = document.getElementById('categoriesArea');
     if (!categoriesArea) return;
@@ -369,7 +369,7 @@ function createCategoriesNav() {
                 </div>
             `;
             updateSelectedPath();
-            initSmoothDrag('subcategoryGrid');
+            initSubcategoryDrag();
             return;
         } else {
             pendingCategoryId = null;
@@ -424,109 +424,282 @@ function createCategoriesNav() {
     initCategoriesScroll();
     
     if (currentCategory !== 'all') {
-        initSmoothDrag('subCategoriesNav');
+        initSubcategoryNavDrag();
     }
 }
 
-function initSmoothDrag(containerId) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-
+function initSubcategoryDrag() {
+    const subcategoryGrid = document.getElementById('subcategoryGrid');
+    if (!subcategoryGrid) return;
+    
     let isDragging = false;
-    let startX = 0;
-    let scrollLeft = 0;
+    let startX;
+    let scrollLeft;
+    let momentumID;
     let velocity = 0;
-    let lastX = 0;
-    let lastTime = 0;
-    let momentumID = null;
-
-    const damping = 0.92;
-    const sensitivity = 1.8;
-    const maxVelocity = 25;
-
+    let lastX;
+    let lastTime;
+    
     function startDrag(e) {
-        if (e.target.closest('.subcategory-option, .subcategory-nav-btn')) return;
-
         isDragging = true;
-        container.classList.add('grabbing');
-        cancelAnimationFrame(momentumID);
-
+        subcategoryGrid.classList.add('grabbing');
+        
         const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
-        startX = clientX - container.getBoundingClientRect().left;
-        scrollLeft = container.scrollLeft;
+        startX = clientX - subcategoryGrid.getBoundingClientRect().left;
+        scrollLeft = subcategoryGrid.scrollLeft;
+        
+        cancelAnimationFrame(momentumID);
         velocity = 0;
         lastX = clientX;
         lastTime = Date.now();
     }
-
+    
     function moveDrag(e) {
         if (!isDragging) return;
+        
         e.preventDefault();
-
         const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
-        const now = Date.now();
-        const deltaTime = now - lastTime;
-
+        const currentTime = Date.now();
+        const deltaTime = currentTime - lastTime;
+        
         if (deltaTime > 0) {
             const deltaX = clientX - lastX;
-            velocity = Math.max(-maxVelocity, Math.min(maxVelocity, deltaX / deltaTime * sensitivity));
+            velocity = deltaX / deltaTime;
             lastX = clientX;
-            lastTime = now;
+            lastTime = currentTime;
         }
-
-        const x = clientX - container.getBoundingClientRect().left;
-        const walk = (x - startX) * sensitivity;
-        container.scrollLeft = scrollLeft - walk;
+        
+        const x = clientX - subcategoryGrid.getBoundingClientRect().left;
+        const walk = (x - startX) * 1.5;
+        subcategoryGrid.scrollLeft = scrollLeft - walk;
     }
-
+    
     function endDrag() {
         if (!isDragging) return;
+        
         isDragging = false;
-        container.classList.remove('grabbing');
+        subcategoryGrid.classList.remove('grabbing');
         momentum();
     }
-
+    
     function momentum() {
         if (Math.abs(velocity) < 0.1) return;
-
-        container.scrollLeft -= velocity * 12;
-        velocity *= damping;
-
-        if (container.scrollLeft <= 0 || container.scrollLeft >= container.scrollWidth - container.clientWidth) {
-            velocity *= 0.5;
-        }
-
+        
+        subcategoryGrid.scrollLeft -= velocity * 15;
+        velocity *= 0.95;
+        
         momentumID = requestAnimationFrame(momentum);
     }
-
-    container.addEventListener('mousedown', startDrag);
-    container.addEventListener('mouseleave', endDrag);
-    container.addEventListener('mouseup', endDrag);
-    container.addEventListener('mousemove', moveDrag);
-
-    container.addEventListener('touchstart', (e) => {
-        if (e.touches.length === 1) startDrag(e);
+    
+    subcategoryGrid.addEventListener('mousedown', startDrag);
+    subcategoryGrid.addEventListener('mouseleave', endDrag);
+    subcategoryGrid.addEventListener('mouseup', endDrag);
+    subcategoryGrid.addEventListener('mousemove', moveDrag);
+    
+    subcategoryGrid.addEventListener('touchstart', function(e) {
+        if (e.touches.length === 1) {
+            startDrag(e);
+        }
     }, { passive: true });
-
-    container.addEventListener('touchend', endDrag);
-    container.addEventListener('touchcancel', endDrag);
-    container.addEventListener('touchmove', (e) => {
-        if (e.touches.length === 1) moveDrag(e);
+    
+    subcategoryGrid.addEventListener('touchend', endDrag);
+    subcategoryGrid.addEventListener('touchcancel', endDrag);
+    
+    subcategoryGrid.addEventListener('touchmove', function(e) {
+        if (e.touches.length === 1) {
+            moveDrag(e);
+        }
     }, { passive: false });
-
-    container.addEventListener('wheel', (e) => {
+    
+    subcategoryGrid.addEventListener('wheel', function(e) {
         e.preventDefault();
-        container.scrollLeft += e.deltaY * 0.4;
+        subcategoryGrid.scrollLeft += e.deltaY * 0.3;
     }, { passive: false });
-
-    container.addEventListener('scroll', () => {
-        const maxScroll = container.scrollWidth - container.clientWidth;
-        const atStart = container.scrollLeft <= 0;
-        const atEnd = container.scrollLeft >= maxScroll - 1;
-
-        container.classList.toggle('at-start', atStart);
-        container.classList.toggle('at-end', atEnd);
+    
+    subcategoryGrid.style.touchAction = 'pan-y pinch-zoom';
+    
+    updateScrollBoundaries();
+    updateScrollIndicator();
+    
+    window.addEventListener('resize', function() {
+        updateScrollBoundaries();
+        updateScrollIndicator();
     });
+}
+
+function initSubcategoryNavDrag() {
+    const subCategoriesNav = document.getElementById('subCategoriesNav');
+    if (!subCategoriesNav) return;
+    
+    let isDragging = false;
+    let startX;
+    let scrollLeft;
+    let momentumID;
+    let velocity = 0;
+    let lastX;
+    let lastTime;
+    
+    function startDrag(e) {
+        if (e.target.closest('.subcategory-nav-btn')) return;
+        
+        isDragging = true;
+        subCategoriesNav.classList.add('grabbing');
+        
+        const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+        startX = clientX - subCategoriesNav.getBoundingClientRect().left;
+        scrollLeft = subCategoriesNav.scrollLeft;
+        
+        cancelAnimationFrame(momentumID);
+        velocity = 0;
+        lastX = clientX;
+        lastTime = Date.now();
+    }
+    
+    function moveDrag(e) {
+        if (!isDragging) return;
+        
+        e.preventDefault();
+        const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+        const currentTime = Date.now();
+        const deltaTime = currentTime - lastTime;
+        
+        if (deltaTime > 0) {
+            const deltaX = clientX - lastX;
+            velocity = deltaX / deltaTime;
+            lastX = clientX;
+            lastTime = currentTime;
+        }
+        
+        const x = clientX - subCategoriesNav.getBoundingClientRect().left;
+        const walk = (x - startX) * 1.5;
+        subCategoriesNav.scrollLeft = scrollLeft - walk;
+    }
+    
+    function endDrag() {
+        if (!isDragging) return;
+        
+        isDragging = false;
+        subCategoriesNav.classList.remove('grabbing');
+        momentum();
+    }
+    
+    function momentum() {
+        if (Math.abs(velocity) < 0.1) return;
+        
+        subCategoriesNav.scrollLeft -= velocity * 15;
+        velocity *= 0.95;
+        
+        momentumID = requestAnimationFrame(momentum);
+    }
+    
+    subCategoriesNav.addEventListener('mousedown', startDrag);
+    subCategoriesNav.addEventListener('mouseleave', endDrag);
+    subCategoriesNav.addEventListener('mouseup', endDrag);
+    subCategoriesNav.addEventListener('mousemove', moveDrag);
+    
+    subCategoriesNav.addEventListener('touchstart', function(e) {
+        if (e.touches.length === 1) {
+            startDrag(e);
+        }
+    }, { passive: true });
+    
+    subCategoriesNav.addEventListener('touchend', endDrag);
+    subCategoriesNav.addEventListener('touchcancel', endDrag);
+    
+    subCategoriesNav.addEventListener('touchmove', function(e) {
+        if (e.touches.length === 1) {
+            moveDrag(e);
+        }
+    }, { passive: false });
+    
+    subCategoriesNav.addEventListener('wheel', function(e) {
+        e.preventDefault();
+        subCategoriesNav.scrollLeft += e.deltaY * 0.3;
+    }, { passive: false });
+    
+    subCategoriesNav.style.touchAction = 'pan-y pinch-zoom';
+    
+    updateNavScrollBoundaries();
+    updateNavScrollIndicator();
+    
+    window.addEventListener('resize', function() {
+        updateNavScrollBoundaries();
+        updateNavScrollIndicator();
+    });
+}
+
+function updateScrollIndicator() {
+    const subcategoryGrid = document.getElementById('subcategoryGrid');
+    if (!subcategoryGrid) return;
+    
+    const scrollPercentage = (subcategoryGrid.scrollLeft / 
+        (subcategoryGrid.scrollWidth - subcategoryGrid.clientWidth)) * 100;
+    
+    let indicator = document.querySelector('.scroll-progress-indicator');
+    if (!indicator) {
+        indicator = document.createElement('div');
+        indicator.className = 'scroll-progress-indicator';
+        subcategoryGrid.parentElement.appendChild(indicator);
+    }
+    
+    indicator.style.width = Math.max(0, Math.min(100, scrollPercentage)) + '%';
+    indicator.style.opacity = scrollPercentage > 0 ? '1' : '0';
+}
+
+function updateScrollBoundaries() {
+    const subcategoryGrid = document.getElementById('subcategoryGrid');
+    if (!subcategoryGrid) return;
+    
+    const scrollLeft = subcategoryGrid.scrollLeft;
+    const scrollWidth = subcategoryGrid.scrollWidth;
+    const clientWidth = subcategoryGrid.clientWidth;
+    
+    subcategoryGrid.classList.remove('scroll-start', 'scroll-end');
+    
+    if (scrollLeft <= 0) {
+        subcategoryGrid.classList.add('scroll-start');
+    }
+    
+    if (scrollLeft >= scrollWidth - clientWidth - 1) {
+        subcategoryGrid.classList.add('scroll-end');
+    }
+}
+
+function updateNavScrollIndicator() {
+    const subCategoriesNav = document.getElementById('subCategoriesNav');
+    if (!subCategoriesNav) return;
+    
+    const scrollPercentage = (subCategoriesNav.scrollLeft / 
+        (subCategoriesNav.scrollWidth - subCategoriesNav.clientWidth)) * 100;
+    
+    let indicator = document.querySelector('.nav-scroll-progress-indicator');
+    if (!indicator) {
+        indicator = document.createElement('div');
+        indicator.className = 'nav-scroll-progress-indicator';
+        subCategoriesNav.appendChild(indicator);
+    }
+    
+    indicator.style.width = Math.max(0, Math.min(100, scrollPercentage)) + '%';
+    indicator.style.opacity = scrollPercentage > 0 ? '1' : '0';
+}
+
+function updateNavScrollBoundaries() {
+    const subCategoriesNav = document.getElementById('subCategoriesNav');
+    if (!subCategoriesNav) return;
+    
+    const scrollLeft = subCategoriesNav.scrollLeft;
+    const scrollWidth = subCategoriesNav.scrollWidth;
+    const clientWidth = subCategoriesNav.clientWidth;
+    
+    subCategoriesNav.classList.remove('nav-scroll-start', 'nav-scroll-end');
+    
+    if (scrollLeft <= 0) {
+        subCategoriesNav.classList.add('nav-scroll-start');
+    }
+    
+    if (scrollLeft >= scrollWidth - clientWidth - 1) {
+        subCategoriesNav.classList.add('nav-scroll-end');
+    }
 }
 
 function updateSelectedPath() {
@@ -717,7 +890,7 @@ function getLocalProducts() {
             id: 1001,
             name: "ШОК СДЕЛКА С КОКОСОМ И КЛУБНИКОЙ (150 МГ)",
             description: "ЖВАЧКА С КЛУБНИКОЙ И КОКОСОМ",
-            price: 500,
+            price: 450,
             quantity: 10,
             image: "https://static.insales-cdn.com/images/products/1/7732/889290292/large_%D0%BA%D0%BB%D1%83%D0%B1%D0%BD%D0%B8%D0%BA%D0%B0__5_.png",
             isNew: false
@@ -726,7 +899,7 @@ function getLocalProducts() {
             id: 1002,
             name: "ШОК МЯТНО-ХОЛОДНОЕ ПОХИЩЕНИЕ (150 МГ)",
             description: "ЖВАЧКА С МЯТОЙ",
-            price: 500,
+            price: 450,
             quantity: 8,
             image: "https://static.insales-cdn.com/images/products/1/7754/889290314/large_%D0%BC%D1%8F%D1%82%D0%B0__6_.png",
             isNew: false
@@ -735,7 +908,7 @@ function getLocalProducts() {
             id: 1003,
             name: "ШОК МАНГОВО-ЧЕРНАЯ БУХГАЛТЕРИЯ (150 МГ)",
             description: "ЖВАЧКА С МАНГО",
-            price: 500,
+            price: 450,
             quantity: 12,
             image: "https://static.insales-cdn.com/images/products/1/8106/889290666/large_%D0%BC%D0%B0%D0%BD%D0%B3%D0%BE__5_.png",
             isNew: false
@@ -744,7 +917,7 @@ function getLocalProducts() {
             id: 1004,
             name: "ШОК АЗАРТ ЙОГУРТА ПЕРСИКА И БАНАНА (150 МГ)",
             description: "ЖВАЧКА С ЙОГУРТОМ БАНАНОМ И ПЕРСИКОМ",
-            price: 500,
+            price: 450,
             quantity: 5,
             image: "https://static.insales-cdn.com/images/products/1/773/889291525/large_%D0%B0%D0%B7%D0%B0%D1%80%D1%82__3_.png",
             isNew: false
@@ -753,7 +926,7 @@ function getLocalProducts() {
             id: 1005,
             name: "ШОК ЯБЛОЧНО-ЗЕЛЕНОЕ ОГРАБЛЕНИЕ (150 МГ)",
             description: "ЖВАЧКА С ЗЕЛЕНЫМ ЯБЛОКОМ",
-            price: 500,
+            price: 450,
             quantity: 7,
             image: "https://static.insales-cdn.com/images/products/1/804/889291556/large_%D1%8F%D0%B1%D0%BB%D0%BE%D0%BA%D0%BE.png",
             isNew: false
@@ -762,7 +935,7 @@ function getLocalProducts() {
             id: 1006,
             name: "ШОК ОБЛАВА НА ЧЕРНУЮ СМОРОДИНУ И ХВОЮ (150 МГ)",
             description: "ЖВАЧКА С ЧЕРНОЙ СМОРОДИНОЙ И ХВОЕЙ",
-            price: 500,
+            price: 450,
             quantity: 9,
             image: "https://static.insales-cdn.com/images/products/1/824/889291576/large_%D1%87%D0%B5%D1%80%D0%BD%D0%B0%D1%8F_%D1%81%D0%BC%D0%BE%D1%80%D0%BE%D0%B4%D0%B8%D0%BD%D0%B0_%D0%B8_%D1%85%D0%B2%D0%BE%D1%8F.png",
             isNew: false
@@ -771,7 +944,7 @@ function getLocalProducts() {
             id: 1007,
             name: "ШОК БАБЛ-БОСС (150 МГ)",
             description: "ЖВАЧКА БАБЛ ГАМ",
-            price: 500,
+            price: 450,
             quantity: 6,
             image: "https://static.insales-cdn.com/images/products/1/840/889291592/large_%D0%B1%D0%B0%D0%B1%D0%BB%D0%B1%D0%BE%D1%81%D1%81__4_.png",
             isNew: false
@@ -780,7 +953,7 @@ function getLocalProducts() {
             id: 1008,
             name: "ШОК ГРАНЧЕР (75 МГ)",
             description: "ЭНЕРГЕТИК С ГОЛУБИКОЙ И ГРАНАТОМ",
-            price: 500,
+            price: 400,
             quantity: 10,
             image: "https://static.insales-cdn.com/images/products/1/7505/889290065/large_%D0%BF%D0%BB%D0%BE%D1%82%D0%BE%D1%8F%D0%B7__6_.png",
             isNew: false
@@ -789,7 +962,7 @@ function getLocalProducts() {
             id: 1009,
             name: "ШОК ДЕМОНИКС (75 МГ)",
             description: "ЭНЕРГЕТИК С МИНДАЛЕМ И ЛИМОННЫМ КРЕМОМ",
-            price: 500,
+            price: 400,
             quantity: 8,
             image: "https://static.insales-cdn.com/images/products/1/7526/889290086/large_%D0%B4%D0%B5%D0%BC%D0%BE%D0%BD%D0%B8%D0%BA%D1%81___2_.png",
             isNew: false
@@ -798,7 +971,7 @@ function getLocalProducts() {
             id: 1010,
             name: "ШОК ЗЛОКС (75 МГ)",
             description: "ЭНЕРГЕТИК С ВИШНЕЙ КИВИ И ЛАЙМОМ",
-            price: 500,
+            price: 400,
             quantity: 12,
             image: "https://static.insales-cdn.com/images/products/1/7573/889290133/large_%D0%B7%D0%BB%D0%BE%D0%BA%D1%81__3_.png",
             isNew: false
@@ -807,7 +980,7 @@ function getLocalProducts() {
             id: 1011,
             name: "ШОК КРАКСТЕР (75 МГ)",
             description: "ЭНЕРГЕТИК С ДЫНЕЙ И КРЫЖОВНИКОМ",
-            price: 500,
+            price: 400,
             quantity: 5,
             image: "https://static.insales-cdn.com/images/products/1/7595/889290155/large_%D0%BA%D1%80%D0%B0%D0%BA%D1%81%D1%82%D0%B5%D1%80_.png",
             isNew: false
@@ -816,7 +989,7 @@ function getLocalProducts() {
             id: 1012,
             name: "ICEBERG APPLE PIE (75 МГ)",
             description: "ЯБЛОЧНЫЙ ПИРОГ",
-            price: 700,
+            price: 420,
             quantity: 10,
             image: "https://static.insales-cdn.com/images/products/1/1089/2396644417/large_Apple_Pie_1.png",
             isNew: false
@@ -825,7 +998,7 @@ function getLocalProducts() {
             id: 1013,
             name: "ICEBERG BANOFFEE (75 МГ)",
             description: "ПИРОГ БАНОФФИ",
-            price: 700,
+            price: 420,
             quantity: 8,
             image: "https://static.insales-cdn.com/images/products/1/7785/2396667497/large_Banoffee_1.png",
             isNew: false
@@ -834,7 +1007,7 @@ function getLocalProducts() {
             id: 1014,
             name: "ICEBERG BLUEBERRY PIE (75 МГ)",
             description: "ЧЕРНИЧНЫЙ ПИРОГ",
-            price: 700,
+            price: 420,
             quantity: 12,
             image: "https://static.insales-cdn.com/images/products/1/6873/2396748505/large_Blueberry_Pie_1.png",
             isNew: false
@@ -843,7 +1016,7 @@ function getLocalProducts() {
             id: 1015,
             name: "ICEBERG CHEESECAKE (75 МГ)",
             description: "ЧИЗКЕЙК",
-            price: 700,
+            price: 420,
             quantity: 5,
             image: "https://static.insales-cdn.com/images/products/1/2657/2396768865/large_Cheesecake_1.png",
             isNew: false
@@ -852,7 +1025,7 @@ function getLocalProducts() {
             id: 1016,
             name: "ICEBERG CHERRY PIE (75 МГ)",
             description: "ВИШНЕВЫЙ ПИРОГ",
-            price: 700,
+            price: 420,
             quantity: 7,
             image: "https://static.insales-cdn.com/images/products/1/6065/2396772273/large_Cherry_Pie_1.png",
             isNew: false
@@ -861,7 +1034,7 @@ function getLocalProducts() {
             id: 1017,
             name: "ICEBERG KEY LIME PIE (75 МГ)",
             description: "ЛАЙМОВЫЙ ПИРОГ",
-            price: 500,
+            price: 420,
             quantity: 9,
             image: "https://static.insales-cdn.com/images/products/1/2273/2396784865/large_Key_Lime_1.png",
             isNew: false
@@ -870,7 +1043,7 @@ function getLocalProducts() {
             id: 1018,
             name: "FAFF SPEARMINT (65 МГ)",
             description: "МЯТА",
-            price: 500,
+            price: 380,
             quantity: 10,
             image: "https://static.insales-cdn.com/r/3L_rHm50iO8/rs:fit:1000:0:1/q:100/plain/images/products/1/3833/748211961/%D0%9C%D0%AF%D0%A2%D0%90_%D0%A8%D0%90%D0%99%D0%91%D0%90.png@webp",
             isNew: false
@@ -879,7 +1052,7 @@ function getLocalProducts() {
             id: 1019,
             name: "FAFF RASPBERRY JINGLE (75 МГ)",
             description: "МАЛИНА",
-            price: 500,
+            price: 400,
             quantity: 10,
             image: "https://static.insales-cdn.com/images/products/1/3834/748211962/large_%D0%9C%D0%90%D0%9B%D0%98%D0%9D%D0%9E%D0%92%D0%AB%D0%99_%D0%97%D0%92%D0%9E%D0%9D.png",
             isNew: false
@@ -888,7 +1061,7 @@ function getLocalProducts() {
             id: 1020,
             name: "FAFF CITRON (75 МГ)",
             description: "СПРАЙТ",
-            price: 500,
+            price: 400,
             quantity: 8,
             image: "https://static.insales-cdn.com/images/products/1/3839/748211967/large_%D0%A1%D0%9F%D0%A0%D0%90%D0%99%D0%A2.png",
             isNew: false
@@ -897,7 +1070,7 @@ function getLocalProducts() {
             id: 1021,
             name: "FAFF COLA (75 МГ)",
             description: "КОЛА",
-            price: 500,
+            price: 400,
             quantity: 12,
             image: "https://static.insales-cdn.com/images/products/1/3842/748211970/large_%D0%9A%D0%9E%D0%9A%D0%90_%D0%92%D0%9A%D0%A3%D0%A1_%D0%9A%D0%9E%D0%9B%D0%AB.png",
             isNew: false
@@ -906,7 +1079,7 @@ function getLocalProducts() {
             id: 1022,
             name: "FAFF DOUBLE APPLE (75 МГ)",
             description: "ДВОЙНОЕ ЯБЛОКО",
-            price: 500,
+            price: 400,
             quantity: 5,
             image: "https://static.insales-cdn.com/images/products/1/3853/748211981/large_%D0%AF%D0%91%D0%9B%D0%9E%D0%9A%D0%9E.png",
             isNew: false
@@ -915,7 +1088,7 @@ function getLocalProducts() {
             id: 1023,
             name: "FAFF PINA COLADA (75 МГ)",
             description: "ПИНА КОЛАДА",
-            price: 500,
+            price: 400,
             quantity: 7,
             image: "https://static.insales-cdn.com/images/products/1/3856/748211984/large_%D0%9F%D0%98%D0%9D%D0%90_%D0%BA.png",
             isNew: false
@@ -924,7 +1097,7 @@ function getLocalProducts() {
             id: 1024,
             name: "FAFF STRAWBERRY GUM (75 МГ)",
             description: "КЛУБНИЧНАЯ ЖВАЧКА",
-            price: 500,
+            price: 400,
             quantity: 9,
             image: "https://static.insales-cdn.com/images/products/1/3858/748211986/large_%D0%9A%D0%9B%D0%A3%D0%91%D0%9D%D0%98%D0%A7%D0%9D%D0%90%D0%AF_%D0%96%D0%92%D0%90%D0%A7%D0%9A%D0%90.png",
             isNew: false
@@ -933,7 +1106,7 @@ function getLocalProducts() {
             id: 1025,
             name: "FAFF MELON CHILL (75 МГ)",
             description: "ДЫНЯ",
-            price: 500,
+            price: 400,
             quantity: 6,
             image: "https://static.insales-cdn.com/images/products/1/3865/748211993/large_%D0%94%D0%AB%D0%9D%D0%AF.png",
             isNew: false
@@ -942,7 +1115,7 @@ function getLocalProducts() {
             id: 1026,
             name: "FAFF STRAWBERRY CHEESECAKE (75 МГ)",
             description: "КЛУБНИЧНЫЙ ЧИЗКЕЙК",
-            price: 500,
+            price: 400,
             quantity: 10,
             image: "https://static.insales-cdn.com/images/products/1/3874/748212002/large_%D0%A7%D0%98%D0%97%D0%9A%D0%95%D0%99%D0%9A.png",
             isNew: false
@@ -951,7 +1124,7 @@ function getLocalProducts() {
             id: 1027,
             name: "FAFF IZABELLA (75 МГ)",
             description: "ВИНОГРАД ИЗАБЕЛЛА",
-            price: 500,
+            price: 400,
             quantity: 8,
             image: "https://static.insales-cdn.com/images/products/1/3890/748212018/large_%D0%92%D0%98%D0%9D%D0%9E%D0%93%D0%A0%D0%90%D0%94_%D0%98%D0%97%D0%90%D0%91%D0%95%D0%9B%D0%9B%D0%90.png",
             isNew: false
@@ -960,7 +1133,7 @@ function getLocalProducts() {
             id: 1028,
             name: "FAFF ENERGY (75 МГ)",
             description: "РЕД БУЛЛ",
-            price: 500,
+            price: 400,
             quantity: 12,
             image: "https://static.insales-cdn.com/images/products/1/3895/748212023/large_%D0%AD%D0%9D%D0%95%D0%A0%D0%93%D0%95%D0%A2%D0%98%D0%9A_%D0%A0%D0%95%D0%94%D0%91%D0%A3%D0%9B.png",
             isNew: false
@@ -969,7 +1142,7 @@ function getLocalProducts() {
             id: 1029,
             name: "FAFF TROPIC STORM (100 МГ)",
             description: "МАНГО, АПЕЛЬСИН",
-            price: 500,
+            price: 450,
             quantity: 10,
             image: "https://static.insales-cdn.com/images/products/1/3896/748212024/large_%D0%A2%D0%A0%D0%9E%D0%9F%D0%98%D0%9A%D0%98.png",
             isNew: false
@@ -2586,5 +2759,7 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
+
+
 
 
