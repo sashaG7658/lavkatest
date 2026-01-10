@@ -2514,6 +2514,174 @@ function initKeyboardNavigation() {
     });
 }
 
+function initSearch() {
+    const searchInput = document.getElementById('searchInput');
+    const searchClear = document.getElementById('searchClear');
+    const searchResults = document.getElementById('searchResults');
+    
+    if (!searchInput || !searchClear || !searchResults) return;
+    
+    let searchTimeout = null;
+    
+    // Функция поиска с подсветкой
+    function highlightText(text, query) {
+        if (!query) return text;
+        
+        const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+        return text.replace(regex, '<span class="search-highlight">$1</span>');
+    }
+    
+    // Функция выполнения поиска
+    function performSearch(query) {
+        if (!query || query.length < 2) {
+            searchResults.style.display = 'none';
+            return;
+        }
+        
+        searchResults.innerHTML = '<div class="search-loading"><i class="fas fa-spinner"></i> Поиск...</div>';
+        searchResults.style.display = 'block';
+        
+        // Задержка для оптимизации
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            const searchQuery = query.toLowerCase().trim();
+            const filteredProducts = products.filter(product => {
+                const searchText = (product.name + ' ' + (product.description || '')).toLowerCase();
+                return searchText.includes(searchQuery);
+            });
+            
+            displaySearchResults(filteredProducts, searchQuery);
+        }, 300);
+    }
+    
+    // Отображение результатов поиска
+    function displaySearchResults(results, query) {
+        if (results.length === 0) {
+            searchResults.innerHTML = `
+                <div class="search-no-results">
+                    <i class="fas fa-search"></i>
+                    <h3>Ничего не найдено</h3>
+                    <p>Попробуйте изменить запрос</p>
+                </div>
+            `;
+            return;
+        }
+        
+        searchResults.innerHTML = results.slice(0, 10).map(product => {
+            const isAvailable = product.quantity > 0;
+            const isFav = isFavorite(product.id);
+            
+            return `
+                <div class="search-result-item" onclick="addToCartFromSearch(${product.id})">
+                    <img src="${product.image}" 
+                         alt="${product.name}" 
+                         class="search-result-image"
+                         loading="lazy"
+                         onerror="this.src='https://via.placeholder.com/50x50/FF9800/FFFFFF?text=ICEBERG'">
+                    <div class="search-result-info">
+                        <div class="search-result-name">${highlightText(product.name, query)}</div>
+                        <div class="search-result-description">${highlightText(product.description || '', query)}</div>
+                        <div class="search-result-price">${product.price} ₽</div>
+                    </div>
+                    <button class="search-result-add" 
+                            onclick="event.stopPropagation(); addToCartFromSearch(${product.id}, this)"
+                            ${!isAvailable ? 'disabled style="opacity: 0.5;"' : ''}>
+                        <i class="fas fa-cart-plus"></i>
+                    </button>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    // Обработчики событий
+    searchInput.addEventListener('input', (e) => {
+        const query = e.target.value;
+        searchClear.style.display = query.length > 0 ? 'flex' : 'none';
+        performSearch(query);
+    });
+    
+    searchInput.addEventListener('focus', () => {
+        if (searchInput.value.length >= 2) {
+            performSearch(searchInput.value);
+        }
+    });
+    
+    searchClear.addEventListener('click', () => {
+        searchInput.value = '';
+        searchClear.style.display = 'none';
+        searchResults.style.display = 'none';
+        searchInput.focus();
+    });
+    
+    // Закрытие результатов поиска при клике вне
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.search-container')) {
+            searchResults.style.display = 'none';
+        }
+    });
+    
+    // Показать результаты при фокусе, если есть текст
+    searchInput.addEventListener('focus', () => {
+        if (searchInput.value.length >= 2) {
+            performSearch(searchInput.value);
+        }
+    });
+}
+
+// Функция добавления в корзину из поиска
+window.addToCartFromSearch = function(productId, buttonElement) {
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+    
+    if (product.quantity <= 0) {
+        showNotification('Товар временно отсутствует', 'error');
+        return;
+    }
+    
+    addToCart(productId);
+    
+    if (buttonElement) {
+        const originalHTML = buttonElement.innerHTML;
+        buttonElement.innerHTML = '<i class="fas fa-check"></i>';
+        buttonElement.style.background = '#4CAF50';
+        
+        setTimeout(() => {
+            buttonElement.innerHTML = originalHTML;
+            buttonElement.style.background = '';
+        }, 1000);
+    } else {
+        showNotification('Товар добавлен в корзину', 'success');
+    }
+};
+
+// Уведомления
+function showNotification(message, type = 'success') {
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+        ${message}
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.classList.add('show');
+    }, 100);
+    
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
+// Обновленная функция инициализации
+const originalInitApp = initApp;
+initApp = async function() {
+    await originalInitApp();
+    initSearch();
+};
+
 async function initApp() {
     detectTheme();
     initTelegram();
@@ -2586,3 +2754,4 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
+
