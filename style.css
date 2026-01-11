@@ -2736,7 +2736,6 @@ body.dark-theme .order-products ul {
     }
 }
 
-/* Убираем стандартный скроллбар на мобильных */
 .subcategory-navigation::-webkit-scrollbar,
 .subcategory-grid::-webkit-scrollbar {
     display: none;
@@ -3056,5 +3055,419 @@ body.dark-theme .search-results {
     background: #1E1E1E;
     border-color: #333333;
 }
+/* Стили для выбора способа доставки */
+.delivery-section {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+    border: 1px solid var(--border-color);
+}
+
+.delivery-info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.delivery-method-display {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+}
+
+.delivery-method-display i {
+    font-size: 20px;
+    color: var(--primary-color);
+    margin-bottom: 4px;
+}
+
+.delivery-method-display span {
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--text-color);
+}
+
+.delivery-method-display small {
+    font-size: 12px;
+    color: var(--secondary-text);
+    opacity: 0.8;
+}
+
+.change-delivery-btn {
+    background: transparent;
+    border: 1px solid var(--primary-color);
+    color: var(--primary-color);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.3s;
+    white-space: nowrap;
+}
+
+.change-delivery-btn:hover {
+    background: var(--primary-color);
+    color: white;
+}
+
+/* Модальное окно выбора способа доставки */
+.delivery-method-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    opacity: 1;
+    transition: opacity 0.3s;
+}
+
+.delivery-method-content {
+    background: var(--card-bg);
+    border-radius: 20px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: slideUp 0.3s ease;
+}
+
+.delivery-method-header {
+    padding: 24px 24px 16px;
+    text-align: center;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.delivery-method-header i {
+    font-size: 48px;
+    color: var(--primary-color);
+    margin-bottom: 12px;
+}
+
+.delivery-method-header h2 {
+    margin: 0;
+    font-size: 22px;
+    color: var(--text-color);
+}
+
+.delivery-method-body {
+    padding: 24px;
+}
+
+.delivery-method-selection {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.delivery-method-btn {
+    background: var(--bg-color);
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.delivery-method-btn:hover {
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+}
+
+.delivery-method-btn.active {
+    border-color: var(--primary-color);
+    background: rgba(255, 152, 0, 0.1);
+}
+
+.delivery-method-btn i {
+    font-size: 32px;
+    margin-bottom: 8px;
+}
+
+.delivery-method-btn span {
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--text-color);
+}
+
+.delivery-method-btn .method-description {
+    font-size: 12px;
+    color: var(--secondary-text);
+    opacity: 0.8;
+    margin: 0;
+}
+
+.delivery-fields {
+    background: var(--bg-color);
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 20px;
+    animation: fadeIn 0.3s ease;
+}
+
+.delivery-field-group {
+    margin-bottom: 20px;
+}
+
+.delivery-field-group label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--text-color);
+}
+
+.delivery-field-group label i {
+    color: var(--primary-color);
+}
+
+.delivery-textarea,
+.delivery-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--card-bg);
+    color: var(--text-color);
+    font-size: 14px;
+    resize: vertical;
+    transition: border-color 0.3s;
+}
+
+.delivery-textarea:focus,
+.delivery-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.delivery-textarea {
+    min-height: 80px;
+}
+
+.delivery-validation-error {
+    background: rgba(244, 67, 54, 0.1);
+    border: 1px solid rgba(244, 67, 54, 0.3);
+    border-radius: 8px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #F44336;
+    font-size: 14px;
+    margin-top: 16px;
+    display: none;
+}
+
+.delivery-validation-error i {
+    font-size: 16px;
+}
+
+.delivery-method-footer {
+    padding: 20px 24px 24px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    gap: 12px;
+}
+
+.confirm-delivery-btn,
+.cancel-delivery-btn {
+    flex: 1;
+    padding: 16px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.3s;
+}
+
+.confirm-delivery-btn {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+}
+
+.confirm-delivery-btn:hover {
+    opacity: 0.9;
+    transform: translateY(-2px);
+}
+
+.cancel-delivery-btn {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+}
+
+.cancel-delivery-btn:hover {
+    background: var(--bg-color);
+}
+
+/* Секция доставки в окне подтверждения телефона */
+.delivery-method-section {
+    background: var(--bg-color);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+.delivery-method-section h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 12px 0;
+    font-size: 16px;
+    color: var(--text-color);
+}
+
+.delivery-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.delivery-summary-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    background: var(--card-bg);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.delivery-summary-item i {
+    font-size: 24px;
+    margin-top: 2px;
+}
+
+.delivery-summary-item.pickup i {
+    color: #4CAF50;
+}
+
+.delivery-summary-item.delivery i {
+    color: #2196F3;
+}
+
+.delivery-summary-item div {
+    flex: 1;
+}
+
+.delivery-summary-item strong {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 16px;
+    color: var(--text-color);
+}
+
+.delivery-summary-item p {
+    margin: 0 0 4px 0;
+    font-size: 13px;
+    color: var(--secondary-text);
+}
+
+.change-delivery-method-btn {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.3s;
+    width: 100%;
+}
+
+.change-delivery-method-btn:hover {
+    background: var(--bg-color);
+}
+
+/* Детали доставки в окне подтверждения заказа */
+.delivery-details {
+    background: var(--bg-color);
+    border-radius: 12px;
+    padding: 16px;
+    margin: 16px 0;
+}
+
+.delivery-details h3 {
+    margin: 0 0 12px 0;
+    font-size: 16px;
+    color: var(--text-color);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.delivery-details h3 i {
+    color: var(--primary-color);
+}
+
+.delivery-info p {
+    margin: 0 0 8px 0;
+    font-size: 14px;
+    color: var(--text-color);
+}
+
+.delivery-info p strong {
+    color: var(--secondary-text);
+    min-width: 80px;
+    display: inline-block;
+}
+
+/* Кнопка Dostavista для админа */
+.admin-dostavista-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    padding: 16px 24px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    transition: all 0.3s;
+}
+
+.admin-dostavista-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.admin-dostavista-btn i {
+    font-size: 20px;
+}
+
+
 
 
