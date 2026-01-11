@@ -2286,6 +2286,507 @@ function openManagerChat(orderNumber) {
     }
 }
 
+// Функция для отправки заказа в Telegram бота через WebApp
+function sendOrderToTelegramBot(orderData) {
+    try {
+        // Проверяем, есть ли товары в корзине
+        if (cart.length === 0) {
+            if (tg && tg.showAlert) {
+                tg.showAlert('Корзина пуста! Добавьте товары перед оформлением заказа.');
+            } else {
+                alert('Корзина пуста! Добавьте товары перед оформлением заказа.');
+            }
+            return false;
+        }
+
+        // Проверка остатков товаров
+        const stockIssues = [];
+        cart.forEach(item => {
+            const product = products.find(p => p.id === item.id);
+            if (product && product.quantity < item.quantity) {
+                stockIssues.push(`${item.name}: доступно ${product.quantity} шт., запрошено ${item.quantity} шт.`);
+            }
+        });
+
+        if (stockIssues.length > 0) {
+            const errorMessage = 'Недостаточно товаров на складе:\n\n' + stockIssues.join('\n');
+            if (tg && tg.showAlert) {
+                tg.showAlert(errorMessage);
+            } else {
+                alert('❌ ' + errorMessage);
+            }
+            return false;
+        }
+
+        // Подготовка данных для отправки в Telegram
+        const telegramOrderData = {
+            type: 'order',
+            orderNumber: orderData.orderNumber || generateOrderNumber(),
+            products: orderData.products || cart.map(item => ({
+                id: item.id,
+                name: item.name,
+                price: item.price,
+                quantity: item.quantity
+            })),
+            total: orderData.total || getCartTotal(),
+            items_count: orderData.items_count || getCartCount(),
+            timestamp: orderData.timestamp || new Date().toISOString(),
+            user: orderData.user || (tg ? {
+                id: tg.initDataUnsafe.user && tg.initDataUnsafe.user.id,
+                username: tg.initDataUnsafe.user && tg.initDataUnsafe.user.username,
+                first_name: tg.initDataUnsafe.user && tg.initDataUnsafe.user.first_name,
+                last_name: tg.initDataUnsafe.user && tg.initDataUnsafe.user.last_name
+            } : null),
+            userPhone: userPhoneNumber || null
+        };
+
+        // Отправка данных через Telegram WebApp
+        if (tg && tg.sendData) {
+            // Показываем индикатор загрузки
+            if (tg.showProgress) {
+                tg.showProgress();
+            }
+            
+            // Отправляем данные
+            tg.sendData(JSON.stringify(telegramOrderData));
+            
+            // Скрываем индикатор
+            setTimeout(() => {
+                if (tg.hideProgress) {
+                    tg.hideProgress();
+                }
+            }, 1000);
+            
+            // Показываем сообщение об успешной отправке
+            if (tg.showAlert) {
+                tg.showAlert(
+                    `✅ *Заказ отправлен в бота!*\n\n` +
+                    `📋 *Номер заказа:* #${telegramOrderData.orderNumber}\n` +
+                    `📦 Товаров: ${telegramOrderData.items_count} шт.\n` +
+                    `💰 Сумма: ${telegramOrderData.total} руб.\n\n` +
+                    `👤 *Администратор получит уведомление*`,
+                    function() {
+                        // Очищаем корзину после успешной отправки
+                        cart = [];
+                        saveCart();
+                        closeCart();
+                        
+                        // Показываем сообщение об успехе
+                        showOrderSuccessMessage(telegramOrderData);
+                        
+                        // Обновляем продукты
+                        setTimeout(() => {
+                            loadAndRenderProducts();
+                        }, 2000);
+                    }
+                );
+            }
+            
+            return true;
+            
+        } else {
+            // Для отладки в браузере
+            console.log('Данные заказа для Telegram бота:', telegramOrderData);
+            alert('Заказ отправлен в бота! В реальном Telegram данные будут автоматически переданы.\n\n' + 
+                  JSON.stringify(telegramOrderData, null, 2));
+            
+            // Показываем сообщение об успехе
+            showOrderSuccessMessage(telegramOrderData);
+            
+            // Очищаем корзину
+            cart = [];
+            saveCart();
+            closeCart();
+            
+            return true;
+        }
+
+    } catch (error) {
+        console.error('Ошибка при отправке заказа в Telegram бота:', error);
+        
+        const errorMessage = 'Произошла ошибка при отправке заказа. Пожалуйста, попробуйте снова.';
+        if (tg && tg.showAlert) {
+            tg.showAlert('❌ ' + errorMessage);
+        } else {
+            alert('❌ ' + errorMessage);
+        }
+        
+        return false;
+    }
+}
+
+// Функция для показа сообщения об успешном оформлении заказа
+function showOrderSuccessMessage(orderData) {
+    // Создаем модальное окно успеха
+    const successModal = document.createElement('div');
+    successModal.className = 'order-success-modal';
+    successModal.innerHTML = `
+        <div class="order-success-content">
+            <div class="order-success-header">
+                <div class="success-icon">✅</div>
+                <h2>Заказ оформлен!</h2>
+            </div>
+            <div class="order-success-body">
+                <div class="order-success-number">
+                    <i class="fas fa-hashtag"></i>
+                    <span>Номер заказа: <strong>#${orderData.orderNumber}</strong></span>
+                </div>
+                
+                <div class="order-success-summary">
+                    <div class="summary-item">
+                        <i class="fas fa-box"></i>
+                        <div>
+                            <div class="summary-label">Товаров</div>
+                            <div class="summary-value">${orderData.items_count} шт.</div>
+                        </div>
+                    </div>
+                    <div class="summary-item">
+                        <i class="fas fa-ruble-sign"></i>
+                        <div>
+                            <div class="summary-label">Сумма заказа</div>
+                            <div class="summary-value">${orderData.total} руб.</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="order-success-details">
+                    <h3><i class="fas fa-list"></i> Детали заказа:</h3>
+                    <div class="order-products-list">
+                        ${orderData.products.map((item, index) => `
+                            <div class="order-product-item">
+                                <div class="product-number">${index + 1}</div>
+                                <div class="product-name">${item.name}</div>
+                                <div class="product-quantity">× ${item.quantity}</div>
+                                <div class="product-total">${item.price * item.quantity} руб.</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                
+                <div class="order-success-instructions">
+                    <div class="instruction-item">
+                        <i class="fas fa-info-circle"></i>
+                        <p>Сохраните номер заказа для связи с администратором</p>
+                    </div>
+                    <div class="instruction-item">
+                        <i class="fas fa-clock"></i>
+                        <p>Администратор свяжется с вами для подтверждения заказа</p>
+                    </div>
+                    ${userPhoneNumber ? `
+                    <div class="instruction-item">
+                        <i class="fas fa-phone"></i>
+                        <p>Мы свяжемся с вами по номеру: ${formatPhoneNumber(userPhoneNumber)}</p>
+                    </div>
+                    ` : ''}
+                </div>
+            </div>
+            <div class="order-success-footer">
+                <button class="close-success-modal">
+                    <i class="fas fa-times"></i> Закрыть
+                </button>
+                <button class="contact-admin-btn" onclick="openManagerChat('${orderData.orderNumber}')">
+                    <i class="fab fa-telegram"></i> Написать администратору
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(successModal);
+    
+    // Добавляем стили для модального окна успеха
+    const style = document.createElement('style');
+    style.textContent = `
+        .order-success-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            opacity: 0;
+            animation: fadeIn 0.3s forwards;
+        }
+        
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+        
+        .order-success-content {
+            background: white;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            transform: translateY(20px);
+            animation: slideUp 0.3s forwards;
+        }
+        
+        @keyframes slideUp {
+            to { transform: translateY(0); }
+        }
+        
+        .order-success-header {
+            background: linear-gradient(135deg, #4CAF50, #2E7D32);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+            border-radius: 20px 20px 0 0;
+        }
+        
+        .success-icon {
+            font-size: 60px;
+            margin-bottom: 15px;
+            animation: bounce 1s;
+        }
+        
+        @keyframes bounce {
+            0%, 20%, 60%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-20px); }
+            80% { transform: translateY(-10px); }
+        }
+        
+        .order-success-header h2 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .order-success-body {
+            padding: 20px;
+        }
+        
+        .order-success-number {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+        
+        .order-success-number i {
+            color: #FF9800;
+            font-size: 20px;
+        }
+        
+        .order-success-summary {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .summary-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .summary-item i {
+            font-size: 24px;
+            color: #2196F3;
+        }
+        
+        .summary-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .summary-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .order-success-details {
+            margin-bottom: 20px;
+        }
+        
+        .order-success-details h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .order-products-list {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .order-product-item {
+            display: grid;
+            grid-template-columns: 30px 1fr auto auto;
+            gap: 10px;
+            padding: 10px 0;
+            border-bottom: 1px solid #e0e0e0;
+            align-items: center;
+        }
+        
+        .order-product-item:last-child {
+            border-bottom: none;
+        }
+        
+        .product-number {
+            background: #2196F3;
+            color: white;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .product-name {
+            font-size: 14px;
+            color: #333;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .product-quantity {
+            color: #666;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+        
+        .product-total {
+            color: #4CAF50;
+            font-weight: bold;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+        
+        .order-success-instructions {
+            background: #E8F5E9;
+            border-left: 4px solid #4CAF50;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        
+        .instruction-item {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: flex-start;
+        }
+        
+        .instruction-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .instruction-item i {
+            color: #4CAF50;
+            margin-top: 3px;
+        }
+        
+        .instruction-item p {
+            margin: 0;
+            font-size: 14px;
+            color: #333;
+            line-height: 1.4;
+        }
+        
+        .order-success-footer {
+            display: flex;
+            gap: 10px;
+            padding: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .close-success-modal {
+            flex: 1;
+            background: #f8f9fa;
+            color: #666;
+            border: none;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+        
+        .close-success-modal:hover {
+            background: #e9ecef;
+        }
+        
+        .contact-admin-btn {
+            flex: 2;
+            background: linear-gradient(135deg, #0088cc, #006699);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+        
+        .contact-admin-btn:hover {
+            background: linear-gradient(135deg, #006699, #004466);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 102, 153, 0.3);
+        }
+    `;
+    document.head.appendChild(style);
+    
+    // Обработчики событий
+    const closeBtn = successModal.querySelector('.close-success-modal');
+    closeBtn.addEventListener('click', function() {
+        successModal.style.opacity = '0';
+        successModal.style.transform = 'translateY(20px)';
+        setTimeout(() => {
+            successModal.remove();
+            style.remove();
+        }, 300);
+    });
+    
+    // Автоматическое закрытие через 30 секунд
+    setTimeout(() => {
+        if (document.body.contains(successModal)) {
+            successModal.style.opacity = '0';
+            successModal.style.transform = 'translateY(20px)';
+            setTimeout(() => {
+                successModal.remove();
+                style.remove();
+            }, 300);
+        }
+    }, 30000);
+}
+
+// Обновленная функция оформления заказа
 async function checkout() {
     if (cart.length === 0) return;
     
@@ -2355,7 +2856,28 @@ async function checkout() {
     
     saveCart();
     
-    showPhoneConfirmationModal(orderData);
+    // Используем новую функцию для отправки в Telegram бота
+    const success = sendOrderToTelegramBot(orderData);
+    
+    if (success) {
+        // Если отправка прошла успешно, очищаем корзину
+        cart = [];
+        saveCart();
+        
+        // Добавляем заказ в историю
+        orderHistory.unshift({
+            orderNumber: orderData.orderNumber,
+            products: orderData.products,
+            total: orderData.total,
+            items_count: orderData.items_count,
+            timestamp: orderData.timestamp,
+            user: orderData.user,
+            status: 'pending'
+        });
+        
+        // Сохраняем историю
+        localStorage.setItem('iceberg_orders', JSON.stringify(orderHistory));
+    }
 }
 
 function openFavorites() {
@@ -2675,13 +3197,6 @@ function showNotification(message, type = 'success') {
     }, 3000);
 }
 
-// Обновленная функция инициализации
-const originalInitApp = initApp;
-initApp = async function() {
-    await originalInitApp();
-    initSearch();
-};
-
 async function initApp() {
     detectTheme();
     initTelegram();
@@ -2722,6 +3237,8 @@ async function initApp() {
     window.switchCategory = switchCategory;
     window.switchSubCategory = switchSubCategory;
     window.openManagerChat = openManagerChat;
+    window.sendOrderToTelegramBot = sendOrderToTelegramBot;
+    window.showOrderSuccessMessage = showOrderSuccessMessage;
     
     window.toggleFavorite = toggleFavorite;
     window.removeFromFavorites = removeFromFavorites;
@@ -2733,6 +3250,7 @@ async function initApp() {
     
     initCategoriesScroll();
     initKeyboardNavigation();
+    initSearch();
     
     setTimeout(function() {
         const loader = document.getElementById('loader');
@@ -2754,4 +3272,3 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
-
