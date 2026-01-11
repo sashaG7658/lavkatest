@@ -1437,11 +1437,34 @@ async function completeOrderWithPhone(orderData) {
         
         const notified = await notifyManager(orderData);
         
-        showOrderConfirmationModal(orderData, orderData.orderNumber);
-        
-        cart = [];
-        saveCart();
-        closeCart();
+        if (tg && tg.showAlert) {
+            tg.showAlert(
+                `✅ *Заказ оформлен успешно!*\n\n` +
+                `📋 *Номер заказа:* #${orderData.orderNumber}\n` +
+                `📞 *Ваш телефон:* ${formatPhoneNumber(userPhoneNumber)}\n` +
+                `📦 Товаров: ${orderData.items_count} шт.\n` +
+                `💰 Сумма: ${orderData.total} руб.\n\n` +
+                `👤 *Менеджер свяжется с вами в ближайшее время*\n` +
+                `🔗 @Chief_68`,
+                function() {
+                    cart = [];
+                    saveCart();
+                    closeCart();
+                    
+                    showManagerNotification(orderData.orderNumber);
+                    
+                    setTimeout(() => {
+                        loadAndRenderProducts();
+                    }, 2000);
+                }
+            );
+        } else {
+            showOrderConfirmationModal(orderData, orderData.orderNumber);
+            
+            cart = [];
+            saveCart();
+            closeCart();
+        }
         
         setTimeout(() => {
             loadAndRenderProducts();
@@ -1920,420 +1943,120 @@ function generateOrderNumber() {
     return 'ORD-' + year + month + day + '-' + random;
 }
 
-function createOrderMessageForManager(orderData) {
-    let message = '**НОВЫЙ ЗАКАЗ #' + orderData.orderNumber + '**\n\n';
-    
-    message += '👤 **Покупатель:**\n';
-    
-    if (orderData.user && orderData.user.id) {
-        message += 'ID: ' + orderData.user.id + '\n';
-    }
-    
-    if (orderData.user && orderData.user.username) {
-        message += '@' + orderData.user.username + '\n';
-    }
-    
-    if (orderData.user && orderData.user.first_name) {
-        message += 'Имя: ' + orderData.user.first_name + '\n';
-    }
-    
-    if (orderData.userPhone) {
-        message += '📞 Телефон: ' + orderData.userPhone + '\n';
-    }
-    
-    message += '\n📅 Дата: ' + new Date(orderData.timestamp).toLocaleString('ru-RU') + '\n';
-    message += '\n🛒 **Товары:**\n';
-    
-    orderData.products.forEach((item, index) => {
-        message += (index + 1) + '. ' + item.name + '\n';
-        message += '   Кол-во: ' + item.quantity + ' шт.\n';
-        message += '   Цена: ' + item.price + ' руб./шт.\n';
-        message += '   Сумма: ' + (item.price * item.quantity) + ' руб.\n\n';
-    });
-    
-    message += '💰 **ИТОГО:**\n';
-    message += 'Товаров: ' + orderData.items_count + ' шт.\n';
-    message += 'Сумма заказа: *' + orderData.total + ' руб.*\n\n';
-    
-    message += '⚡️ **Статус:** Ожидает обработки\n';
-    message += '📋 **Номер заказа:** #' + orderData.orderNumber;
-    
-    return message;
-}
-
-function showSimpleNotification(message, type = 'success') {
-    const notification = document.createElement('div');
-    notification.className = `simple-notification ${type}`;
-    notification.innerHTML = `
-        <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
-        <span>${message}</span>
-    `;
-    
-    const style = document.createElement('style');
-    style.textContent = `
-        .simple-notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: white;
-            border-radius: 10px;
-            padding: 15px 20px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
-            z-index: 10001;
-            transform: translateX(100%);
-            opacity: 0;
-            animation: slideIn 0.3s forwards;
-            max-width: 350px;
-        }
-        
-        .simple-notification.success {
-            border-left: 4px solid #4CAF50;
-        }
-        
-        .simple-notification.error {
-            border-left: 4px solid #F44336;
-        }
-        
-        .simple-notification i {
-            font-size: 20px;
-        }
-        
-        .simple-notification.success i {
-            color: #4CAF50;
-        }
-        
-        .simple-notification.error i {
-            color: #F44336;
-        }
-        
-        .simple-notification span {
-            color: #333;
-            font-size: 14px;
-            line-height: 1.4;
-        }
-        
-        @keyframes slideIn {
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-        
-        @keyframes slideOut {
-            to {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-        }
-    `;
-    document.head.appendChild(style);
-    
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s forwards';
-        setTimeout(() => {
-            notification.remove();
-            style.remove();
-        }, 300);
-    }, 3000);
-}
-
-function showTelegramLinkNotification(orderNumber, tgLink) {
-    const notification = document.createElement('div');
-    notification.className = 'telegram-link-notification';
-    notification.innerHTML = `
-        <div class="telegram-link-content">
-            <div class="telegram-link-header">
-                <i class="fab fa-telegram"></i>
-                <h3>Заказ оформлен!</h3>
-            </div>
-            <div class="telegram-link-body">
-                <p>Номер заказа: <strong>#${orderNumber}</strong></p>
-                <p>Для подтверждения заказа нажмите кнопку ниже и отправьте сообщение менеджеру.</p>
-            </div>
-            <div class="telegram-link-footer">
-                <a href="${tgLink}" target="_blank" class="telegram-link-btn">
-                    <i class="fab fa-telegram"></i> Написать менеджеру
-                </a>
-                <button class="copy-order-number" onclick="navigator.clipboard.writeText('#${orderNumber}')">
-                    <i class="fas fa-copy"></i> Копировать номер
-                </button>
-            </div>
-        </div>
-    `;
-    
-    document.body.appendChild(notification);
-    
-    const style = document.createElement('style');
-    style.textContent = `
-        .telegram-link-notification {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 10000;
-            padding: 20px;
-            animation: fadeIn 0.3s forwards;
-        }
-        
-        .telegram-link-content {
-            background: white;
-            border-radius: 15px;
-            max-width: 400px;
-            width: 100%;
-            overflow: hidden;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-        }
-        
-        .telegram-link-header {
-            background: linear-gradient(135deg, #0088cc, #006699);
-            color: white;
-            padding: 25px 20px;
-            text-align: center;
-        }
-        
-        .telegram-link-header i {
-            font-size: 50px;
-            margin-bottom: 15px;
-        }
-        
-        .telegram-link-header h3 {
-            margin: 0;
-            font-size: 22px;
-        }
-        
-        .telegram-link-body {
-            padding: 25px 20px;
-            text-align: center;
-        }
-        
-        .telegram-link-body p {
-            margin: 10px 0;
-            color: #333;
-            line-height: 1.5;
-        }
-        
-        .telegram-link-footer {
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        
-        .telegram-link-btn {
-            background: linear-gradient(135deg, #0088cc, #006699);
-            color: white;
-            text-decoration: none;
-            padding: 16px;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 600;
-            text-align: center;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            transition: all 0.3s;
-        }
-        
-        .telegram-link-btn:hover {
-            background: linear-gradient(135deg, #006699, #004466);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 102, 153, 0.3);
-        }
-        
-        .copy-order-number {
-            background: #f8f9fa;
-            color: #333;
-            border: 2px solid #e0e0e0;
-            padding: 16px;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            transition: all 0.3s;
-        }
-        
-        .copy-order-number:hover {
-            background: #e9ecef;
-            border-color: #0088cc;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-    `;
-    document.head.appendChild(style);
-    
-    notification.addEventListener('click', function(e) {
-        if (e.target === notification) {
-            notification.style.opacity = '0';
-            setTimeout(() => {
-                notification.remove();
-                style.remove();
-            }, 300);
-        }
-    });
-    
-    setTimeout(() => {
-        if (document.body.contains(notification)) {
-            notification.style.opacity = '0';
-            setTimeout(() => {
-                notification.remove();
-                style.remove();
-            }, 300);
-        }
-    }, 30000);
-}
-
-function sendOrderToTelegramBot(orderData) {
-    try {
-        if (cart.length === 0) {
-            showSimpleNotification('Корзина пуста! Добавьте товары перед оформлением заказа.', 'error');
-            return false;
-        }
-
-        const stockIssues = [];
-        cart.forEach(item => {
-            const product = products.find(p => p.id === item.id);
-            if (product && product.quantity < item.quantity) {
-                stockIssues.push(`${item.name}: доступно ${product.quantity} шт., запрошено ${item.quantity} шт.`);
-            }
-        });
-
-        if (stockIssues.length > 0) {
-            const errorMessage = 'Недостаточно товаров на складе:\n\n' + stockIssues.join('\n');
-            showSimpleNotification(errorMessage, 'error');
-            return false;
-        }
-
-        const telegramOrderData = {
-            type: 'order',
-            orderNumber: orderData.orderNumber || generateOrderNumber(),
-            products: orderData.products || cart.map(item => ({
-                id: item.id,
-                name: item.name,
-                price: item.price,
-                quantity: item.quantity
-            })),
-            total: orderData.total || getCartTotal(),
-            items_count: orderData.items_count || getCartCount(),
-            timestamp: orderData.timestamp || new Date().toISOString(),
-            user: orderData.user || (tg ? {
-                id: tg.initDataUnsafe.user && tg.initDataUnsafe.user.id,
-                username: tg.initDataUnsafe.user && tg.initDataUnsafe.user.username,
-                first_name: tg.initDataUnsafe.user && tg.initDataUnsafe.user.first_name,
-                last_name: tg.initDataUnsafe.user && tg.initDataUnsafe.user.last_name
-            } : null),
-            userPhone: userPhoneNumber || null
-        };
-
-        if (tg && tg.sendData) {
-            try {
-                tg.sendData(JSON.stringify(telegramOrderData));
-                
-                showSimpleNotification('✅ Заказ отправлен в бота!', 'success');
-                
-                setTimeout(() => {
-                    showOrderSuccessMessage(telegramOrderData);
-                }, 500);
-                
-                cart = [];
-                saveCart();
-                closeCart();
-                
-                orderHistory.unshift({
-                    orderNumber: telegramOrderData.orderNumber,
-                    products: telegramOrderData.products,
-                    total: telegramOrderData.total,
-                    items_count: telegramOrderData.items_count,
-                    timestamp: telegramOrderData.timestamp,
-                    user: telegramOrderData.user,
-                    status: 'pending'
-                });
-                
-                localStorage.setItem('iceberg_orders', JSON.stringify(orderHistory));
-                
-                return true;
-                
-            } catch (sendError) {
-                console.error('Error sending data via Telegram WebApp:', sendError);
-                
-                const message = createOrderMessageForManager(telegramOrderData);
-                const managerUsername = 'Chief_68';
-                const tgLink = 'https://t.me/' + managerUsername + '?text=' + encodeURIComponent(message);
-                
-                window.open(tgLink, '_blank');
-                
-                showSimpleNotification('✅ Заказ оформлен! Нажмите на уведомление для подтверждения', 'success');
-                
-                cart = [];
-                saveCart();
-                closeCart();
-                
-                showOrderSuccessMessage(telegramOrderData);
-                
-                return true;
-            }
-            
-        } else {
-            console.log('Данные заказа для Telegram бота:', telegramOrderData);
-            
-            const message = createOrderMessageForManager(telegramOrderData);
-            const managerUsername = 'Chief_68';
-            const tgLink = 'https://t.me/' + managerUsername + '?text=' + encodeURIComponent(message);
-            
-            showTelegramLinkNotification(telegramOrderData.orderNumber, tgLink);
-            
-            cart = [];
-            saveCart();
-            closeCart();
-            
-            return true;
-        }
-
-    } catch (error) {
-        console.error('Ошибка при отправке заказа в Telegram бота:', error);
-        showSimpleNotification('❌ Ошибка при отправке заказа. Попробуйте снова.', 'error');
-        return false;
-    }
-}
-
 async function notifyManager(orderData) {
     try {
-        const message = createOrderMessageForManager(orderData);
-        const managerUsername = 'Chief_68';
-        const tgLink = 'https://t.me/' + managerUsername + '?text=' + encodeURIComponent(message);
+        let message = '**НОВЫЙ ЗАКАЗ #' + orderData.orderNumber + '**\n\n';
         
-        if (tg && tg.sendData) {
+        message += '👤 **Покупатель:**\n';
+        
+        if (orderData.user && orderData.user.id) {
+            message += 'ID: ' + orderData.user.id + '\n';
+        } else {
+            message += 'ID: Не указан\n';
+        }
+        
+        if (orderData.user && orderData.user.username) {
+            message += '@' + orderData.user.username + '\n';
+        } else {
+            message += '@ Не указан\n';
+        }
+        
+        if (orderData.user && orderData.user.first_name) {
+            message += '**Имя:** ' + orderData.user.first_name + '\n';
+        } else {
+            message += 'Имя: Не указано\n';
+        }
+        
+        if (orderData.user && orderData.user.phone) {
+            message += '📞 **Номер телефона клиента:** ' + orderData.user.phone + '\n';
+        } else {
+            message += '📞 **Номер телефона клиента:** Не указан\n';
+        }
+        
+        message += '\n📅 **Дата:** ' + new Date(orderData.timestamp).toLocaleString('ru-RU') + '\n';
+        
+        message += '\n🛒 **Товары:**\n';
+        orderData.products.forEach(function(item, index) {
+            message += (index + 1) + '. ' + item.name + '\n';
+            message += '   Кол-во: ' + item.quantity + ' шт.\n';
+            message += '   Цена: ' + item.price + ' руб./шт.\n';
+            message += '   Сумма: ' + (item.price * item.quantity) + ' руб.\n\n';
+        });
+        
+        message += '💰 *ИТОГО:*\n';
+        message += 'Товаров: ' + orderData.items_count + ' шт.\n';
+        message += 'Сумма заказа: *' + orderData.total + ' руб.*\n\n';
+        
+        message += '⚡️ *Статус:* Ожидает обработки\n';
+        message += '🔗 Для связи: @Chief_68\n\n';
+        message += '📋 *Номер заказа:* #' + orderData.orderNumber;
+        
+        const managerUsername = 'Chief_68';
+        
+        const simpleMessage = 'Здравствуйте! У меня оформлен заказ #' + orderData.orderNumber + 
+                              ' на сумму ' + orderData.total + ' руб.\n\n' +
+                              'Товары:\n' + orderData.products.map((item, idx) => 
+                                  `${idx+1}. ${item.name} × ${item.quantity} шт. = ${item.price * item.quantity} руб.`
+                              ).join('\n') +
+                              '\n\nПрошу подтвердить заказ и уточнить детали доставки.';
+        
+        if (window.Telegram && window.Telegram.WebApp) {
             try {
-                tg.sendData(JSON.stringify({
-                    type: 'order',
-                    orderNumber: orderData.orderNumber,
-                    total: orderData.total,
-                    items: orderData.items_count,
-                    timestamp: orderData.timestamp
-                }));
+                const tg = window.Telegram.WebApp;
+                
+                if (tg.showPopup) {
+                    tg.showPopup({
+                        title: 'Заказ оформлен!',
+                        message: `Номер заказа: #${orderData.orderNumber}\n\nНажмите "Написать менеджеру" для подтверждения`,
+                        buttons: [{
+                            type: 'default',
+                            text: 'Написать менеджеру',
+                            id: 'contact_manager'
+                        }, {
+                            type: 'cancel',
+                            text: 'Закрыть',
+                            id: 'close'
+                        }]
+                    }, function(buttonId) {
+                        if (buttonId === 'contact_manager') {
+                            const tgLink = 'https://t.me/' + managerUsername + '?text=' + encodeURIComponent(simpleMessage);
+                            
+                            if (tg.openLink) {
+                                tg.openLink(tgLink);
+                            } else {
+                                window.open(tgLink, '_blank');
+                            }
+                        }
+                    });
+                }
+                
+                if (tg.sendData) {
+                    tg.sendData(JSON.stringify({
+                        type: 'order',
+                        orderNumber: orderData.orderNumber,
+                        total: orderData.total,
+                        items: orderData.items_count,
+                        timestamp: orderData.timestamp
+                    }));
+                }
+                
             } catch (tgError) {
-                console.log('Telegram sendData error, using link:', tgError);
+                console.log('Telegram API error, using fallback:', tgError);
             }
         }
         
-        window.open(tgLink, '_blank');
+        try {
+            const tgLink = 'https://t.me/' + managerUsername + '?text=' + encodeURIComponent(message);
+            
+            window.open(tgLink, '_blank');
+            
+            if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+                showIOSNotification(orderData.orderNumber, tgLink);
+            }
+            
+        } catch (linkError) {
+            console.log('Link opening error:', linkError);
+        }
         
         showContactButton(orderData.orderNumber);
         
@@ -2343,6 +2066,46 @@ async function notifyManager(orderData) {
         console.error('Error notifying manager:', error);
         return false;
     }
+}
+
+function showIOSNotification(orderNumber, tgLink) {
+    const notification = document.createElement('div');
+    notification.className = 'ios-notification';
+    notification.innerHTML = `
+        <div class="ios-notification-content">
+            <div class="ios-notification-header">
+                <i class="fas fa-mobile-alt"></i>
+                <h3>iOS инструкция</h3>
+            </div>
+            <div class="ios-notification-body">
+                <p>Для подтверждения заказа <strong>#${orderNumber}</strong>:</p>
+                <ol>
+                    <li>Нажмите кнопку "Открыть Telegram"</li>
+                    <li>Нажмите "Send" в открывшемся окне</li>
+                    <li>Ожидайте ответа от менеджера</li>
+                </ol>
+            </div>
+            <div class="ios-notification-footer">
+                <button class="ios-open-tg" onclick="window.open('${tgLink}', '_blank')">
+                    <i class="fab fa-telegram"></i> Открыть Telegram
+                </button>
+                <button class="ios-copy-number" onclick="navigator.clipboard.writeText('#${orderNumber}')">
+                    <i class="fas fa-copy"></i> Копировать номер
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.classList.add('show');
+    }, 100);
+    
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 300);
+    }, 30000);
 }
 
 function showContactButton(orderNumber) {
@@ -2523,372 +2286,6 @@ function openManagerChat(orderNumber) {
     }
 }
 
-function showOrderSuccessMessage(orderData) {
-    const successModal = document.createElement('div');
-    successModal.className = 'order-success-modal';
-    successModal.innerHTML = `
-        <div class="order-success-content">
-            <div class="order-success-header">
-                <div class="success-icon">✅</div>
-                <h2>Заказ оформлен!</h2>
-            </div>
-            <div class="order-success-body">
-                <div class="order-success-number">
-                    <i class="fas fa-hashtag"></i>
-                    <span>Номер заказа: <strong>#${orderData.orderNumber}</strong></span>
-                </div>
-                
-                <div class="order-success-summary">
-                    <div class="summary-item">
-                        <i class="fas fa-box"></i>
-                        <div>
-                            <div class="summary-label">Товаров</div>
-                            <div class="summary-value">${orderData.items_count} шт.</div>
-                        </div>
-                    </div>
-                    <div class="summary-item">
-                        <i class="fas fa-ruble-sign"></i>
-                        <div>
-                            <div class="summary-label">Сумма заказа</div>
-                            <div class="summary-value">${orderData.total} руб.</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="order-success-details">
-                    <h3><i class="fas fa-list"></i> Детали заказа:</h3>
-                    <div class="order-products-list">
-                        ${orderData.products.map((item, index) => `
-                            <div class="order-product-item">
-                                <div class="product-number">${index + 1}</div>
-                                <div class="product-name">${item.name}</div>
-                                <div class="product-quantity">× ${item.quantity}</div>
-                                <div class="product-total">${item.price * item.quantity} руб.</div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-                
-                <div class="order-success-instructions">
-                    <div class="instruction-item">
-                        <i class="fas fa-info-circle"></i>
-                        <p>Сохраните номер заказа для связи с администратором</p>
-                    </div>
-                    <div class="instruction-item">
-                        <i class="fas fa-clock"></i>
-                        <p>Администратор свяжется с вами для подтверждения заказа</p>
-                    </div>
-                    ${userPhoneNumber ? `
-                    <div class="instruction-item">
-                        <i class="fas fa-phone"></i>
-                        <p>Мы свяжемся с вами по номеру: ${formatPhoneNumber(userPhoneNumber)}</p>
-                    </div>
-                    ` : ''}
-                </div>
-            </div>
-            <div class="order-success-footer">
-                <button class="close-success-modal">
-                    <i class="fas fa-times"></i> Закрыть
-                </button>
-                <button class="contact-admin-btn" onclick="openManagerChat('${orderData.orderNumber}')">
-                    <i class="fab fa-telegram"></i> Написать администратору
-                </button>
-            </div>
-        </div>
-    `;
-    
-    document.body.appendChild(successModal);
-    
-    const style = document.createElement('style');
-    style.textContent = `
-        .order-success-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 10000;
-            opacity: 0;
-            animation: fadeIn 0.3s forwards;
-        }
-        
-        @keyframes fadeIn {
-            to { opacity: 1; }
-        }
-        
-        .order-success-content {
-            background: white;
-            border-radius: 20px;
-            width: 90%;
-            max-width: 500px;
-            max-height: 80vh;
-            overflow-y: auto;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            transform: translateY(20px);
-            animation: slideUp 0.3s forwards;
-        }
-        
-        @keyframes slideUp {
-            to { transform: translateY(0); }
-        }
-        
-        .order-success-header {
-            background: linear-gradient(135deg, #4CAF50, #2E7D32);
-            color: white;
-            padding: 30px 20px;
-            text-align: center;
-            border-radius: 20px 20px 0 0;
-        }
-        
-        .success-icon {
-            font-size: 60px;
-            margin-bottom: 15px;
-            animation: bounce 1s;
-        }
-        
-        @keyframes bounce {
-            0%, 20%, 60%, 100% { transform: translateY(0); }
-            40% { transform: translateY(-20px); }
-            80% { transform: translateY(-10px); }
-        }
-        
-        .order-success-header h2 {
-            margin: 0;
-            font-size: 24px;
-            font-weight: bold;
-        }
-        
-        .order-success-body {
-            padding: 20px;
-        }
-        
-        .order-success-number {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 20px;
-            font-size: 18px;
-        }
-        
-        .order-success-number i {
-            color: #FF9800;
-            font-size: 20px;
-        }
-        
-        .order-success-summary {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-        
-        .summary-item {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        
-        .summary-item i {
-            font-size: 24px;
-            color: #2196F3;
-        }
-        
-        .summary-label {
-            font-size: 12px;
-            color: #666;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .summary-value {
-            font-size: 18px;
-            font-weight: bold;
-            color: #333;
-        }
-        
-        .order-success-details {
-            margin-bottom: 20px;
-        }
-        
-        .order-success-details h3 {
-            color: #333;
-            margin-bottom: 15px;
-            font-size: 18px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .order-products-list {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 15px;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-        
-        .order-product-item {
-            display: grid;
-            grid-template-columns: 30px 1fr auto auto;
-            gap: 10px;
-            padding: 10px 0;
-            border-bottom: 1px solid #e0e0e0;
-            align-items: center;
-        }
-        
-        .order-product-item:last-child {
-            border-bottom: none;
-        }
-        
-        .product-number {
-            background: #2196F3;
-            color: white;
-            width: 25px;
-            height: 25px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            font-weight: bold;
-        }
-        
-        .product-name {
-            font-size: 14px;
-            color: #333;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        
-        .product-quantity {
-            color: #666;
-            font-size: 14px;
-            white-space: nowrap;
-        }
-        
-        .product-total {
-            color: #4CAF50;
-            font-weight: bold;
-            font-size: 14px;
-            white-space: nowrap;
-        }
-        
-        .order-success-instructions {
-            background: #E8F5E9;
-            border-left: 4px solid #4CAF50;
-            padding: 15px;
-            border-radius: 8px;
-        }
-        
-        .instruction-item {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
-            align-items: flex-start;
-        }
-        
-        .instruction-item:last-child {
-            margin-bottom: 0;
-        }
-        
-        .instruction-item i {
-            color: #4CAF50;
-            margin-top: 3px;
-        }
-        
-        .instruction-item p {
-            margin: 0;
-            font-size: 14px;
-            color: #333;
-            line-height: 1.4;
-        }
-        
-        .order-success-footer {
-            display: flex;
-            gap: 10px;
-            padding: 20px;
-            border-top: 1px solid #e0e0e0;
-        }
-        
-        .close-success-modal {
-            flex: 1;
-            background: #f8f9fa;
-            color: #666;
-            border: none;
-            padding: 15px;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: all 0.3s;
-        }
-        
-        .close-success-modal:hover {
-            background: #e9ecef;
-        }
-        
-        .contact-admin-btn {
-            flex: 2;
-            background: linear-gradient(135deg, #0088cc, #006699);
-            color: white;
-            border: none;
-            padding: 15px;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: all 0.3s;
-        }
-        
-        .contact-admin-btn:hover {
-            background: linear-gradient(135deg, #006699, #004466);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 102, 153, 0.3);
-        }
-    `;
-    document.head.appendChild(style);
-    
-    const closeBtn = successModal.querySelector('.close-success-modal');
-    closeBtn.addEventListener('click', function() {
-        successModal.style.opacity = '0';
-        successModal.style.transform = 'translateY(20px)';
-        setTimeout(() => {
-            successModal.remove();
-            style.remove();
-        }, 300);
-    });
-    
-    setTimeout(() => {
-        if (document.body.contains(successModal)) {
-            successModal.style.opacity = '0';
-            successModal.style.transform = 'translateY(20px)';
-            setTimeout(() => {
-                successModal.remove();
-                style.remove();
-            }, 300);
-        }
-    }, 30000);
-}
-
 async function checkout() {
     if (cart.length === 0) return;
     
@@ -2958,7 +2355,7 @@ async function checkout() {
     
     saveCart();
     
-    sendOrderToTelegramBot(orderData);
+    showPhoneConfirmationModal(orderData);
 }
 
 function openFavorites() {
@@ -3126,6 +2523,7 @@ function initSearch() {
     
     let searchTimeout = null;
     
+    // Функция поиска с подсветкой
     function highlightText(text, query) {
         if (!query) return text;
         
@@ -3133,6 +2531,7 @@ function initSearch() {
         return text.replace(regex, '<span class="search-highlight">$1</span>');
     }
     
+    // Функция выполнения поиска
     function performSearch(query) {
         if (!query || query.length < 2) {
             searchResults.style.display = 'none';
@@ -3142,6 +2541,7 @@ function initSearch() {
         searchResults.innerHTML = '<div class="search-loading"><i class="fas fa-spinner"></i> Поиск...</div>';
         searchResults.style.display = 'block';
         
+        // Задержка для оптимизации
         clearTimeout(searchTimeout);
         searchTimeout = setTimeout(() => {
             const searchQuery = query.toLowerCase().trim();
@@ -3154,6 +2554,7 @@ function initSearch() {
         }, 300);
     }
     
+    // Отображение результатов поиска
     function displaySearchResults(results, query) {
         if (results.length === 0) {
             searchResults.innerHTML = `
@@ -3192,6 +2593,7 @@ function initSearch() {
         }).join('');
     }
     
+    // Обработчики событий
     searchInput.addEventListener('input', (e) => {
         const query = e.target.value;
         searchClear.style.display = query.length > 0 ? 'flex' : 'none';
@@ -3211,12 +2613,14 @@ function initSearch() {
         searchInput.focus();
     });
     
+    // Закрытие результатов поиска при клике вне
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.search-container')) {
             searchResults.style.display = 'none';
         }
     });
     
+    // Показать результаты при фокусе, если есть текст
     searchInput.addEventListener('focus', () => {
         if (searchInput.value.length >= 2) {
             performSearch(searchInput.value);
@@ -3224,12 +2628,13 @@ function initSearch() {
     });
 }
 
+// Функция добавления в корзину из поиска
 window.addToCartFromSearch = function(productId, buttonElement) {
     const product = products.find(p => p.id === productId);
     if (!product) return;
     
     if (product.quantity <= 0) {
-        showSimpleNotification('Товар временно отсутствует', 'error');
+        showNotification('Товар временно отсутствует', 'error');
         return;
     }
     
@@ -3245,8 +2650,36 @@ window.addToCartFromSearch = function(productId, buttonElement) {
             buttonElement.style.background = '';
         }, 1000);
     } else {
-        showSimpleNotification('Товар добавлен в корзину', 'success');
+        showNotification('Товар добавлен в корзину', 'success');
     }
+};
+
+// Уведомления
+function showNotification(message, type = 'success') {
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+        ${message}
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.classList.add('show');
+    }, 100);
+    
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
+// Обновленная функция инициализации
+const originalInitApp = initApp;
+initApp = async function() {
+    await originalInitApp();
+    initSearch();
 };
 
 async function initApp() {
@@ -3289,8 +2722,6 @@ async function initApp() {
     window.switchCategory = switchCategory;
     window.switchSubCategory = switchSubCategory;
     window.openManagerChat = openManagerChat;
-    window.sendOrderToTelegramBot = sendOrderToTelegramBot;
-    window.showOrderSuccessMessage = showOrderSuccessMessage;
     
     window.toggleFavorite = toggleFavorite;
     window.removeFromFavorites = removeFromFavorites;
@@ -3302,7 +2733,6 @@ async function initApp() {
     
     initCategoriesScroll();
     initKeyboardNavigation();
-    initSearch();
     
     setTimeout(function() {
         const loader = document.getElementById('loader');
@@ -3324,3 +2754,4 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
+
