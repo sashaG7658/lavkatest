@@ -1,3 +1,5 @@
+[file name]: script (3).js
+[file content begin]
 let currentTheme = 'light';
 let tg = null;
 let products = [];
@@ -13,6 +15,12 @@ let pendingCategoryId = null;
 let userPhoneNumber = null;
 let pendingOrderData = null;
 let isAddingToCart = false;
+
+// Новые переменные для доставки
+let deliveryMethod = 'pickup'; // 'pickup' или 'delivery'
+let deliveryAddress = '';
+let deliveryTime = '';
+let deliveryNotes = '';
 
 function detectTheme() {
     try {
@@ -1240,6 +1248,275 @@ function renderProductsByCategory() {
     }).join('');
 }
 
+// Функции для работы с доставкой
+function loadDeliveryInfo() {
+    try {
+        const savedMethod = localStorage.getItem('iceberg_delivery_method');
+        const savedAddress = localStorage.getItem('iceberg_delivery_address');
+        const savedTime = localStorage.getItem('iceberg_delivery_time');
+        const savedNotes = localStorage.getItem('iceberg_delivery_notes');
+        
+        deliveryMethod = savedMethod || 'pickup';
+        deliveryAddress = savedAddress || '';
+        deliveryTime = savedTime || '';
+        deliveryNotes = savedNotes || '';
+        
+        return true;
+    } catch (error) {
+        console.error('Error loading delivery info:', error);
+        deliveryMethod = 'pickup';
+        deliveryAddress = '';
+        deliveryTime = '';
+        deliveryNotes = '';
+        return false;
+    }
+}
+
+function saveDeliveryInfo() {
+    try {
+        localStorage.setItem('iceberg_delivery_method', deliveryMethod);
+        localStorage.setItem('iceberg_delivery_address', deliveryAddress);
+        localStorage.setItem('iceberg_delivery_time', deliveryTime);
+        localStorage.setItem('iceberg_delivery_notes', deliveryNotes);
+        return true;
+    } catch (error) {
+        console.error('Error saving delivery info:', error);
+        return false;
+    }
+}
+
+function changeDeliveryMethod(method) {
+    deliveryMethod = method;
+    saveDeliveryInfo();
+    
+    // Обновляем UI переключателя
+    document.querySelectorAll('.delivery-method-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('data-method') === method) {
+            btn.classList.add('active');
+        }
+    });
+    
+    // Показываем/скрываем поля для доставки
+    const deliveryFields = document.getElementById('deliveryFields');
+    if (deliveryFields) {
+        deliveryFields.style.display = method === 'delivery' ? 'block' : 'none';
+    }
+    
+    return method;
+}
+
+function updateDeliveryFields() {
+    const addressInput = document.getElementById('deliveryAddress');
+    const timeInput = document.getElementById('deliveryTime');
+    const notesInput = document.getElementById('deliveryNotes');
+    
+    if (addressInput) addressInput.value = deliveryAddress;
+    if (timeInput) timeInput.value = deliveryTime;
+    if (notesInput) notesInput.value = deliveryNotes;
+}
+
+function validateDeliveryInfo() {
+    if (deliveryMethod === 'pickup') {
+        return { isValid: true, error: '' };
+    }
+    
+    if (deliveryMethod === 'delivery') {
+        if (!deliveryAddress.trim()) {
+            return { isValid: false, error: 'Укажите адрес доставки' };
+        }
+        if (!deliveryTime.trim()) {
+            return { isValid: false, error: 'Укажите время доставки' };
+        }
+        return { isValid: true, error: '' };
+    }
+    
+    return { isValid: true, error: '' };
+}
+
+function showDeliveryMethodModal() {
+    const modal = document.createElement('div');
+    modal.className = 'delivery-method-modal';
+    modal.innerHTML = `
+        <div class="delivery-method-content">
+            <div class="delivery-method-header">
+                <i class="fas fa-truck"></i>
+                <h2>Способ получения</h2>
+            </div>
+            <div class="delivery-method-body">
+                <div class="delivery-method-selection">
+                    <button class="delivery-method-btn ${deliveryMethod === 'pickup' ? 'active' : ''}" 
+                            data-method="pickup"
+                            onclick="changeDeliveryMethod('pickup')">
+                        <i class="fas fa-store"></i>
+                        <span>Самовывоз</span>
+                        <p class="method-description">Забрать заказ самостоятельно</p>
+                    </button>
+                    <button class="delivery-method-btn ${deliveryMethod === 'delivery' ? 'active' : ''}" 
+                            data-method="delivery"
+                            onclick="changeDeliveryMethod('delivery')">
+                        <i class="fas fa-motorcycle"></i>
+                        <span>Доставка</span>
+                        <p class="method-description">Курьерская доставка</p>
+                    </button>
+                </div>
+                
+                <div id="deliveryFields" class="delivery-fields" style="display: ${deliveryMethod === 'delivery' ? 'block' : 'none'};">
+                    <div class="delivery-field-group">
+                        <label for="deliveryAddress">
+                            <i class="fas fa-map-marker-alt"></i>
+                            Адрес доставки:
+                        </label>
+                        <textarea id="deliveryAddress" 
+                                  class="delivery-textarea" 
+                                  placeholder="Укажите полный адрес доставки (улица, дом, квартира, подъезд, этаж)"
+                                  rows="3">${deliveryAddress}</textarea>
+                    </div>
+                    
+                    <div class="delivery-field-group">
+                        <label for="deliveryTime">
+                            <i class="fas fa-clock"></i>
+                            Удобное время доставки:
+                        </label>
+                        <input type="text" 
+                               id="deliveryTime" 
+                               class="delivery-input" 
+                               placeholder="Например: 18:00-20:00 или 'после 19:00'"
+                               value="${deliveryTime}">
+                    </div>
+                    
+                    <div class="delivery-field-group">
+                        <label for="deliveryNotes">
+                            <i class="fas fa-sticky-note"></i>
+                            Дополнительные пожелания:
+                        </label>
+                        <textarea id="deliveryNotes" 
+                                  class="delivery-textarea" 
+                                  placeholder="Комментарий для курьера, особенности доставки и т.д."
+                                  rows="2">${deliveryNotes}</textarea>
+                    </div>
+                </div>
+                
+                <div id="deliveryError" class="delivery-validation-error" style="display: none;">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span id="deliveryErrorMessage"></span>
+                </div>
+            </div>
+            <div class="delivery-method-footer">
+                <button id="confirmDeliveryBtn" class="confirm-delivery-btn">
+                    <i class="fas fa-check"></i> Подтвердить
+                </button>
+                <button id="cancelDeliveryBtn" class="cancel-delivery-btn">
+                    <i class="fas fa-times"></i> Отмена
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    const deliveryAddressInput = document.getElementById('deliveryAddress');
+    const deliveryTimeInput = document.getElementById('deliveryTime');
+    const deliveryNotesInput = document.getElementById('deliveryNotes');
+    const deliveryError = document.getElementById('deliveryError');
+    
+    // Обновляем данные при изменении полей
+    if (deliveryAddressInput) {
+        deliveryAddressInput.addEventListener('input', function(e) {
+            deliveryAddress = e.target.value;
+        });
+    }
+    
+    if (deliveryTimeInput) {
+        deliveryTimeInput.addEventListener('input', function(e) {
+            deliveryTime = e.target.value;
+        });
+    }
+    
+    if (deliveryNotesInput) {
+        deliveryNotesInput.addEventListener('input', function(e) {
+            deliveryNotes = e.target.value;
+        });
+    }
+    
+    // Подтверждение выбора
+    document.getElementById('confirmDeliveryBtn').addEventListener('click', function() {
+        const validation = validateDeliveryInfo();
+        
+        if (!validation.isValid) {
+            deliveryError.style.display = 'flex';
+            document.getElementById('deliveryErrorMessage').textContent = validation.error;
+            
+            // Прокручиваем к ошибке
+            deliveryError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
+        
+        saveDeliveryInfo();
+        
+        // Показываем выбранный метод в корзине
+        updateDeliveryUIInCart();
+        
+        modal.style.opacity = '0';
+        setTimeout(() => modal.remove(), 300);
+    });
+    
+    // Отмена
+    document.getElementById('cancelDeliveryBtn').addEventListener('click', function() {
+        modal.style.opacity = '0';
+        setTimeout(() => modal.remove(), 300);
+    });
+    
+    // Закрытие по клику вне модалки
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            modal.style.opacity = '0';
+            setTimeout(() => modal.remove(), 300);
+        }
+    });
+    
+    // Закрытие по Escape
+    document.addEventListener('keydown', function closeOnEscape(e) {
+        if (e.key === 'Escape') {
+            modal.style.opacity = '0';
+            setTimeout(() => {
+                modal.remove();
+                document.removeEventListener('keydown', closeOnEscape);
+            }, 300);
+        }
+    });
+    
+    return modal;
+}
+
+function updateDeliveryUIInCart() {
+    const deliveryMethodDisplay = document.getElementById('deliveryMethodDisplay');
+    const changeDeliveryBtn = document.getElementById('changeDeliveryButton');
+    
+    if (deliveryMethodDisplay) {
+        if (deliveryMethod === 'pickup') {
+            deliveryMethodDisplay.innerHTML = `
+                <i class="fas fa-store"></i>
+                <span>Самовывоз</span>
+                <small>Забрать самостоятельно</small>
+            `;
+        } else {
+            deliveryMethodDisplay.innerHTML = `
+                <i class="fas fa-motorcycle"></i>
+                <span>Доставка</span>
+                <small>${deliveryAddress ? 'Адрес: ' + deliveryAddress.substring(0, 30) + '...' : 'Адрес указан'}</small>
+            `;
+        }
+    }
+    
+    if (changeDeliveryBtn) {
+        changeDeliveryBtn.innerHTML = `
+            <i class="fas fa-edit"></i>
+            Изменить способ
+        `;
+    }
+}
+
 function loadPhoneNumber() {
     try {
         const savedPhone = localStorage.getItem('iceberg_phone');
@@ -1307,6 +1584,34 @@ function showPhoneConfirmationModal(orderData) {
                 <h2>Подтвердите номер телефона</h2>
             </div>
             <div class="phone-confirmation-body">
+                <div class="delivery-method-section">
+                    <h3><i class="fas fa-truck"></i> Способ получения:</h3>
+                    <div class="delivery-summary">
+                        ${deliveryMethod === 'pickup' ? `
+                            <div class="delivery-summary-item pickup">
+                                <i class="fas fa-store"></i>
+                                <div>
+                                    <strong>Самовывоз</strong>
+                                    <p>Забрать заказ самостоятельно</p>
+                                </div>
+                            </div>
+                        ` : `
+                            <div class="delivery-summary-item delivery">
+                                <i class="fas fa-motorcycle"></i>
+                                <div>
+                                    <strong>Доставка</strong>
+                                    <p><strong>Адрес:</strong> ${deliveryAddress || 'Не указан'}</p>
+                                    <p><strong>Время:</strong> ${deliveryTime || 'Не указано'}</p>
+                                    ${deliveryNotes ? `<p><strong>Комментарий:</strong> ${deliveryNotes}</p>` : ''}
+                                </div>
+                            </div>
+                        `}
+                        <button class="change-delivery-method-btn" onclick="showDeliveryMethodModal()">
+                            <i class="fas fa-edit"></i> Изменить способ
+                        </button>
+                    </div>
+                </div>
+                
                 <div class="phone-input-group">
                     <label for="phoneInput">Номер телефона для связи:</label>
                     <div class="phone-input-wrapper">
@@ -1388,12 +1693,29 @@ function showPhoneConfirmationModal(orderData) {
             return;
         }
         
+        // Проверяем данные доставки
+        const deliveryValidation = validateDeliveryInfo();
+        if (!deliveryValidation.isValid) {
+            showNotification(deliveryValidation.error, 'error');
+            modal.style.opacity = '0';
+            setTimeout(() => {
+                modal.remove();
+                showDeliveryMethodModal();
+            }, 300);
+            return;
+        }
+        
         savePhoneNumber(validatedPhone);
         
         modal.style.opacity = '0';
         setTimeout(() => modal.remove(), 300);
         
         pendingOrderData.userPhone = validatedPhone;
+        pendingOrderData.deliveryMethod = deliveryMethod;
+        pendingOrderData.deliveryAddress = deliveryMethod === 'delivery' ? deliveryAddress : null;
+        pendingOrderData.deliveryTime = deliveryMethod === 'delivery' ? deliveryTime : null;
+        pendingOrderData.deliveryNotes = deliveryMethod === 'delivery' ? deliveryNotes : null;
+        
         completeOrderWithPhone(pendingOrderData);
         pendingOrderData = null;
     });
@@ -1442,6 +1764,9 @@ async function completeOrderWithPhone(orderData) {
                 `✅ *Заказ оформлен успешно!*\n\n` +
                 `📋 *Номер заказа:* #${orderData.orderNumber}\n` +
                 `📞 *Ваш телефон:* ${formatPhoneNumber(userPhoneNumber)}\n` +
+                `${orderData.deliveryMethod === 'pickup' ? '🚶 *Способ:* Самовывоз' : '🏍️ *Способ:* Доставка'}\n` +
+                `${orderData.deliveryMethod === 'delivery' && orderData.deliveryAddress ? `📍 *Адрес:* ${orderData.deliveryAddress}\n` : ''}` +
+                `${orderData.deliveryMethod === 'delivery' && orderData.deliveryTime ? `⏰ *Время:* ${orderData.deliveryTime}\n` : ''}` +
                 `📦 Товаров: ${orderData.items_count} шт.\n` +
                 `💰 Сумма: ${orderData.total} руб.\n\n` +
                 `👤 *Менеджер свяжется с вами в ближайшее время*\n` +
@@ -1649,6 +1974,12 @@ function updateCartUI() {
         `;
         checkoutBtn.disabled = true;
         checkoutBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Оформить заказ';
+        
+        // Скрываем секцию доставки если корзина пуста
+        const deliverySection = document.querySelector('.delivery-section');
+        if (deliverySection) {
+            deliverySection.style.display = 'none';
+        }
     } else {
         cartItems.innerHTML = cart.map(function(item) {
             const product = products.find(function(p) { return p.id === item.id; });
@@ -1686,6 +2017,13 @@ function updateCartUI() {
         
         const total = getCartTotal();
         checkoutBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Оформить заказ (' + total + ' ₽)';
+        
+        // Показываем секцию доставки
+        const deliverySection = document.querySelector('.delivery-section');
+        if (deliverySection) {
+            deliverySection.style.display = 'block';
+            updateDeliveryUIInCart();
+        }
     }
 
     totalPrice.textContent = getCartTotal();
@@ -1973,6 +2311,16 @@ async function notifyManager(orderData) {
             message += '📞 **Номер телефона клиента:** Не указан\n';
         }
         
+        message += '\n🚚 **Способ получения:** ' + (orderData.deliveryMethod === 'pickup' ? 'Самовывоз' : 'Доставка') + '\n';
+        
+        if (orderData.deliveryMethod === 'delivery') {
+            message += '📍 **Адрес доставки:** ' + (orderData.deliveryAddress || 'Не указан') + '\n';
+            message += '⏰ **Время доставки:** ' + (orderData.deliveryTime || 'Не указано') + '\n';
+            if (orderData.deliveryNotes) {
+                message += '📝 **Комментарий:** ' + orderData.deliveryNotes + '\n';
+            }
+        }
+        
         message += '\n📅 **Дата:** ' + new Date(orderData.timestamp).toLocaleString('ru-RU') + '\n';
         
         message += '\n🛒 **Товары:**\n';
@@ -1995,6 +2343,9 @@ async function notifyManager(orderData) {
         
         const simpleMessage = 'Здравствуйте! У меня оформлен заказ #' + orderData.orderNumber + 
                               ' на сумму ' + orderData.total + ' руб.\n\n' +
+                              'Способ получения: ' + (orderData.deliveryMethod === 'pickup' ? 'Самовывоз' : 'Доставка') + '\n' +
+                              (orderData.deliveryMethod === 'delivery' ? 'Адрес: ' + orderData.deliveryAddress + '\n' : '') +
+                              (orderData.deliveryMethod === 'delivery' ? 'Время: ' + orderData.deliveryTime + '\n' : '') +
                               'Товары:\n' + orderData.products.map((item, idx) => 
                                   `${idx+1}. ${item.name} × ${item.quantity} шт. = ${item.price * item.quantity} руб.`
                               ).join('\n') +
@@ -2036,7 +2387,8 @@ async function notifyManager(orderData) {
                         orderNumber: orderData.orderNumber,
                         total: orderData.total,
                         items: orderData.items_count,
-                        timestamp: orderData.timestamp
+                        timestamp: orderData.timestamp,
+                        deliveryMethod: orderData.deliveryMethod
                     }));
                 }
                 
@@ -2154,6 +2506,10 @@ function showOrderConfirmationModal(orderData, orderNumber) {
                         <i class="fas fa-clock"></i>
                         <span>Время: ${new Date(orderData.timestamp).toLocaleTimeString('ru-RU')}</span>
                     </div>
+                    <div class="order-summary-item">
+                        <i class="${orderData.deliveryMethod === 'pickup' ? 'fas fa-store' : 'fas fa-motorcycle'}"></i>
+                        <span>Способ: ${orderData.deliveryMethod === 'pickup' ? 'Самовывоз' : 'Доставка'}</span>
+                    </div>
                     ${userPhoneNumber ? `
                     <div class="order-summary-item">
                         <i class="fas fa-phone"></i>
@@ -2161,6 +2517,16 @@ function showOrderConfirmationModal(orderData, orderNumber) {
                     </div>
                     ` : ''}
                 </div>
+                ${orderData.deliveryMethod === 'delivery' ? `
+                <div class="delivery-details">
+                    <h3>Детали доставки:</h3>
+                    <div class="delivery-info">
+                        <p><strong>Адрес:</strong> ${orderData.deliveryAddress || 'Не указан'}</p>
+                        <p><strong>Время:</strong> ${orderData.deliveryTime || 'Не указано'}</p>
+                        ${orderData.deliveryNotes ? `<p><strong>Комментарий:</strong> ${orderData.deliveryNotes}</p>` : ''}
+                    </div>
+                </div>
+                ` : ''}
                 <div class="order-products">
                     <h3>Состав заказа:</h3>
                     <ul>
@@ -2173,6 +2539,7 @@ function showOrderConfirmationModal(orderData, orderNumber) {
                 </div>
                 <div class="order-instructions">
                     <p><i class="fas fa-info-circle"></i> Сохраните номер заказа для связи с менеджером</p>
+                    <p><i class="fas fa-truck"></i> ${orderData.deliveryMethod === 'pickup' ? 'Самовывоз - забирайте заказ самостоятельно' : 'Доставка - курьер свяжется с вами'}</p>
                 </div>
             </div>
             <div class="order-confirmation-footer">
@@ -2261,7 +2628,10 @@ function openManagerChat(orderNumber) {
                    'Имя: \n' +
                    'Фамилия: \n' +
                    '📞 *Номер телефона клиента:* ' + (userPhoneNumber || 'Не указан') + '\n\n' +
-                   '📅 *Дата:* ' + new Date().toLocaleString('ru-RU') + '\n\n' +
+                   '🚚 *Способ получения:* ' + (deliveryMethod === 'pickup' ? 'Самовывоз' : 'Доставка') + '\n' +
+                   (deliveryMethod === 'delivery' ? '📍 *Адрес доставки:* ' + (deliveryAddress || 'Не указан') + '\n' : '') +
+                   (deliveryMethod === 'delivery' ? '⏰ *Время доставки:* ' + (deliveryTime || 'Не указано') + '\n' : '') +
+                   '\n📅 *Дата:* ' + new Date().toLocaleString('ru-RU') + '\n\n' +
                    '🛒 *Товары:*\n' +
                    'Заказ #' + orderNumber + '\n\n' +
                    '⚡️ *Статус:* Ожидает обработки\n' +
@@ -2335,6 +2705,10 @@ async function checkout() {
         total: getCartTotal(),
         items_count: getCartCount(),
         timestamp: new Date().toISOString(),
+        deliveryMethod: deliveryMethod,
+        deliveryAddress: deliveryMethod === 'delivery' ? deliveryAddress : null,
+        deliveryTime: deliveryMethod === 'delivery' ? deliveryTime : null,
+        deliveryNotes: deliveryMethod === 'delivery' ? deliveryNotes : null,
         user: tg ? {
             id: tg.initDataUnsafe.user && tg.initDataUnsafe.user.id,
             username: tg.initDataUnsafe.user && tg.initDataUnsafe.user.username,
@@ -2349,11 +2723,28 @@ async function checkout() {
         total: orderData.total,
         items_count: orderData.items_count,
         timestamp: orderData.timestamp,
+        deliveryMethod: orderData.deliveryMethod,
+        deliveryAddress: orderData.deliveryAddress,
+        deliveryTime: orderData.deliveryTime,
+        deliveryNotes: orderData.deliveryNotes,
         user: orderData.user,
         status: 'pending'
     });
     
     saveCart();
+    
+    // Проверяем данные доставки перед показом окна с телефоном
+    const deliveryValidation = validateDeliveryInfo();
+    if (!deliveryValidation.isValid) {
+        showNotification(deliveryValidation.error, 'error');
+        
+        // Показываем модалку выбора способа доставки
+        setTimeout(() => {
+            showDeliveryMethodModal();
+        }, 500);
+        
+        return;
+    }
     
     showPhoneConfirmationModal(orderData);
 }
@@ -2375,6 +2766,9 @@ function openCart() {
     document.getElementById('cartSidebar').classList.add('active');
     document.getElementById('cartOverlay').classList.add('active');
     document.body.style.overflow = 'hidden';
+    
+    // Обновляем UI доставки при открытии корзины
+    updateDeliveryUIInCart();
 }
 
 function closeCart() {
@@ -2675,16 +3069,41 @@ function showNotification(message, type = 'success') {
     }, 3000);
 }
 
-// Обновленная функция инициализации
-const originalInitApp = initApp;
-initApp = async function() {
-    await originalInitApp();
-    initSearch();
-};
+// Функция для админа - кнопка Dostavista
+function addDostavistaButtonForAdmin() {
+    // Проверяем, админ ли это (можно добавить свою логику проверки)
+    const isAdmin = tg && tg.initDataUnsafe && tg.initDataUnsafe.user && 
+                    (tg.initDataUnsafe.user.username === 'Chief_68' || 
+                     tg.initDataUnsafe.user.id === 123456789); // Замените на реальный ID админа
+    
+    if (isAdmin) {
+        const dostavistaBtn = document.createElement('button');
+        dostavistaBtn.className = 'admin-dostavista-btn';
+        dostavistaBtn.innerHTML = `
+            <i class="fas fa-external-link-alt"></i>
+            <span>Dostavista</span>
+        `;
+        dostavistaBtn.onclick = function() {
+            window.open('https://apitest.dostavista.ru/order', '_blank');
+        };
+        
+        // Добавляем кнопку в навигацию
+        const headerNav = document.querySelector('.header-nav');
+        if (headerNav) {
+            headerNav.appendChild(dostavistaBtn);
+        } else {
+            document.body.appendChild(dostavistaBtn);
+        }
+    }
+}
 
+// Обновленная функция инициализации
 async function initApp() {
     detectTheme();
     initTelegram();
+    
+    // Загружаем информацию о доставке
+    loadDeliveryInfo();
     
     await loadAndRenderProducts();
     loadCart();
@@ -2704,6 +3123,27 @@ async function initApp() {
     document.getElementById('cartOverlay').onclick = closeCart;
     document.getElementById('checkoutButton').onclick = checkout;
     document.getElementById('clearCartButton').onclick = clearCart;
+    
+    // Добавляем кнопку выбора способа доставки в корзину
+    const cartFooter = document.querySelector('.cart-footer');
+    if (cartFooter) {
+        const deliverySection = document.createElement('div');
+        deliverySection.className = 'delivery-section';
+        deliverySection.innerHTML = `
+            <div class="delivery-info">
+                <div class="delivery-method-display" id="deliveryMethodDisplay">
+                    <i class="fas fa-store"></i>
+                    <span>Самовывоз</span>
+                    <small>Забрать самостоятельно</small>
+                </div>
+                <button class="change-delivery-btn" id="changeDeliveryButton" onclick="showDeliveryMethodModal()">
+                    <i class="fas fa-edit"></i>
+                    Изменить способ
+                </button>
+            </div>
+        `;
+        cartFooter.insertBefore(deliverySection, cartFooter.firstChild);
+    }
     
     document.getElementById('favoritesButton').onclick = openFavorites;
     document.getElementById('closeFavorites').onclick = closeFavorites;
@@ -2731,8 +3171,16 @@ async function initApp() {
     window.addAllFavoritesToCart = addAllFavoritesToCart;
     window.clearFavorites = clearFavorites;
     
+    // Новые функции для доставки
+    window.showDeliveryMethodModal = showDeliveryMethodModal;
+    window.changeDeliveryMethod = changeDeliveryMethod;
+    
     initCategoriesScroll();
     initKeyboardNavigation();
+    initSearch();
+    
+    // Добавляем кнопку Dostavista для админа
+    addDostavistaButtonForAdmin();
     
     setTimeout(function() {
         const loader = document.getElementById('loader');
@@ -2754,4 +3202,4 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
-
+[file content end]
