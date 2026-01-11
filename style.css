@@ -3467,6 +3467,61 @@ body.dark-theme .search-results {
 .admin-dostavista-btn i {
     font-size: 20px;
 }
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .delivery-method-selection {
+        grid-template-columns: 1fr;
+    }
+    
+    .delivery-method-content {
+        width: 95%;
+    }
+    
+    .delivery-method-footer {
+        flex-direction: column;
+    }
+    
+    .admin-dostavista-btn {
+        bottom: 80px;
+        right: 20px;
+        padding: 12px 20px;
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 480px) {
+    .delivery-info {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .change-delivery-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
 
 
 
