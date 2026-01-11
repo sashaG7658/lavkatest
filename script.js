@@ -1,5 +1,3 @@
-[file name]: script (3).js
-[file content begin]
 let currentTheme = 'light';
 let tg = null;
 let products = [];
@@ -197,31 +195,31 @@ const categories = [
         subCategories: [
             { id: 'ice75s', name: 'ICEBERG STRONG (75 МГ)', keywords: ['strong', '75 мг strong', 'iceberg strong'] },
             { 
-            id: 'icepie75', 
-            name: 'ICEBERG PIE (75 МГ)', 
-            keywords: [
-                'pie',
-                'пирог',
-                'apple pie',
-                'banoffee',
-                'blueberry pie',
-                'cheesecake',
-                'cherry pie',
-                'key lime pie',
-                'яблочный пирог',
-                'баноффи',
-                'черничный пирог',
-                'чизкейк',
-                'вишневый пирог',
-                'лаймовый пирог'
-            ] 
-        },
+                id: 'icepie75', 
+                name: 'ICEBERG PIE (75 МГ)', 
+                keywords: [
+                    'pie',
+                    'пирог',
+                    'apple pie',
+                    'banoffee',
+                    'blueberry pie',
+                    'cheesecake',
+                    'cherry pie',
+                    'key lime pie',
+                    'яблочный пирог',
+                    'баноффи',
+                    'черничный пирог',
+                    'чизкейк',
+                    'вишневый пирог',
+                    'лаймовый пирог'
+                ]
+            },
             { id: 'ice100', name: 'ICEBERG EXTRA STRONG (100 МГ)', keywords: ['extra strong', '100 мг', 'ICEBERG EXTRA'] },
             { id: 'ice110', name: 'ICEBERG EXTREME (110 МГ)', keywords: ['extreme', '110 мг', 'ICEBERG EXTREME'] },
             { id: 'ice150', name: 'ICEBERG ULTRA (150 МГ)', keywords: ['ultra', '150 мг', 'ICEBERG ULTRA'] }
         ]
     },
-   { 
+    { 
         id: 'faff', 
         name: '🐉 FAFF', 
         icon: 'fas fa-dragon', 
@@ -1992,7 +1990,7 @@ function updateCartUI() {
                          alt="${item.name}" 
                          class="cart-item-image"
                          loading="lazy"
-                         onerror="this.src='https://via.placeholder.com/100x100/FF9800/FFFFFF?text=ICEBERG'">
+                         onerror="this.src='https://via.placeholder.com/100x100/FF9800/FFFFFF?text=ICEBERG'}">
                     <div class="cart-item-details">
                         <div class="cart-item-title">${item.name}</div>
                         <div class="cart-item-price">${item.price} руб./шт.</div>
@@ -2177,7 +2175,7 @@ function renderFavoritesItems() {
                          alt="${item.name}" 
                          class="favorite-item-image"
                          loading="lazy"
-                         onerror="this.src='https://via.placeholder.com/100x100/FF9800/FFFFFF?text=ICEBERG'">
+                         onerror="this.src='https://via.placeholder.com/100x100/FF9800/FFFFFF?text=ICEBERG'}">
                     <div class="favorite-item-details">
                         <div class="favorite-item-title">${item.name}</div>
                         <div class="favorite-item-price">${item.price} руб./шт.</div>
@@ -2971,7 +2969,7 @@ function initSearch() {
                          alt="${product.name}" 
                          class="search-result-image"
                          loading="lazy"
-                         onerror="this.src='https://via.placeholder.com/50x50/FF9800/FFFFFF?text=ICEBERG'">
+                         onerror="this.src='https://via.placeholder.com/50x50/FF9800/FFFFFF?text=ICEBERG'}">
                     <div class="search-result-info">
                         <div class="search-result-name">${highlightText(product.name, query)}</div>
                         <div class="search-result-description">${highlightText(product.description || '', query)}</div>
@@ -3202,4 +3200,3 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
-[file content end]
