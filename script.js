@@ -1332,6 +1332,47 @@ function validateDeliveryInfo() {
     return { isValid: true, error: '' };
 }
 
+function updateDeliveryUIInCart() {
+    const deliveryMethodDisplay = document.getElementById('deliveryMethodDisplay');
+    const changeDeliveryBtn = document.getElementById('changeDeliveryButton');
+    const deliverySection = document.querySelector('.delivery-section');
+    
+    // ВСЕГДА показываем секцию доставки, если есть товары в корзине
+    if (deliverySection) {
+        deliverySection.style.display = cart.length > 0 ? 'block' : 'none';
+    }
+    
+    if (deliveryMethodDisplay) {
+        if (deliveryMethod === 'pickup') {
+            deliveryMethodDisplay.innerHTML = `
+                <i class="fas fa-store"></i>
+                <div class="delivery-text-content">
+                    <span class="delivery-method-name">Самовывоз</span>
+                    <small class="delivery-method-description">Забрать самостоятельно</small>
+                </div>
+            `;
+        } else {
+            const shortAddress = deliveryAddress ? 
+                (deliveryAddress.length > 30 ? deliveryAddress.substring(0, 30) + '...' : deliveryAddress) : 
+                'Адрес не указан';
+            deliveryMethodDisplay.innerHTML = `
+                <i class="fas fa-motorcycle"></i>
+                <div class="delivery-text-content">
+                    <span class="delivery-method-name">Доставка</span>
+                    <small class="delivery-method-description">${shortAddress}</small>
+                </div>
+            `;
+        }
+    }
+    
+    if (changeDeliveryBtn) {
+        changeDeliveryBtn.innerHTML = `
+            <i class="fas fa-edit"></i>
+            <span class="change-delivery-text">Изменить способ</span>
+        `;
+    }
+}
+
 function showDeliveryMethodModal() {
     const modal = document.createElement('div');
     modal.className = 'delivery-method-modal';
@@ -1339,7 +1380,7 @@ function showDeliveryMethodModal() {
         <div class="delivery-method-content">
             <div class="delivery-method-header">
                 <i class="fas fa-truck"></i>
-                <h2>Способ получения</h2>
+                <h2 class="delivery-modal-title">Способ получения</h2>
             </div>
             <div class="delivery-method-body">
                 <div class="delivery-method-selection">
@@ -1347,49 +1388,53 @@ function showDeliveryMethodModal() {
                             data-method="pickup"
                             onclick="changeDeliveryMethod('pickup')">
                         <i class="fas fa-store"></i>
-                        <span>Самовывоз</span>
-                        <p class="method-description">Забрать заказ самостоятельно</p>
+                        <div class="method-text-content">
+                            <span class="method-name">Самовывоз</span>
+                            <p class="method-description">Забрать заказ самостоятельно</p>
+                        </div>
                     </button>
                     <button class="delivery-method-btn ${deliveryMethod === 'delivery' ? 'active' : ''}" 
                             data-method="delivery"
                             onclick="changeDeliveryMethod('delivery')">
                         <i class="fas fa-motorcycle"></i>
-                        <span>Доставка</span>
-                        <p class="method-description">Курьерская доставка</p>
+                        <div class="method-text-content">
+                            <span class="method-name">Доставка</span>
+                            <p class="method-description">Курьерская доставка</p>
+                        </div>
                     </button>
                 </div>
                 
                 <div id="deliveryFields" class="delivery-fields" style="display: ${deliveryMethod === 'delivery' ? 'block' : 'none'};">
                     <div class="delivery-field-group">
-                        <label for="deliveryAddress">
+                        <label for="deliveryAddress" class="delivery-label">
                             <i class="fas fa-map-marker-alt"></i>
-                            Адрес доставки:
+                            <span class="label-text">Адрес доставки:</span>
                         </label>
                         <textarea id="deliveryAddress" 
-                                  class="delivery-textarea" 
+                                  class="delivery-textarea delivery-input" 
                                   placeholder="Укажите полный адрес доставки (улица, дом, квартира, подъезд, этаж)"
                                   rows="3">${deliveryAddress}</textarea>
                     </div>
                     
                     <div class="delivery-field-group">
-                        <label for="deliveryTime">
+                        <label for="deliveryTime" class="delivery-label">
                             <i class="fas fa-clock"></i>
-                            Удобное время доставки:
+                            <span class="label-text">Удобное время доставки:</span>
                         </label>
                         <input type="text" 
                                id="deliveryTime" 
-                               class="delivery-input" 
+                               class="delivery-input delivery-input-text" 
                                placeholder="Например: 18:00-20:00 или 'после 19:00'"
                                value="${deliveryTime}">
                     </div>
                     
                     <div class="delivery-field-group">
-                        <label for="deliveryNotes">
+                        <label for="deliveryNotes" class="delivery-label">
                             <i class="fas fa-sticky-note"></i>
-                            Дополнительные пожелания:
+                            <span class="label-text">Дополнительные пожелания:</span>
                         </label>
                         <textarea id="deliveryNotes" 
-                                  class="delivery-textarea" 
+                                  class="delivery-textarea delivery-input" 
                                   placeholder="Комментарий для курьера, особенности доставки и т.д."
                                   rows="2">${deliveryNotes}</textarea>
                     </div>
@@ -1397,15 +1442,15 @@ function showDeliveryMethodModal() {
                 
                 <div id="deliveryError" class="delivery-validation-error" style="display: none;">
                     <i class="fas fa-exclamation-circle"></i>
-                    <span id="deliveryErrorMessage"></span>
+                    <span id="deliveryErrorMessage" class="error-text"></span>
                 </div>
             </div>
             <div class="delivery-method-footer">
                 <button id="confirmDeliveryBtn" class="confirm-delivery-btn">
-                    <i class="fas fa-check"></i> Подтвердить
+                    <i class="fas fa-check"></i> <span class="btn-text">Подтвердить</span>
                 </button>
                 <button id="cancelDeliveryBtn" class="cancel-delivery-btn">
-                    <i class="fas fa-times"></i> Отмена
+                    <i class="fas fa-times"></i> <span class="btn-text">Отмена</span>
                 </button>
             </div>
         </div>
@@ -1413,12 +1458,14 @@ function showDeliveryMethodModal() {
     
     document.body.appendChild(modal);
     
+    // Обновляем поля ввода для темной темы
+    updateDeliveryFieldsForTheme();
+    
     const deliveryAddressInput = document.getElementById('deliveryAddress');
     const deliveryTimeInput = document.getElementById('deliveryTime');
     const deliveryNotesInput = document.getElementById('deliveryNotes');
     const deliveryError = document.getElementById('deliveryError');
     
-    // Обновляем данные при изменении полей
     if (deliveryAddressInput) {
         deliveryAddressInput.addEventListener('input', function(e) {
             deliveryAddress = e.target.value;
@@ -1437,35 +1484,28 @@ function showDeliveryMethodModal() {
         });
     }
     
-    // Подтверждение выбора
     document.getElementById('confirmDeliveryBtn').addEventListener('click', function() {
         const validation = validateDeliveryInfo();
         
         if (!validation.isValid) {
             deliveryError.style.display = 'flex';
             document.getElementById('deliveryErrorMessage').textContent = validation.error;
-            
-            // Прокручиваем к ошибке
             deliveryError.scrollIntoView({ behavior: 'smooth', block: 'center' });
             return;
         }
         
         saveDeliveryInfo();
-        
-        // Показываем выбранный метод в корзине
         updateDeliveryUIInCart();
         
         modal.style.opacity = '0';
         setTimeout(() => modal.remove(), 300);
     });
     
-    // Отмена
     document.getElementById('cancelDeliveryBtn').addEventListener('click', function() {
         modal.style.opacity = '0';
         setTimeout(() => modal.remove(), 300);
     });
     
-    // Закрытие по клику вне модалки
     modal.addEventListener('click', function(e) {
         if (e.target === modal) {
             modal.style.opacity = '0';
@@ -1473,7 +1513,6 @@ function showDeliveryMethodModal() {
         }
     });
     
-    // Закрытие по Escape
     document.addEventListener('keydown', function closeOnEscape(e) {
         if (e.key === 'Escape') {
             modal.style.opacity = '0';
@@ -1483,35 +1522,31 @@ function showDeliveryMethodModal() {
             }, 300);
         }
     });
-    
-    return modal;
 }
 
-function updateDeliveryUIInCart() {
-    const deliveryMethodDisplay = document.getElementById('deliveryMethodDisplay');
-    const changeDeliveryBtn = document.getElementById('changeDeliveryButton');
+// Новая функция для обновления полей ввода под тему
+function updateDeliveryFieldsForTheme() {
+    const inputs = document.querySelectorAll('.delivery-input');
+    const labels = document.querySelectorAll('.delivery-label');
     
-    if (deliveryMethodDisplay) {
-        if (deliveryMethod === 'pickup') {
-            deliveryMethodDisplay.innerHTML = `
-                <i class="fas fa-store"></i>
-                <span>Самовывоз</span>
-                <small>Забрать самостоятельно</small>
-            `;
-        } else {
-            deliveryMethodDisplay.innerHTML = `
-                <i class="fas fa-motorcycle"></i>
-                <span>Доставка</span>
-                <small>${deliveryAddress ? 'Адрес: ' + deliveryAddress.substring(0, 30) + '...' : 'Адрес указан'}</small>
-            `;
-        }
-    }
-    
-    if (changeDeliveryBtn) {
-        changeDeliveryBtn.innerHTML = `
-            <i class="fas fa-edit"></i>
-            Изменить способ
-        `;
+    if (currentTheme === 'dark') {
+        inputs.forEach(input => {
+            input.style.backgroundColor = '#2d2d2d';
+            input.style.color = '#ffffff';
+            input.style.borderColor = '#444';
+        });
+        labels.forEach(label => {
+            label.style.color = '#ffffff';
+        });
+    } else {
+        inputs.forEach(input => {
+            input.style.backgroundColor = '';
+            input.style.color = '';
+            input.style.borderColor = '';
+        });
+        labels.forEach(label => {
+            label.style.color = '';
+        });
     }
 }
 
@@ -1579,39 +1614,39 @@ function showPhoneConfirmationModal(orderData) {
         <div class="phone-confirmation-content">
             <div class="phone-confirmation-header">
                 <i class="fas fa-phone-alt"></i>
-                <h2>Подтвердите номер телефона</h2>
+                <h2 class="phone-modal-title">Подтвердите номер телефона</h2>
             </div>
             <div class="phone-confirmation-body">
                 <div class="delivery-method-section">
-                    <h3><i class="fas fa-truck"></i> Способ получения:</h3>
+                    <h3 class="delivery-section-title"><i class="fas fa-truck"></i> Способ получения:</h3>
                     <div class="delivery-summary">
                         ${deliveryMethod === 'pickup' ? `
                             <div class="delivery-summary-item pickup">
                                 <i class="fas fa-store"></i>
                                 <div>
-                                    <strong>Самовывоз</strong>
-                                    <p>Забрать заказ самостоятельно</p>
+                                    <strong class="summary-title">Самовывоз</strong>
+                                    <p class="summary-description">Забрать заказ самостоятельно</p>
                                 </div>
                             </div>
                         ` : `
                             <div class="delivery-summary-item delivery">
                                 <i class="fas fa-motorcycle"></i>
                                 <div>
-                                    <strong>Доставка</strong>
-                                    <p><strong>Адрес:</strong> ${deliveryAddress || 'Не указан'}</p>
-                                    <p><strong>Время:</strong> ${deliveryTime || 'Не указано'}</p>
-                                    ${deliveryNotes ? `<p><strong>Комментарий:</strong> ${deliveryNotes}</p>` : ''}
+                                    <strong class="summary-title">Доставка</strong>
+                                    <p class="summary-detail"><strong class="detail-label">Адрес:</strong> <span class="detail-value">${deliveryAddress || 'Не указан'}</span></p>
+                                    <p class="summary-detail"><strong class="detail-label">Время:</strong> <span class="detail-value">${deliveryTime || 'Не указано'}</span></p>
+                                    ${deliveryNotes ? `<p class="summary-detail"><strong class="detail-label">Комментарий:</strong> <span class="detail-value">${deliveryNotes}</span></p>` : ''}
                                 </div>
                             </div>
                         `}
                         <button class="change-delivery-method-btn" onclick="showDeliveryMethodModal()">
-                            <i class="fas fa-edit"></i> Изменить способ
+                            <i class="fas fa-edit"></i> <span class="change-btn-text">Изменить способ</span>
                         </button>
                     </div>
                 </div>
                 
                 <div class="phone-input-group">
-                    <label for="phoneInput">Номер телефона для связи:</label>
+                    <label for="phoneInput" class="phone-label">Номер телефона для связи:</label>
                     <div class="phone-input-wrapper">
                         <div class="country-code">+7</div>
                         <input type="tel" 
@@ -1624,28 +1659,28 @@ function showPhoneConfirmationModal(orderData) {
                     </div>
                     <div class="phone-example">
                         <i class="fas fa-info-circle"></i>
-                        Пример: 912 345-67-89
+                        <span class="example-text">Пример: 912 345-67-89</span>
                     </div>
                     <div id="phoneError" class="phone-validation-error" style="display: none;">
                         <i class="fas fa-exclamation-circle"></i>
-                        <span>Введите корректный номер телефона</span>
+                        <span class="error-text">Введите корректный номер телефона</span>
                     </div>
                 </div>
                 
                 <div class="phone-info">
-                    <p>
+                    <p class="phone-info-text">
                         <i class="fas fa-shield-alt"></i>
-                        Номер нужен для связи менеджера по поводу заказа. 
-                        Мы не передаём его третьим лицам и не используем для спама.
+                        <span>Номер нужен для связи менеджера по поводу заказа. 
+                        Мы не передаём его третьим лицам и не используем для спама.</span>
                     </p>
                 </div>
             </div>
             <div class="phone-confirmation-footer">
                 <button id="confirmPhoneBtn" class="confirm-phone-btn">
-                    <i class="fas fa-check"></i> Подтвердить и отправить заказ
+                    <i class="fas fa-check"></i> <span class="btn-text">Подтвердить и отправить заказ</span>
                 </button>
                 <button id="cancelPhoneBtn" class="cancel-phone-btn">
-                    <i class="fas fa-times"></i> Отмена
+                    <i class="fas fa-times"></i> <span class="btn-text">Отмена</span>
                 </button>
             </div>
         </div>
@@ -2016,12 +2051,8 @@ function updateCartUI() {
         const total = getCartTotal();
         checkoutBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Оформить заказ (' + total + ' ₽)';
         
-        // Показываем секцию доставки
-        const deliverySection = document.querySelector('.delivery-section');
-        if (deliverySection) {
-            deliverySection.style.display = 'block';
-            updateDeliveryUIInCart();
-        }
+        // Обновляем UI доставки
+        updateDeliveryUIInCart();
     }
 
     totalPrice.textContent = getCartTotal();
@@ -2425,11 +2456,11 @@ function showIOSNotification(orderNumber, tgLink) {
         <div class="ios-notification-content">
             <div class="ios-notification-header">
                 <i class="fas fa-mobile-alt"></i>
-                <h3>iOS инструкция</h3>
+                <h3 class="ios-notification-title">iOS инструкция</h3>
             </div>
             <div class="ios-notification-body">
-                <p>Для подтверждения заказа <strong>#${orderNumber}</strong>:</p>
-                <ol>
+                <p class="ios-instruction-text">Для подтверждения заказа <strong>#${orderNumber}</strong>:</p>
+                <ol class="ios-instruction-list">
                     <li>Нажмите кнопку "Открыть Telegram"</li>
                     <li>Нажмите "Send" в открывшемся окне</li>
                     <li>Ожидайте ответа от менеджера</li>
@@ -2437,10 +2468,10 @@ function showIOSNotification(orderNumber, tgLink) {
             </div>
             <div class="ios-notification-footer">
                 <button class="ios-open-tg" onclick="window.open('${tgLink}', '_blank')">
-                    <i class="fab fa-telegram"></i> Открыть Telegram
+                    <i class="fab fa-telegram"></i> <span class="ios-btn-text">Открыть Telegram</span>
                 </button>
                 <button class="ios-copy-number" onclick="navigator.clipboard.writeText('#${orderNumber}')">
-                    <i class="fas fa-copy"></i> Копировать номер
+                    <i class="fas fa-copy"></i> <span class="ios-btn-text">Копировать номер</span>
                 </button>
             </div>
         </div>
@@ -2467,8 +2498,8 @@ function showContactButton(orderNumber) {
     contactBtn.target = '_blank';
     contactBtn.innerHTML = `
         <i class="fab fa-telegram"></i>
-        <span>Написать менеджеру</span>
-        <small>Заказ #${orderNumber}</small>
+        <span class="contact-text">Написать менеджеру</span>
+        <small class="order-number-text">Заказ #${orderNumber}</small>
     `;
     
     document.body.appendChild(contactBtn);
@@ -2484,65 +2515,65 @@ function showOrderConfirmationModal(orderData, orderNumber) {
         <div class="order-confirmation-content">
             <div class="order-confirmation-header">
                 <i class="fas fa-check-circle"></i>
-                <h2>Заказ оформлен!</h2>
+                <h2 class="confirmation-title">Заказ оформлен!</h2>
             </div>
             <div class="order-confirmation-body">
                 <div class="order-number">
                     <i class="fas fa-hashtag"></i>
-                    <span>Номер заказа: <strong>#${orderNumber}</strong></span>
+                    <span class="order-number-text">Номер заказа: <strong>#${orderNumber}</strong></span>
                 </div>
                 <div class="order-summary">
                     <div class="order-summary-item">
                         <i class="fas fa-box"></i>
-                        <span>Товаров: ${orderData.items_count} шт.</span>
+                        <span class="summary-text">Товаров: ${orderData.items_count} шт.</span>
                     </div>
                     <div class="order-summary-item">
                         <i class="fas fa-ruble-sign"></i>
-                        <span>Сумма: ${orderData.total} руб.</span>
+                        <span class="summary-text">Сумма: ${orderData.total} руб.</span>
                     </div>
                     <div class="order-summary-item">
                         <i class="fas fa-clock"></i>
-                        <span>Время: ${new Date(orderData.timestamp).toLocaleTimeString('ru-RU')}</span>
+                        <span class="summary-text">Время: ${new Date(orderData.timestamp).toLocaleTimeString('ru-RU')}</span>
                     </div>
                     <div class="order-summary-item">
                         <i class="${orderData.deliveryMethod === 'pickup' ? 'fas fa-store' : 'fas fa-motorcycle'}"></i>
-                        <span>Способ: ${orderData.deliveryMethod === 'pickup' ? 'Самовывоз' : 'Доставка'}</span>
+                        <span class="summary-text">Способ: ${orderData.deliveryMethod === 'pickup' ? 'Самовывоз' : 'Доставка'}</span>
                     </div>
                     ${userPhoneNumber ? `
                     <div class="order-summary-item">
                         <i class="fas fa-phone"></i>
-                        <span>Телефон: ${formatPhoneNumber(userPhoneNumber)}</span>
+                        <span class="summary-text">Телефон: ${formatPhoneNumber(userPhoneNumber)}</span>
                     </div>
                     ` : ''}
                 </div>
                 ${orderData.deliveryMethod === 'delivery' ? `
                 <div class="delivery-details">
-                    <h3>Детали доставки:</h3>
+                    <h3 class="delivery-details-title">Детали доставки:</h3>
                     <div class="delivery-info">
-                        <p><strong>Адрес:</strong> ${orderData.deliveryAddress || 'Не указан'}</p>
-                        <p><strong>Время:</strong> ${orderData.deliveryTime || 'Не указано'}</p>
-                        ${orderData.deliveryNotes ? `<p><strong>Комментарий:</strong> ${orderData.deliveryNotes}</p>` : ''}
+                        <p class="delivery-info-item"><strong class="delivery-label">Адрес:</strong> <span class="delivery-value">${orderData.deliveryAddress || 'Не указан'}</span></p>
+                        <p class="delivery-info-item"><strong class="delivery-label">Время:</strong> <span class="delivery-value">${orderData.deliveryTime || 'Не указано'}</span></p>
+                        ${orderData.deliveryNotes ? `<p class="delivery-info-item"><strong class="delivery-label">Комментарий:</strong> <span class="delivery-value">${orderData.deliveryNotes}</span></p>` : ''}
                     </div>
                 </div>
                 ` : ''}
                 <div class="order-products">
-                    <h3>Состав заказа:</h3>
-                    <ul>
+                    <h3 class="products-title">Состав заказа:</h3>
+                    <ul class="products-list">
                         ${orderData.products.map(function(item) {
                             return `
-                                <li>${item.name} × ${item.quantity} шт. = ${item.price * item.quantity} руб.</li>
+                                <li class="product-item">${item.name} × ${item.quantity} шт. = ${item.price * item.quantity} руб.</li>
                             `;
                         }).join('')}
                     </ul>
                 </div>
                 <div class="order-instructions">
-                    <p><i class="fas fa-info-circle"></i> Сохраните номер заказа для связи с менеджером</p>
-                    <p><i class="fas fa-truck"></i> ${orderData.deliveryMethod === 'pickup' ? 'Самовывоз - забирайте заказ самостоятельно' : 'Доставка - курьер свяжется с вами'}</p>
+                    <p class="instruction-item"><i class="fas fa-info-circle"></i> <span class="instruction-text">Сохраните номер заказа для связи с менеджером</span></p>
+                    <p class="instruction-item"><i class="fas fa-truck"></i> <span class="instruction-text">${orderData.deliveryMethod === 'pickup' ? 'Самовывоз - забирайте заказ самостоятельно' : 'Доставка - курьер свяжется с вами'}</span></p>
                 </div>
             </div>
             <div class="order-confirmation-footer">
                 <button class="close-order-modal">
-                    <i class="fas fa-times"></i> Закрыть
+                    <i class="fas fa-times"></i> <span class="close-btn-text">Закрыть</span>
                 </button>
             </div>
         </div>
@@ -2580,8 +2611,8 @@ function showManagerNotification(orderNumber) {
                 <i class="fas fa-comment-alt"></i>
             </div>
             <div class="manager-notification-text">
-                <h3>Напишите менеджеру</h3>
-                <p>Сообщите номер заказа <strong>#${orderNumber}</strong></p>
+                <h3 class="notification-title">Напишите менеджеру</h3>
+                <p class="notification-message">Сообщите номер заказа <strong>#${orderNumber}</strong></p>
                 <p class="manager-username">👤 @Chief_68</p>
             </div>
             <button class="manager-notification-close">
@@ -2590,7 +2621,7 @@ function showManagerNotification(orderNumber) {
         </div>
         <div class="manager-notification-action">
             <button class="contact-manager-btn" onclick="openManagerChat('${orderNumber}')">
-                <i class="fab fa-telegram"></i> Написать менеджеру
+                <i class="fab fa-telegram"></i> <span class="contact-btn-text">Написать менеджеру</span>
             </button>
         </div>
     `;
@@ -2915,7 +2946,6 @@ function initSearch() {
     
     let searchTimeout = null;
     
-    // Функция поиска с подсветкой
     function highlightText(text, query) {
         if (!query) return text;
         
@@ -2923,7 +2953,6 @@ function initSearch() {
         return text.replace(regex, '<span class="search-highlight">$1</span>');
     }
     
-    // Функция выполнения поиска
     function performSearch(query) {
         if (!query || query.length < 2) {
             searchResults.style.display = 'none';
@@ -2933,7 +2962,6 @@ function initSearch() {
         searchResults.innerHTML = '<div class="search-loading"><i class="fas fa-spinner"></i> Поиск...</div>';
         searchResults.style.display = 'block';
         
-        // Задержка для оптимизации
         clearTimeout(searchTimeout);
         searchTimeout = setTimeout(() => {
             const searchQuery = query.toLowerCase().trim();
@@ -2946,7 +2974,6 @@ function initSearch() {
         }, 300);
     }
     
-    // Отображение результатов поиска
     function displaySearchResults(results, query) {
         if (results.length === 0) {
             searchResults.innerHTML = `
@@ -2985,7 +3012,6 @@ function initSearch() {
         }).join('');
     }
     
-    // Обработчики событий
     searchInput.addEventListener('input', (e) => {
         const query = e.target.value;
         searchClear.style.display = query.length > 0 ? 'flex' : 'none';
@@ -3005,14 +3031,12 @@ function initSearch() {
         searchInput.focus();
     });
     
-    // Закрытие результатов поиска при клике вне
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.search-container')) {
             searchResults.style.display = 'none';
         }
     });
     
-    // Показать результаты при фокусе, если есть текст
     searchInput.addEventListener('focus', () => {
         if (searchInput.value.length >= 2) {
             performSearch(searchInput.value);
@@ -3020,7 +3044,6 @@ function initSearch() {
     });
 }
 
-// Функция добавления в корзину из поиска
 window.addToCartFromSearch = function(productId, buttonElement) {
     const product = products.find(p => p.id === productId);
     if (!product) return;
@@ -3046,13 +3069,12 @@ window.addToCartFromSearch = function(productId, buttonElement) {
     }
 };
 
-// Уведомления
 function showNotification(message, type = 'success') {
     const notification = document.createElement('div');
     notification.className = `notification ${type}`;
     notification.innerHTML = `
         <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
-        ${message}
+        <span class="notification-text">${message}</span>
     `;
     
     document.body.appendChild(notification);
@@ -3067,25 +3089,22 @@ function showNotification(message, type = 'success') {
     }, 3000);
 }
 
-// Функция для админа - кнопка Dostavista
 function addDostavistaButtonForAdmin() {
-    // Проверяем, админ ли это (можно добавить свою логику проверки)
     const isAdmin = tg && tg.initDataUnsafe && tg.initDataUnsafe.user && 
                     (tg.initDataUnsafe.user.username === 'Chief_68' || 
-                     tg.initDataUnsafe.user.id === 123456789); // Замените на реальный ID админа
+                     tg.initDataUnsafe.user.id === 123456789);
     
     if (isAdmin) {
         const dostavistaBtn = document.createElement('button');
         dostavistaBtn.className = 'admin-dostavista-btn';
         dostavistaBtn.innerHTML = `
             <i class="fas fa-external-link-alt"></i>
-            <span>Dostavista</span>
+            <span class="dostavista-text">Dostavista</span>
         `;
         dostavistaBtn.onclick = function() {
             window.open('https://apitest.dostavista.ru/order', '_blank');
         };
         
-        // Добавляем кнопку в навигацию
         const headerNav = document.querySelector('.header-nav');
         if (headerNav) {
             headerNav.appendChild(dostavistaBtn);
@@ -3095,14 +3114,11 @@ function addDostavistaButtonForAdmin() {
     }
 }
 
-// Обновленная функция инициализации
 async function initApp() {
     detectTheme();
     initTelegram();
     
-    // Загружаем информацию о доставке
     loadDeliveryInfo();
-    
     await loadAndRenderProducts();
     loadCart();
     loadFavorites();
@@ -3122,25 +3138,32 @@ async function initApp() {
     document.getElementById('checkoutButton').onclick = checkout;
     document.getElementById('clearCartButton').onclick = clearCart;
     
-    // Добавляем кнопку выбора способа доставки в корзину
+    // Добавляем секцию доставки в корзину
     const cartFooter = document.querySelector('.cart-footer');
     if (cartFooter) {
+        const oldSection = document.querySelector('.delivery-section');
+        if (oldSection) oldSection.remove();
+        
         const deliverySection = document.createElement('div');
         deliverySection.className = 'delivery-section';
         deliverySection.innerHTML = `
             <div class="delivery-info">
                 <div class="delivery-method-display" id="deliveryMethodDisplay">
                     <i class="fas fa-store"></i>
-                    <span>Самовывоз</span>
-                    <small>Забрать самостоятельно</small>
+                    <div class="delivery-text-content">
+                        <span class="delivery-method-name">Самовывоз</span>
+                        <small class="delivery-method-description">Забрать самостоятельно</small>
+                    </div>
                 </div>
                 <button class="change-delivery-btn" id="changeDeliveryButton" onclick="showDeliveryMethodModal()">
                     <i class="fas fa-edit"></i>
-                    Изменить способ
+                    <span class="change-delivery-text">Изменить способ</span>
                 </button>
             </div>
         `;
         cartFooter.insertBefore(deliverySection, cartFooter.firstChild);
+        
+        updateDeliveryUIInCart();
     }
     
     document.getElementById('favoritesButton').onclick = openFavorites;
@@ -3169,7 +3192,6 @@ async function initApp() {
     window.addAllFavoritesToCart = addAllFavoritesToCart;
     window.clearFavorites = clearFavorites;
     
-    // Новые функции для доставки
     window.showDeliveryMethodModal = showDeliveryMethodModal;
     window.changeDeliveryMethod = changeDeliveryMethod;
     
@@ -3177,7 +3199,6 @@ async function initApp() {
     initKeyboardNavigation();
     initSearch();
     
-    // Добавляем кнопку Dostavista для админа
     addDostavistaButtonForAdmin();
     
     setTimeout(function() {
