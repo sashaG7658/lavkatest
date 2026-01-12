@@ -3523,6 +3523,143 @@ body.dark-theme .search-results {
     }
 }
 
+/* Стили для темной темы в разделе доставки */
+.dark-theme .delivery-section {
+    background: #1e1e1e !important;
+    border-color: #333 !important;
+}
+
+.dark-theme .delivery-method-display {
+    color: #ffffff !important;
+}
+
+.dark-theme .delivery-method-name,
+.dark-theme .delivery-method-description,
+.dark-theme .change-delivery-text,
+.dark-theme .delivery-modal-title,
+.dark-theme .method-name,
+.dark-theme .method-description,
+.dark-theme .label-text,
+.dark-theme .btn-text,
+.dark-theme .error-text {
+    color: #ffffff !important;
+}
+
+.dark-theme .delivery-input {
+    background: #2d2d2d !important;
+    color: #ffffff !important;
+    border-color: #444 !important;
+}
+
+.dark-theme .delivery-textarea::placeholder,
+.dark-theme .delivery-input-text::placeholder {
+    color: #888 !important;
+}
+
+/* Стили для отображения на мобильных устройствах */
+.delivery-section {
+    display: block !important;
+    width: 100% !important;
+    padding: 15px;
+    margin: 15px 0;
+    background: var(--card-bg);
+    border-radius: var(--border-radius);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border: 1px solid var(--border-color);
+}
+
+.delivery-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+}
+
+.delivery-method-display {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-color);
+}
+
+.delivery-text-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.delivery-method-name {
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.delivery-method-description {
+    font-size: 0.85rem;
+    opacity: 0.8;
+}
+
+.change-delivery-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.change-delivery-btn:hover {
+    opacity: 0.9;
+}
+
+/* Адаптивность для мобильных */
+@media (max-width: 768px) {
+    .delivery-section {
+        padding: 12px !important;
+        margin: 12px 0 !important;
+    }
+    
+    .delivery-info {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 12px !important;
+    }
+    
+    .delivery-method-display {
+        width: 100%;
+        justify-content: flex-start;
+    }
+    
+    .change-delivery-btn {
+        width: 100% !important;
+        justify-content: center;
+        margin-top: 8px !important;
+    }
+}
+
+/* Для очень маленьких экранов */
+@media (max-width: 360px) {
+    .delivery-section {
+        padding: 10px !important;
+        margin: 10px 0 !important;
+    }
+    
+    .delivery-method-name {
+        font-size: 0.95rem;
+    }
+    
+    .delivery-method-description {
+        font-size: 0.8rem;
+    }
+    
+    .change-delivery-btn {
+        font-size: 0.85rem;
+        padding: 8px 10px;
+    }
+}
 
 
 
