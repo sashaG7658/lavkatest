@@ -1524,6 +1524,224 @@ function showDeliveryMethodModal() {
     });
 }
 
+// Новая функция для показа модалки доставки поверх модалки телефона
+function showDeliveryMethodModalOverPhone() {
+    const phoneModal = document.querySelector('.phone-confirmation-modal');
+    
+    // Создаем модалку доставки с более высоким z-index
+    const deliveryModal = document.createElement('div');
+    deliveryModal.className = 'delivery-method-modal delivery-over-phone';
+    deliveryModal.style.zIndex = '10002';
+    deliveryModal.innerHTML = `
+        <div class="delivery-method-content" style="z-index: 10003;">
+            <div class="delivery-method-header">
+                <i class="fas fa-truck"></i>
+                <h2 class="delivery-modal-title">Способ получения</h2>
+            </div>
+            <div class="delivery-method-body">
+                <div class="delivery-method-selection">
+                    <button class="delivery-method-btn ${deliveryMethod === 'pickup' ? 'active' : ''}" 
+                            data-method="pickup"
+                            onclick="changeDeliveryMethodAndUpdatePhoneModal('pickup')">
+                        <i class="fas fa-store"></i>
+                        <div class="method-text-content">
+                            <span class="method-name">Самовывоз</span>
+                            <p class="method-description">Забрать заказ самостоятельно</p>
+                        </div>
+                    </button>
+                    <button class="delivery-method-btn ${deliveryMethod === 'delivery' ? 'active' : ''}" 
+                            data-method="delivery"
+                            onclick="changeDeliveryMethodAndUpdatePhoneModal('delivery')">
+                        <i class="fas fa-motorcycle"></i>
+                        <div class="method-text-content">
+                            <span class="method-name">Доставка</span>
+                            <p class="method-description">Курьерская доставка</p>
+                        </div>
+                    </button>
+                </div>
+                
+                <div id="deliveryFields" class="delivery-fields" style="display: ${deliveryMethod === 'delivery' ? 'block' : 'none'};">
+                    <div class="delivery-field-group">
+                        <label for="deliveryAddressOverPhone" class="delivery-label">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span class="label-text">Адрес доставки:</span>
+                        </label>
+                        <textarea id="deliveryAddressOverPhone" 
+                                  class="delivery-textarea delivery-input" 
+                                  placeholder="Укажите полный адрес доставки (улица, дом, квартира, подъезд, этаж)"
+                                  rows="3">${deliveryAddress}</textarea>
+                    </div>
+                    
+                    <div class="delivery-field-group">
+                        <label for="deliveryTimeOverPhone" class="delivery-label">
+                            <i class="fas fa-clock"></i>
+                            <span class="label-text">Удобное время доставки:</span>
+                        </label>
+                        <input type="text" 
+                               id="deliveryTimeOverPhone" 
+                               class="delivery-input delivery-input-text" 
+                               placeholder="Например: 18:00-20:00 или 'после 19:00'"
+                               value="${deliveryTime}">
+                    </div>
+                    
+                    <div class="delivery-field-group">
+                        <label for="deliveryNotesOverPhone" class="delivery-label">
+                            <i class="fas fa-sticky-note"></i>
+                            <span class="label-text">Дополнительные пожелания:</span>
+                        </label>
+                        <textarea id="deliveryNotesOverPhone" 
+                                  class="delivery-textarea delivery-input" 
+                                  placeholder="Комментарий для курьера, особенности доставки и т.д."
+                                  rows="2">${deliveryNotes}</textarea>
+                    </div>
+                </div>
+                
+                <div id="deliveryErrorOverPhone" class="delivery-validation-error" style="display: none;">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span id="deliveryErrorMessageOverPhone" class="error-text"></span>
+                </div>
+            </div>
+            <div class="delivery-method-footer">
+                <button id="confirmDeliveryBtnOverPhone" class="confirm-delivery-btn">
+                    <i class="fas fa-check"></i> <span class="btn-text">Подтвердить</span>
+                </button>
+                <button id="cancelDeliveryBtnOverPhone" class="cancel-delivery-btn">
+                    <i class="fas fa-times"></i> <span class="btn-text">Назад</span>
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(deliveryModal);
+    
+    // Обновляем поля ввода для темной темы
+    updateDeliveryFieldsForTheme();
+    
+    const deliveryAddressInput = document.getElementById('deliveryAddressOverPhone');
+    const deliveryTimeInput = document.getElementById('deliveryTimeOverPhone');
+    const deliveryNotesInput = document.getElementById('deliveryNotesOverPhone');
+    const deliveryError = document.getElementById('deliveryErrorOverPhone');
+    
+    if (deliveryAddressInput) {
+        deliveryAddressInput.addEventListener('input', function(e) {
+            deliveryAddress = e.target.value;
+            updateDeliverySummaryInPhoneModal();
+        });
+    }
+    
+    if (deliveryTimeInput) {
+        deliveryTimeInput.addEventListener('input', function(e) {
+            deliveryTime = e.target.value;
+            updateDeliverySummaryInPhoneModal();
+        });
+    }
+    
+    if (deliveryNotesInput) {
+        deliveryNotesInput.addEventListener('input', function(e) {
+            deliveryNotes = e.target.value;
+            updateDeliverySummaryInPhoneModal();
+        });
+    }
+    
+    document.getElementById('confirmDeliveryBtnOverPhone').addEventListener('click', function() {
+        const validation = validateDeliveryInfo();
+        
+        if (!validation.isValid) {
+            deliveryError.style.display = 'flex';
+            document.getElementById('deliveryErrorMessageOverPhone').textContent = validation.error;
+            deliveryError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
+        
+        saveDeliveryInfo();
+        updateDeliverySummaryInPhoneModal();
+        
+        deliveryModal.style.opacity = '0';
+        setTimeout(() => deliveryModal.remove(), 300);
+    });
+    
+    document.getElementById('cancelDeliveryBtnOverPhone').addEventListener('click', function() {
+        deliveryModal.style.opacity = '0';
+        setTimeout(() => deliveryModal.remove(), 300);
+    });
+    
+    deliveryModal.addEventListener('click', function(e) {
+        if (e.target === deliveryModal) {
+            deliveryModal.style.opacity = '0';
+            setTimeout(() => deliveryModal.remove(), 300);
+        }
+    });
+    
+    // Закрытие по Escape
+    const escapeHandler = function(e) {
+        if (e.key === 'Escape') {
+            deliveryModal.style.opacity = '0';
+            setTimeout(() => {
+                deliveryModal.remove();
+                document.removeEventListener('keydown', escapeHandler);
+            }, 300);
+        }
+    };
+    document.addEventListener('keydown', escapeHandler);
+}
+
+// Функция для обновления способа доставки и обновления информации в модалке телефона
+function changeDeliveryMethodAndUpdatePhoneModal(method) {
+    deliveryMethod = method;
+    saveDeliveryInfo();
+    
+    // Обновляем UI переключателя в модалке доставки
+    document.querySelectorAll('.delivery-method-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('data-method') === method) {
+            btn.classList.add('active');
+        }
+    });
+    
+    // Показываем/скрываем поля для доставки
+    const deliveryFields = document.getElementById('deliveryFields');
+    if (deliveryFields) {
+        deliveryFields.style.display = method === 'delivery' ? 'block' : 'none';
+    }
+    
+    // Обновляем информацию в модалке телефона
+    updateDeliverySummaryInPhoneModal();
+}
+
+// Функция для обновления сводки доставки в модалке телефона
+function updateDeliverySummaryInPhoneModal() {
+    const phoneModal = document.querySelector('.phone-confirmation-modal');
+    if (!phoneModal) return;
+    
+    const deliverySummary = phoneModal.querySelector('.delivery-summary');
+    if (deliverySummary) {
+        deliverySummary.innerHTML = `
+            ${deliveryMethod === 'pickup' ? `
+                <div class="delivery-summary-item pickup">
+                    <i class="fas fa-store"></i>
+                    <div>
+                        <strong class="summary-title">Самовывоз</strong>
+                        <p class="summary-description">Забрать заказ самостоятельно</p>
+                    </div>
+                </div>
+            ` : `
+                <div class="delivery-summary-item delivery">
+                    <i class="fas fa-motorcycle"></i>
+                    <div>
+                        <strong class="summary-title">Доставка</strong>
+                        <p class="summary-detail"><strong class="detail-label">Адрес:</strong> <span class="detail-value">${deliveryAddress || 'Не указан'}</span></p>
+                        <p class="summary-detail"><strong class="detail-label">Время:</strong> <span class="detail-value">${deliveryTime || 'Не указано'}</span></p>
+                        ${deliveryNotes ? `<p class="summary-detail"><strong class="detail-label">Комментарий:</strong> <span class="detail-value">${deliveryNotes}</span></p>` : ''}
+                    </div>
+                </div>
+            `}
+            <button class="change-delivery-method-btn" onclick="showDeliveryMethodModalOverPhone()">
+                <i class="fas fa-edit"></i> <span class="change-btn-text">Изменить способ</span>
+            </button>
+        `;
+    }
+}
+
 // Новая функция для обновления полей ввода под тему
 function updateDeliveryFieldsForTheme() {
     const inputs = document.querySelectorAll('.delivery-input');
@@ -1639,7 +1857,7 @@ function showPhoneConfirmationModal(orderData) {
                                 </div>
                             </div>
                         `}
-                        <button class="change-delivery-method-btn" onclick="showDeliveryMethodModal()">
+                        <button class="change-delivery-method-btn" onclick="showDeliveryMethodModalOverPhone()">
                             <i class="fas fa-edit"></i> <span class="change-btn-text">Изменить способ</span>
                         </button>
                     </div>
@@ -2737,7 +2955,7 @@ async function checkout() {
         deliveryMethod: deliveryMethod,
         deliveryAddress: deliveryMethod === 'delivery' ? deliveryAddress : null,
         deliveryTime: deliveryMethod === 'delivery' ? deliveryTime : null,
-        deliveryNotes: deliveryMethod === 'delivery' ? deliveryNotes : null,
+        deliveryNotes = deliveryMethod === 'delivery' ? deliveryNotes : null,
         user: tg ? {
             id: tg.initDataUnsafe.user && tg.initDataUnsafe.user.id,
             username: tg.initDataUnsafe.user && tg.initDataUnsafe.user.username,
@@ -3194,6 +3412,10 @@ async function initApp() {
     
     window.showDeliveryMethodModal = showDeliveryMethodModal;
     window.changeDeliveryMethod = changeDeliveryMethod;
+    
+    // Новые функции для работы с модалками поверх друг друга
+    window.showDeliveryMethodModalOverPhone = showDeliveryMethodModalOverPhone;
+    window.changeDeliveryMethodAndUpdatePhoneModal = changeDeliveryMethodAndUpdatePhoneModal;
     
     initCategoriesScroll();
     initKeyboardNavigation();
