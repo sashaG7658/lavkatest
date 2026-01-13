@@ -2518,6 +2518,7 @@ function clearFavorites() {
     }
 }
 
+// ИСПРАВЛЕННАЯ ФУНКЦИЯ - теперь нумерация начинается с 0 и увеличивается последовательно
 function generateOrderNumber() {
     // Загружаем счетчик из localStorage
     let orderCounter = localStorage.getItem('iceberg_order_counter');
@@ -2541,7 +2542,7 @@ function generateOrderNumber() {
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
     const day = date.getDate().toString().padStart(2, '0');
     
-    // Создаем номер заказа в формате ORD-YYMMDD-XXXXX (где XXXXX - порядковый номер)
+    // Создаем номер заказа в формате ORD-YYMMDD-XXXXX
     return 'ORD-' + year + month + day + '-' + orderCounter.toString().padStart(5, '0');
 }
 
@@ -2920,6 +2921,7 @@ function openManagerChat(orderNumber) {
     }
 }
 
+// ИСПРАВЛЕННАЯ ФУНКЦИЯ checkout() - исправлена синтаксическая ошибка
 async function checkout() {
     if (cart.length === 0) return;
     
@@ -2972,7 +2974,7 @@ async function checkout() {
         deliveryMethod: deliveryMethod,
         deliveryAddress: deliveryMethod === 'delivery' ? deliveryAddress : null,
         deliveryTime: deliveryMethod === 'delivery' ? deliveryTime : null,
-        deliveryNotes = deliveryMethod === 'delivery' ? deliveryNotes : null,
+        deliveryNotes: deliveryMethod === 'delivery' ? deliveryNotes : null, // ИСПРАВЛЕНО: двоеточие вместо равно
         user: tg ? {
             id: tg.initDataUnsafe.user && tg.initDataUnsafe.user.id,
             username: tg.initDataUnsafe.user && tg.initDataUnsafe.user.username,
@@ -3460,4 +3462,3 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
-
