@@ -2519,13 +2519,30 @@ function clearFavorites() {
 }
 
 function generateOrderNumber() {
+    // Загружаем счетчик из localStorage
+    let orderCounter = localStorage.getItem('iceberg_order_counter');
+    
+    // Если счетчика нет, начинаем с 0
+    if (!orderCounter) {
+        orderCounter = 0;
+    } else {
+        orderCounter = parseInt(orderCounter);
+    }
+    
+    // Увеличиваем счетчик на 1
+    orderCounter += 1;
+    
+    // Сохраняем обновленный счетчик
+    localStorage.setItem('iceberg_order_counter', orderCounter.toString());
+    
+    // Форматируем номер заказа
     const date = new Date();
     const year = date.getFullYear().toString().slice(-2);
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
     const day = date.getDate().toString().padStart(2, '0');
-    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
     
-    return 'ORD-' + year + month + day + '-' + random;
+    // Создаем номер заказа в формате ORD-YYMMDD-XXXXX (где XXXXX - порядковый номер)
+    return 'ORD-' + year + month + day + '-' + orderCounter.toString().padStart(5, '0');
 }
 
 async function notifyManager(orderData) {
@@ -3443,3 +3460,4 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
+
