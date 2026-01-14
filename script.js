@@ -2000,14 +2000,9 @@ function showPhoneConfirmationModal(orderData) {
         }
     });
 }
+
 async function completeOrderWithPhone(orderData) {
     try {
-        if (!orderData || !orderData.orderNumber) {
-            console.error('Order data is missing or incomplete:', orderData);
-            showNotification('Ошибка оформления заказа', 'error');
-            return;
-        }
-        
         orderData.user = orderData.user || {};
         if (userPhoneNumber) {
             orderData.user.phone = userPhoneNumber;
@@ -2015,12 +2010,37 @@ async function completeOrderWithPhone(orderData) {
         
         const notified = await notifyManager(orderData);
         
-        // Используем нашу собственную модалку вместо showAlert
-        showOrderConfirmationModal(orderData, orderData.orderNumber);
-        
-        cart = [];
-        saveCart();
-        closeCart();
+        if (tg && tg.showAlert) {
+            tg.showAlert(
+                `✅ *Заказ оформлен успешно!*\n\n` +
+                `📋 *Номер заказа:* #${orderData.orderNumber}\n` +
+                `📞 *Ваш телефон:* ${formatPhoneNumber(userPhoneNumber)}\n` +
+                `${orderData.deliveryMethod === 'pickup' ? '🚶 *Способ:* Самовывоз' : '🏍️ *Способ:* Доставка'}\n` +
+                `${orderData.deliveryMethod === 'delivery' && orderData.deliveryAddress ? `📍 *Адрес:* ${orderData.deliveryAddress}\n` : ''}` +
+                `${orderData.deliveryMethod === 'delivery' && orderData.deliveryTime ? `⏰ *Время:* ${orderData.deliveryTime}\n` : ''}` +
+                `📦 Товаров: ${orderData.items_count} шт.\n` +
+                `💰 Сумма: ${orderData.total} руб.\n\n` +
+                `👤 *Менеджер свяжется с вами в ближайшее время*\n` +
+                `🔗 @Chief_68`,
+                function() {
+                    cart = [];
+                    saveCart();
+                    closeCart();
+                    
+                    showManagerNotification(orderData.orderNumber);
+                    
+                    setTimeout(() => {
+                        loadAndRenderProducts();
+                    }, 2000);
+                }
+            );
+        } else {
+            showOrderConfirmationModal(orderData, orderData.orderNumber);
+            
+            cart = [];
+            saveCart();
+            closeCart();
+        }
         
         setTimeout(() => {
             loadAndRenderProducts();
@@ -2028,8 +2048,28 @@ async function completeOrderWithPhone(orderData) {
         
     } catch (error) {
         console.error('Error completing order with phone:', error);
-        showNotification('Ошибка оформления заказа', 'error');
     }
+}
+
+// ✅ Отправляем заказ в Telegram
+if (window.Telegram && window.Telegram.WebApp) {
+    const orderDataForBot = {
+        orderNumber: pendingOrderData.orderNumber,
+        products: pendingOrderData.products,
+        total: pendingOrderData.total,
+        items_count: pendingOrderData.items_count,
+        timestamp: pendingOrderData.timestamp,
+        deliveryMethod: pendingOrderData.deliveryMethod,
+        deliveryAddress: pendingOrderData.deliveryAddress,
+        deliveryTime: pendingOrderData.deliveryTime,
+        deliveryNotes: pendingOrderData.deliveryNotes,
+        userPhone: pendingOrderData.userPhone
+    };
+
+    console.log("📤 Отправка в Telegram:", orderDataForBot);
+    window.Telegram.WebApp.sendData(JSON.stringify(orderDataForBot));
+} else {
+    console.warn("❌ Telegram WebApp не доступен");
 }
 
 function loadCart() {
@@ -2527,16 +2567,8 @@ function generateOrderNumber() {
     return 'ORD-' + year + month + day + '-' + orderCounter.toString().padStart(5, '0');
 }
 
-// ИСПРАВЛЕННАЯ ФУНКЦИЯ notifyManager - заменен showPopup на showAlert
-// ИСПРАВЛЕННАЯ ФУНКЦИЯ notifyManager - без использования Telegram WebApp методов
 async function notifyManager(orderData) {
     try {
-        // Проверяем, что orderData существует и содержит orderNumber
-        if (!orderData || !orderData.orderNumber) {
-            console.error('Invalid order data:', orderData);
-            return false;
-        }
-        
         let message = '**НОВЫЙ ЗАКАЗ #' + orderData.orderNumber + '**\n\n';
         
         message += '👤 **Покупатель:**\n';
@@ -2605,34 +2637,65 @@ async function notifyManager(orderData) {
                               ).join('\n') +
                               '\n\nПрошу подтвердить заказ и уточнить детали доставки.';
         
-        // Всегда используем нашу собственную логику, без Telegram WebApp методов
-        try {
-            const tgLink = 'https://t.me/' + managerUsername + '?text=' + encodeURIComponent(simpleMessage);
-            
-            // Показываем уведомление о заказе
-            showOrderConfirmationModal(orderData, orderData.orderNumber);
-            
-            // Открываем Telegram через 2 секунды
-            setTimeout(() => {
-                if (tg && tg.openLink) {
-                    try {
-                        tg.openLink(tgLink);
-                    } catch (openLinkError) {
-                        console.log('openLink error, using window.open:', openLinkError);
-                        window.open(tgLink, '_blank');
-                    }
-                } else {
-                    window.open(tgLink, '_blank');
+        if (window.Telegram && window.Telegram.WebApp) {
+            try {
+                const tg = window.Telegram.WebApp;
+                
+                if (tg.showPopup) {
+                    tg.showPopup({
+                        title: 'Заказ оформлен!',
+                        message: `Номер заказа: #${orderData.orderNumber}\n\nНажмите "Написать менеджеру" для подтверждения`,
+                        buttons: [{
+                            type: 'default',
+                            text: 'Написать менеджеру',
+                            id: 'contact_manager'
+                        }, {
+                            type: 'cancel',
+                            text: 'Закрыть',
+                            id: 'close'
+                        }]
+                    }, function(buttonId) {
+                        if (buttonId === 'contact_manager') {
+                            const tgLink = 'https://t.me/' + managerUsername + '?text=' + encodeURIComponent(simpleMessage);
+                            
+                            if (tg.openLink) {
+                                tg.openLink(tgLink);
+                            } else {
+                                window.open(tgLink, '_blank');
+                            }
+                        }
+                    });
                 }
-            }, 2000);
+                
+                if (tg.sendData) {
+                    tg.sendData(JSON.stringify({
+                        type: 'order',
+                        orderNumber: orderData.orderNumber,
+                        total: orderData.total,
+                        items: orderData.items_count,
+                        timestamp: orderData.timestamp,
+                        deliveryMethod: orderData.deliveryMethod
+                    }));
+                }
+                
+            } catch (tgError) {
+                console.log('Telegram API error, using fallback:', tgError);
+            }
+        }
+        
+        try {
+            const tgLink = 'https://t.me/' + managerUsername + '?text=' + encodeURIComponent(message);
+            
+            window.open(tgLink, '_blank');
+            
+            if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+                showIOSNotification(orderData.orderNumber, tgLink);
+            }
             
         } catch (linkError) {
             console.log('Link opening error:', linkError);
-            // В случае ошибки показываем хотя бы наше уведомление
-            showOrderConfirmationModal(orderData, orderData.orderNumber);
         }
         
-        // Показываем кнопку для связи с менеджером
         showContactButton(orderData.orderNumber);
         
         return true;
@@ -2640,36 +2703,6 @@ async function notifyManager(orderData) {
     } catch (error) {
         console.error('Error notifying manager:', error);
         return false;
-    }
-}
-
-// ИСПРАВЛЕННАЯ ФУНКЦИЯ completeOrderWithPhone
-async function completeOrderWithPhone(orderData) {
-    try {
-        if (!orderData || !orderData.orderNumber) {
-            console.error('Order data is missing or incomplete:', orderData);
-            showNotification('Ошибка оформления заказа', 'error');
-            return;
-        }
-        
-        orderData.user = orderData.user || {};
-        if (userPhoneNumber) {
-            orderData.user.phone = userPhoneNumber;
-        }
-        
-        const notified = await notifyManager(orderData);
-        
-        cart = [];
-        saveCart();
-        closeCart();
-        
-        setTimeout(() => {
-            loadAndRenderProducts();
-        }, 3000);
-        
-    } catch (error) {
-        console.error('Error completing order with phone:', error);
-        showNotification('Ошибка оформления заказа', 'error');
     }
 }
 
@@ -2793,12 +2826,6 @@ function showOrderConfirmationModal(orderData, orderNumber) {
                 <div class="order-instructions">
                     <p class="instruction-item"><i class="fas fa-info-circle"></i> <span class="instruction-text">Сохраните номер заказа для связи с менеджером</span></p>
                     <p class="instruction-item"><i class="fas fa-truck"></i> <span class="instruction-text">${orderData.deliveryMethod === 'pickup' ? 'Самовывоз - забирайте заказ самостоятельно' : 'Доставка - курьер свяжется с вами'}</span></p>
-                    <div class="contact-manager-section">
-                        <button class="contact-manager-btn-large" onclick="openManagerChat('${orderNumber}')">
-                            <i class="fab fa-telegram"></i> <span class="contact-btn-text">Написать менеджеру в Telegram</span>
-                        </button>
-                        <p class="contact-instruction">Нажмите кнопку выше, чтобы сообщить номер заказа менеджеру для подтверждения</p>
-                    </div>
                 </div>
             </div>
             <div class="order-confirmation-footer">
@@ -2826,7 +2853,7 @@ function showOrderConfirmationModal(orderData, orderNumber) {
             modal.style.opacity = '0';
             setTimeout(function() { modal.remove(); }, 300);
         }
-    }, 15000);
+    }, 10000);
 }
 
 function showManagerNotification(orderNumber) {
@@ -2968,7 +2995,7 @@ async function checkout() {
         deliveryMethod: deliveryMethod,
         deliveryAddress: deliveryMethod === 'delivery' ? deliveryAddress : null,
         deliveryTime: deliveryMethod === 'delivery' ? deliveryTime : null,
-        deliveryNotes: deliveryMethod === 'delivery' ? deliveryNotes : null,
+        deliveryNotes: deliveryMethod === 'delivery' ? deliveryNotes : null, // ИСПРАВЛЕНО: двоеточие вместо равно
         user: tg ? {
             id: tg.initDataUnsafe.user && tg.initDataUnsafe.user.id,
             username: tg.initDataUnsafe.user && tg.initDataUnsafe.user.username,
