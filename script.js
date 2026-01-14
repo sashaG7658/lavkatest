@@ -2003,6 +2003,12 @@ function showPhoneConfirmationModal(orderData) {
 
 async function completeOrderWithPhone(orderData) {
     try {
+        if (!orderData || !orderData.orderNumber) {
+            console.error('Order data is missing or incomplete:', orderData);
+            showNotification('Ошибка оформления заказа', 'error');
+            return;
+        }
+        
         orderData.user = orderData.user || {};
         if (userPhoneNumber) {
             orderData.user.phone = userPhoneNumber;
@@ -2048,11 +2054,12 @@ async function completeOrderWithPhone(orderData) {
         
     } catch (error) {
         console.error('Error completing order with phone:', error);
+        showNotification('Ошибка оформления заказа', 'error');
     }
 }
 
 // ✅ Отправляем заказ в Telegram
-if (window.Telegram && window.Telegram.WebApp) {
+if (window.Telegram && window.Telegram.WebApp && pendingOrderData && pendingOrderData.orderNumber) {
     const orderDataForBot = {
         orderNumber: pendingOrderData.orderNumber,
         products: pendingOrderData.products,
@@ -2069,7 +2076,7 @@ if (window.Telegram && window.Telegram.WebApp) {
     console.log("📤 Отправка в Telegram:", orderDataForBot);
     window.Telegram.WebApp.sendData(JSON.stringify(orderDataForBot));
 } else {
-    console.warn("❌ Telegram WebApp не доступен");
+    console.warn("❌ Telegram WebApp не доступен или нет данных заказа");
 }
 
 function loadCart() {
@@ -2567,8 +2574,15 @@ function generateOrderNumber() {
     return 'ORD-' + year + month + day + '-' + orderCounter.toString().padStart(5, '0');
 }
 
+// ИСПРАВЛЕННАЯ ФУНКЦИЯ notifyManager - добавлена проверка на существование orderData
 async function notifyManager(orderData) {
     try {
+        // Проверяем, что orderData существует и содержит orderNumber
+        if (!orderData || !orderData.orderNumber) {
+            console.error('Invalid order data:', orderData);
+            return false;
+        }
+        
         let message = '**НОВЫЙ ЗАКАЗ #' + orderData.orderNumber + '**\n\n';
         
         message += '👤 **Покупатель:**\n';
@@ -2995,7 +3009,7 @@ async function checkout() {
         deliveryMethod: deliveryMethod,
         deliveryAddress: deliveryMethod === 'delivery' ? deliveryAddress : null,
         deliveryTime: deliveryMethod === 'delivery' ? deliveryTime : null,
-        deliveryNotes: deliveryMethod === 'delivery' ? deliveryNotes : null, // ИСПРАВЛЕНО: двоеточие вместо равно
+        deliveryNotes: deliveryMethod === 'delivery' ? deliveryNotes : null,
         user: tg ? {
             id: tg.initDataUnsafe.user && tg.initDataUnsafe.user.id,
             username: tg.initDataUnsafe.user && tg.initDataUnsafe.user.username,
@@ -3483,4 +3497,3 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
-
