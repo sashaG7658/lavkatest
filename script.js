@@ -2684,87 +2684,6 @@ async function notifyManager(orderData) {
         return false;
     }
 }
-// Формируем данные для кнопок
-        const orderPayload = {
-            type: 'new_order',
-            orderNumber: orderData.orderNumber,
-            orderData: orderData,
-            timestamp: Date.now()
-        };
-        
-        if (window.Telegram && window.Telegram.WebApp) {
-            try {
-                const tg = window.Telegram.WebApp;
-                
-                // Отправляем данные в бота
-                if (tg.sendData) {
-                    tg.sendData(JSON.stringify(orderPayload));
-                }
-                
-                // Показываем поп-ап с кнопками
-                if (tg.showPopup) {
-                    tg.showPopup({
-                        title: 'Новый заказ!',
-                        message: `Заказ #${orderData.orderNumber}\nСумма: ${orderData.total} руб.`,
-                        buttons: [
-                            {
-                                type: 'default',
-                                text: 'Подтвердить ✅',
-                                id: 'approve_' + orderData.orderNumber
-                            },
-                            {
-                                type: 'destructive',
-                                text: 'Отклонить ❌',
-                                id: 'reject_' + orderData.orderNumber
-                            },
-                            {
-                                type: 'cancel',
-                                text: 'Подробнее',
-                                id: 'details_' + orderData.orderNumber
-                            }
-                        ]
-                    }, function(buttonId) {
-                        // Обработка нажатий кнопок
-                        handleManagerAction(buttonId, orderData);
-                    });
-                }
-                
-            } catch (tgError) {
-                console.log('Telegram API error, using fallback:', tgError);
-            }
-        }
-        
-        // Сохраняем заказ в локальное хранилище для синхронизации
-        saveOrderToLocal(orderData);
-        
-        // Отправляем заказ на сервер для обработки
-        await sendOrderToServer(orderData);
-        
-        return true;
-        
-    } catch (error) {
-        console.error('Error notifying manager:', error);
-        return false;
-    }
-}
-
-// Функция обработки действий менеджера
-function handleManagerAction(buttonId, orderData) {
-    const action = buttonId.split('_')[0];
-    const orderNumber = buttonId.split('_')[1];
-    
-    switch(action) {
-        case 'approve':
-            approveOrder(orderNumber, orderData);
-            break;
-        case 'reject':
-            rejectOrder(orderNumber, orderData);
-            break;
-        case 'details':
-            showOrderDetails(orderData);
-            break;
-    }
-}
 
 function showIOSNotification(orderNumber, tgLink) {
     const notification = document.createElement('div');
@@ -3543,4 +3462,3 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
-
