@@ -2051,6 +2051,27 @@ async function completeOrderWithPhone(orderData) {
     }
 }
 
+// ✅ Отправляем заказ в Telegram
+if (window.Telegram && window.Telegram.WebApp) {
+    const orderDataForBot = {
+        orderNumber: pendingOrderData.orderNumber,
+        products: pendingOrderData.products,
+        total: pendingOrderData.total,
+        items_count: pendingOrderData.items_count,
+        timestamp: pendingOrderData.timestamp,
+        deliveryMethod: pendingOrderData.deliveryMethod,
+        deliveryAddress: pendingOrderData.deliveryAddress,
+        deliveryTime: pendingOrderData.deliveryTime,
+        deliveryNotes: pendingOrderData.deliveryNotes,
+        userPhone: pendingOrderData.userPhone
+    };
+
+    console.log("📤 Отправка в Telegram:", orderDataForBot);
+    window.Telegram.WebApp.sendData(JSON.stringify(orderDataForBot));
+} else {
+    console.warn("❌ Telegram WebApp не доступен");
+}
+
 function loadCart() {
     try {
         const savedCart = localStorage.getItem('iceberg_cart');
@@ -3462,3 +3483,4 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
+
