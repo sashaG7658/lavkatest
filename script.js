@@ -2000,7 +2000,6 @@ function showPhoneConfirmationModal(orderData) {
         }
     });
 }
-
 async function completeOrderWithPhone(orderData) {
     try {
         if (!orderData || !orderData.orderNumber) {
@@ -2016,37 +2015,12 @@ async function completeOrderWithPhone(orderData) {
         
         const notified = await notifyManager(orderData);
         
-        if (tg && tg.showAlert) {
-            tg.showAlert(
-                `✅ *Заказ оформлен успешно!*\n\n` +
-                `📋 *Номер заказа:* #${orderData.orderNumber}\n` +
-                `📞 *Ваш телефон:* ${formatPhoneNumber(userPhoneNumber)}\n` +
-                `${orderData.deliveryMethod === 'pickup' ? '🚶 *Способ:* Самовывоз' : '🏍️ *Способ:* Доставка'}\n` +
-                `${orderData.deliveryMethod === 'delivery' && orderData.deliveryAddress ? `📍 *Адрес:* ${orderData.deliveryAddress}\n` : ''}` +
-                `${orderData.deliveryMethod === 'delivery' && orderData.deliveryTime ? `⏰ *Время:* ${orderData.deliveryTime}\n` : ''}` +
-                `📦 Товаров: ${orderData.items_count} шт.\n` +
-                `💰 Сумма: ${orderData.total} руб.\n\n` +
-                `👤 *Менеджер свяжется с вами в ближайшее время*\n` +
-                `🔗 @Chief_68`,
-                function() {
-                    cart = [];
-                    saveCart();
-                    closeCart();
-                    
-                    showManagerNotification(orderData.orderNumber);
-                    
-                    setTimeout(() => {
-                        loadAndRenderProducts();
-                    }, 2000);
-                }
-            );
-        } else {
-            showOrderConfirmationModal(orderData, orderData.orderNumber);
-            
-            cart = [];
-            saveCart();
-            closeCart();
-        }
+        // Используем нашу собственную модалку вместо showAlert
+        showOrderConfirmationModal(orderData, orderData.orderNumber);
+        
+        cart = [];
+        saveCart();
+        closeCart();
         
         setTimeout(() => {
             loadAndRenderProducts();
@@ -2056,27 +2030,6 @@ async function completeOrderWithPhone(orderData) {
         console.error('Error completing order with phone:', error);
         showNotification('Ошибка оформления заказа', 'error');
     }
-}
-
-// ✅ Отправляем заказ в Telegram
-if (window.Telegram && window.Telegram.WebApp && pendingOrderData && pendingOrderData.orderNumber) {
-    const orderDataForBot = {
-        orderNumber: pendingOrderData.orderNumber,
-        products: pendingOrderData.products,
-        total: pendingOrderData.total,
-        items_count: pendingOrderData.items_count,
-        timestamp: pendingOrderData.timestamp,
-        deliveryMethod: pendingOrderData.deliveryMethod,
-        deliveryAddress: pendingOrderData.deliveryAddress,
-        deliveryTime: pendingOrderData.deliveryTime,
-        deliveryNotes: pendingOrderData.deliveryNotes,
-        userPhone: pendingOrderData.userPhone
-    };
-
-    console.log("📤 Отправка в Telegram:", orderDataForBot);
-    window.Telegram.WebApp.sendData(JSON.stringify(orderDataForBot));
-} else {
-    console.warn("❌ Telegram WebApp не доступен или нет данных заказа");
 }
 
 function loadCart() {
@@ -2574,7 +2527,7 @@ function generateOrderNumber() {
     return 'ORD-' + year + month + day + '-' + orderCounter.toString().padStart(5, '0');
 }
 
-// ИСПРАВЛЕННАЯ ФУНКЦИЯ notifyManager - добавлена проверка на существование orderData
+// ИСПРАВЛЕННАЯ ФУНКЦИЯ notifyManager - заменен showPopup на showAlert
 async function notifyManager(orderData) {
     try {
         // Проверяем, что orderData существует и содержит orderNumber
@@ -2655,52 +2608,66 @@ async function notifyManager(orderData) {
             try {
                 const tg = window.Telegram.WebApp;
                 
-                if (tg.showPopup) {
-                    tg.showPopup({
-                        title: 'Заказ оформлен!',
-                        message: `Номер заказа: #${orderData.orderNumber}\n\nНажмите "Написать менеджеру" для подтверждения`,
-                        buttons: [{
-                            type: 'default',
-                            text: 'Написать менеджеру',
-                            id: 'contact_manager'
-                        }, {
-                            type: 'cancel',
-                            text: 'Закрыть',
-                            id: 'close'
-                        }]
-                    }, function(buttonId) {
-                        if (buttonId === 'contact_manager') {
-                            const tgLink = 'https://t.me/' + managerUsername + '?text=' + encodeURIComponent(simpleMessage);
-                            
-                            if (tg.openLink) {
-                                tg.openLink(tgLink);
-                            } else {
-                                window.open(tgLink, '_blank');
-                            }
+                // Используем showAlert вместо showPopup, так как showPopup не поддерживается в версии 6.0
+                if (tg.showAlert) {
+                    // Формируем сообщение для showAlert
+                    const alertMessage = 
+                        `✅ Заказ оформлен успешно!\n\n` +
+                        `📋 Номер заказа: #${orderData.orderNumber}\n` +
+                        `💰 Сумма: ${orderData.total} руб.\n` +
+                        `📦 Товаров: ${orderData.items_count} шт.\n` +
+                        `${orderData.deliveryMethod === 'pickup' ? '🚶 Способ: Самовывоз' : '🏍️ Способ: Доставка'}\n\n` +
+                        `👤 Менеджер свяжется с вами в ближайшее время\n` +
+                        `🔗 @Chief_68`;
+                    
+                    tg.showAlert(alertMessage);
+                    
+                    // Создаем ссылку на менеджера и открываем ее через 1.5 секунды
+                    setTimeout(() => {
+                        const tgLink = 'https://t.me/' + managerUsername + '?text=' + encodeURIComponent(simpleMessage);
+                        
+                        if (tg.openLink) {
+                            tg.openLink(tgLink);
+                        } else {
+                            window.open(tgLink, '_blank');
                         }
-                    });
+                    }, 1500);
                 }
                 
                 if (tg.sendData) {
-                    tg.sendData(JSON.stringify({
-                        type: 'order',
-                        orderNumber: orderData.orderNumber,
-                        total: orderData.total,
-                        items: orderData.items_count,
-                        timestamp: orderData.timestamp,
-                        deliveryMethod: orderData.deliveryMethod
-                    }));
+                    try {
+                        tg.sendData(JSON.stringify({
+                            type: 'order',
+                            orderNumber: orderData.orderNumber,
+                            total: orderData.total,
+                            items: orderData.items_count,
+                            timestamp: orderData.timestamp,
+                            deliveryMethod: orderData.deliveryMethod
+                        }));
+                    } catch (sendDataError) {
+                        console.log('sendData error:', sendDataError);
+                        // Игнорируем ошибку sendData
+                    }
                 }
                 
             } catch (tgError) {
                 console.log('Telegram API error, using fallback:', tgError);
+                // В случае ошибки используем fallback
+                const tgLink = 'https://t.me/' + managerUsername + '?text=' + encodeURIComponent(simpleMessage);
+                window.open(tgLink, '_blank');
             }
+        } else {
+            // Если Telegram WebApp не доступен, просто открываем ссылку
+            const tgLink = 'https://t.me/' + managerUsername + '?text=' + encodeURIComponent(simpleMessage);
+            window.open(tgLink, '_blank');
         }
         
         try {
             const tgLink = 'https://t.me/' + managerUsername + '?text=' + encodeURIComponent(message);
             
-            window.open(tgLink, '_blank');
+            if (!tg || !tg.openLink) {
+                window.open(tgLink, '_blank');
+            }
             
             if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
                 showIOSNotification(orderData.orderNumber, tgLink);
