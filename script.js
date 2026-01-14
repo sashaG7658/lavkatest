@@ -2528,6 +2528,7 @@ function generateOrderNumber() {
 }
 
 // ИСПРАВЛЕННАЯ ФУНКЦИЯ notifyManager - заменен showPopup на showAlert
+// ИСПРАВЛЕННАЯ ФУНКЦИЯ notifyManager - без использования Telegram WebApp методов
 async function notifyManager(orderData) {
     try {
         // Проверяем, что orderData существует и содержит orderNumber
@@ -2604,79 +2605,34 @@ async function notifyManager(orderData) {
                               ).join('\n') +
                               '\n\nПрошу подтвердить заказ и уточнить детали доставки.';
         
-        if (window.Telegram && window.Telegram.WebApp) {
-            try {
-                const tg = window.Telegram.WebApp;
-                
-                // Используем showAlert вместо showPopup, так как showPopup не поддерживается в версии 6.0
-                if (tg.showAlert) {
-                    // Формируем сообщение для showAlert
-                    const alertMessage = 
-                        `✅ Заказ оформлен успешно!\n\n` +
-                        `📋 Номер заказа: #${orderData.orderNumber}\n` +
-                        `💰 Сумма: ${orderData.total} руб.\n` +
-                        `📦 Товаров: ${orderData.items_count} шт.\n` +
-                        `${orderData.deliveryMethod === 'pickup' ? '🚶 Способ: Самовывоз' : '🏍️ Способ: Доставка'}\n\n` +
-                        `👤 Менеджер свяжется с вами в ближайшее время\n` +
-                        `🔗 @Chief_68`;
-                    
-                    tg.showAlert(alertMessage);
-                    
-                    // Создаем ссылку на менеджера и открываем ее через 1.5 секунды
-                    setTimeout(() => {
-                        const tgLink = 'https://t.me/' + managerUsername + '?text=' + encodeURIComponent(simpleMessage);
-                        
-                        if (tg.openLink) {
-                            tg.openLink(tgLink);
-                        } else {
-                            window.open(tgLink, '_blank');
-                        }
-                    }, 1500);
-                }
-                
-                if (tg.sendData) {
-                    try {
-                        tg.sendData(JSON.stringify({
-                            type: 'order',
-                            orderNumber: orderData.orderNumber,
-                            total: orderData.total,
-                            items: orderData.items_count,
-                            timestamp: orderData.timestamp,
-                            deliveryMethod: orderData.deliveryMethod
-                        }));
-                    } catch (sendDataError) {
-                        console.log('sendData error:', sendDataError);
-                        // Игнорируем ошибку sendData
-                    }
-                }
-                
-            } catch (tgError) {
-                console.log('Telegram API error, using fallback:', tgError);
-                // В случае ошибки используем fallback
-                const tgLink = 'https://t.me/' + managerUsername + '?text=' + encodeURIComponent(simpleMessage);
-                window.open(tgLink, '_blank');
-            }
-        } else {
-            // Если Telegram WebApp не доступен, просто открываем ссылку
-            const tgLink = 'https://t.me/' + managerUsername + '?text=' + encodeURIComponent(simpleMessage);
-            window.open(tgLink, '_blank');
-        }
-        
+        // Всегда используем нашу собственную логику, без Telegram WebApp методов
         try {
-            const tgLink = 'https://t.me/' + managerUsername + '?text=' + encodeURIComponent(message);
+            const tgLink = 'https://t.me/' + managerUsername + '?text=' + encodeURIComponent(simpleMessage);
             
-            if (!tg || !tg.openLink) {
-                window.open(tgLink, '_blank');
-            }
+            // Показываем уведомление о заказе
+            showOrderConfirmationModal(orderData, orderData.orderNumber);
             
-            if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
-                showIOSNotification(orderData.orderNumber, tgLink);
-            }
+            // Открываем Telegram через 2 секунды
+            setTimeout(() => {
+                if (tg && tg.openLink) {
+                    try {
+                        tg.openLink(tgLink);
+                    } catch (openLinkError) {
+                        console.log('openLink error, using window.open:', openLinkError);
+                        window.open(tgLink, '_blank');
+                    }
+                } else {
+                    window.open(tgLink, '_blank');
+                }
+            }, 2000);
             
         } catch (linkError) {
             console.log('Link opening error:', linkError);
+            // В случае ошибки показываем хотя бы наше уведомление
+            showOrderConfirmationModal(orderData, orderData.orderNumber);
         }
         
+        // Показываем кнопку для связи с менеджером
         showContactButton(orderData.orderNumber);
         
         return true;
@@ -2684,6 +2640,36 @@ async function notifyManager(orderData) {
     } catch (error) {
         console.error('Error notifying manager:', error);
         return false;
+    }
+}
+
+// ИСПРАВЛЕННАЯ ФУНКЦИЯ completeOrderWithPhone
+async function completeOrderWithPhone(orderData) {
+    try {
+        if (!orderData || !orderData.orderNumber) {
+            console.error('Order data is missing or incomplete:', orderData);
+            showNotification('Ошибка оформления заказа', 'error');
+            return;
+        }
+        
+        orderData.user = orderData.user || {};
+        if (userPhoneNumber) {
+            orderData.user.phone = userPhoneNumber;
+        }
+        
+        const notified = await notifyManager(orderData);
+        
+        cart = [];
+        saveCart();
+        closeCart();
+        
+        setTimeout(() => {
+            loadAndRenderProducts();
+        }, 3000);
+        
+    } catch (error) {
+        console.error('Error completing order with phone:', error);
+        showNotification('Ошибка оформления заказа', 'error');
     }
 }
 
@@ -2807,6 +2793,12 @@ function showOrderConfirmationModal(orderData, orderNumber) {
                 <div class="order-instructions">
                     <p class="instruction-item"><i class="fas fa-info-circle"></i> <span class="instruction-text">Сохраните номер заказа для связи с менеджером</span></p>
                     <p class="instruction-item"><i class="fas fa-truck"></i> <span class="instruction-text">${orderData.deliveryMethod === 'pickup' ? 'Самовывоз - забирайте заказ самостоятельно' : 'Доставка - курьер свяжется с вами'}</span></p>
+                    <div class="contact-manager-section">
+                        <button class="contact-manager-btn-large" onclick="openManagerChat('${orderNumber}')">
+                            <i class="fab fa-telegram"></i> <span class="contact-btn-text">Написать менеджеру в Telegram</span>
+                        </button>
+                        <p class="contact-instruction">Нажмите кнопку выше, чтобы сообщить номер заказа менеджеру для подтверждения</p>
+                    </div>
                 </div>
             </div>
             <div class="order-confirmation-footer">
@@ -2834,7 +2826,7 @@ function showOrderConfirmationModal(orderData, orderNumber) {
             modal.style.opacity = '0';
             setTimeout(function() { modal.remove(); }, 300);
         }
-    }, 10000);
+    }, 15000);
 }
 
 function showManagerNotification(orderNumber) {
@@ -3464,3 +3456,4 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
+
