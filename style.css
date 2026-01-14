@@ -3661,5 +3661,47 @@ body.dark-theme .search-results {
     }
 }
 
+.contact-manager-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+}
+
+.contact-manager-btn-large {
+    width: 100%;
+    padding: 15px 20px;
+    background: linear-gradient(135deg, #0088cc, #006699);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 136, 204, 0.3);
+}
+
+.contact-manager-btn-large:hover {
+    background: linear-gradient(135deg, #0099e6, #0077b3);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 136, 204, 0.4);
+}
+
+.contact-manager-btn-large:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(0, 136, 204, 0.3);
+}
+
+.contact-instruction {
+    margin-top: 10px;
+    font-size: 14px;
+    color: var(--text-secondary);
+    text-align: center;
+    line-height: 1.4;
+}
 
 
