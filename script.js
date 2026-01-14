@@ -3372,6 +3372,99 @@ function addDostavistaButtonForAdmin() {
     }
 }
 
+async function notifyAdmin(orderData) {
+    try {
+        const tg = window.Telegram.WebApp;
+        if (tg) {
+            const orderDataStr = JSON.stringify(orderData);
+            tg.sendData(orderDataStr);
+        }
+    } catch (error) {
+        console.error('Error notifying admin:', error);
+    }
+}
+
+async function completeOrderWithPhone(orderData) {
+    try {
+        orderData.userPhone = userPhoneNumber;
+        orderData.deliveryMethod = deliveryMethod;
+        orderData.deliveryAddress = deliveryMethod === 'delivery' ? deliveryAddress : null;
+        orderData.deliveryTime = deliveryMethod === 'delivery' ? deliveryTime : null;
+        orderData.deliveryNotes = deliveryMethod === 'delivery' ? deliveryNotes : null;
+
+        // Генерируем номер заказа
+        const orderNumber = generateOrderNumber();
+
+        // Обновляем историю заказов
+        orderHistory.unshift({
+            orderNumber: orderNumber,
+            products: orderData.products,
+            total: orderData.total,
+            items_count: orderData.items_count,
+            timestamp: orderData.timestamp,
+            deliveryMethod: orderData.deliveryMethod,
+            deliveryAddress: orderData.deliveryAddress,
+            deliveryTime: orderData.deliveryTime,
+            deliveryNotes: orderData.deliveryNotes,
+            userPhone: orderData.userPhone,
+            status: 'pending' // Новый статус заказа
+        });
+
+        saveCart();
+
+        // Оповещаем админа
+        notifyAdmin({
+            orderNumber: orderNumber,
+            products: orderData.products,
+            total: orderData.total,
+            items_count: orderData.items_count,
+            timestamp: orderData.timestamp,
+            deliveryMethod: orderData.deliveryMethod,
+            deliveryAddress: orderData.deliveryAddress,
+            deliveryTime: orderData.deliveryTime,
+            deliveryNotes: orderData.deliveryNotes,
+            userPhone: orderData.userPhone
+        });
+
+        // Показываем уведомление пользователю
+        if (tg && tg.showAlert) {
+            tg.showAlert(
+                `✅ *Заказ оформлен успешно!*\n\n` +
+                `📋 *Номер заказа:* #${orderNumber}\n` +
+                `📞 *Ваш телефон:* ${formatPhoneNumber(userPhoneNumber)}\n` +
+                `${orderData.deliveryMethod === 'pickup' ? '🚶 *Способ:* Самовывоз' : '🏍️ *Способ:* Доставка'}\n` +
+                `${orderData.deliveryMethod === 'delivery' && orderData.deliveryAddress ? `📍 *Адрес:* ${orderData.deliveryAddress}\n` : ''}` +
+                `${orderData.deliveryMethod === 'delivery' && orderData.deliveryTime ? `⏰ *Время:* ${orderData.deliveryTime}\n` : ''}` +
+                `📦 Товаров: ${orderData.items_count} шт.\n` +
+                `💰 Сумма: ${orderData.total} руб.\n\n` +
+                `👤 *Менеджер свяжется с вами в ближайшее время*\n` +
+                `🔗 @Chief_68`,
+                function() {
+                    cart = [];
+                    closeCart();
+
+                    showManagerNotification(orderNumber);
+
+                    setTimeout(() => {
+                        loadAndRenderProducts();
+                    }, 2000);
+                }
+            );
+        } else {
+            showOrderConfirmationModal(orderData, orderNumber);
+
+            cart = [];
+            closeCart();
+        }
+
+        setTimeout(() => {
+            loadAndRenderProducts();
+        }, 3000);
+    } catch (error) {
+        console.error('Error completing order with phone:', error);
+    }
+}
+
 async function initApp() {
     detectTheme();
     initTelegram();
@@ -3483,4 +3576,5 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
+
 
