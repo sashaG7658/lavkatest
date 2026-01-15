@@ -2003,6 +2003,20 @@ function showPhoneConfirmationModal(orderData) {
 
 async function completeOrderWithPhone(orderData) {
     try {
+    orderData.user = orderData.user || {};
+    if (userPhoneNumber) {
+      orderData.user.phone = userPhoneNumber;
+    }
+    
+    // ✅ Сохраняем в Google Sheets
+    const savedToSheets = await saveOrderToGoogleSheets(orderData);
+    
+    if (!savedToSheets) {
+      showNotification('Заказ оформлен, но не сохранен в базу', 'warning');
+    }
+    
+    const notified = await notifyManager(orderData);
+    try {
         orderData.user = orderData.user || {};
         if (userPhoneNumber) {
             orderData.user.phone = userPhoneNumber;
@@ -2995,15 +3009,27 @@ async function checkout() {
         deliveryMethod: deliveryMethod,
         deliveryAddress: deliveryMethod === 'delivery' ? deliveryAddress : null,
         deliveryTime: deliveryMethod === 'delivery' ? deliveryTime : null,
-        deliveryNotes: deliveryMethod === 'delivery' ? deliveryNotes : null, // ИСПРАВЛЕНО: двоеточие вместо равно
+        deliveryNotes: deliveryMethod === 'delivery' ? deliveryNotes : null,
         user: tg ? {
             id: tg.initDataUnsafe.user && tg.initDataUnsafe.user.id,
             username: tg.initDataUnsafe.user && tg.initDataUnsafe.user.username,
             first_name: tg.initDataUnsafe.user && tg.initDataUnsafe.user.first_name,
             last_name: tg.initDataUnsafe.user && tg.initDataUnsafe.user.last_name
-        } : null
+        } : null,
+        secret: 'iceberg2024_secure_key' // Секретный ключ для защиты
     };
     
+    // Добавляем телефон пользователя, если есть
+    if (userPhoneNumber) {
+        orderData.userPhone = userPhoneNumber;
+        if (orderData.user) {
+            orderData.user.phone = userPhoneNumber;
+        } else {
+            orderData.user = { phone: userPhoneNumber };
+        }
+    }
+    
+    // Сохраняем историю заказов локально
     orderHistory.unshift({
         orderNumber: orderData.orderNumber,
         products: orderData.products,
@@ -3020,6 +3046,22 @@ async function checkout() {
     
     saveCart();
     
+    // ✅ Сохраняем заказ в Google Sheets
+    try {
+        const savedToSheets = await saveOrderToGoogleSheets(orderData);
+        
+        if (!savedToSheets) {
+            console.warn('⚠️ Заказ создан, но не сохранен в Google Sheets');
+            // Показываем пользователю уведомление
+            showNotification('Заказ оформлен, но произошла ошибка при сохранении', 'warning');
+        } else {
+            console.log('✅ Заказ успешно сохранен в Google Sheets');
+        }
+    } catch (sheetsError) {
+        console.error('❌ Ошибка при сохранении в Google Sheets:', sheetsError);
+        // Не прерываем процесс оформления заказа из-за ошибки сохранения
+    }
+    
     // Проверяем данные доставки перед показом окна с телефоном
     const deliveryValidation = validateDeliveryInfo();
     if (!deliveryValidation.isValid) {
@@ -3033,7 +3075,248 @@ async function checkout() {
         return;
     }
     
-    showPhoneConfirmationModal(orderData);
+    // Если у пользователя уже есть сохраненный номер телефона, оформляем заказ сразу
+    if (userPhoneNumber) {
+        // Проверяем валидность номера
+        const validatedPhone = validatePhoneNumber(userPhoneNumber);
+        if (validatedPhone) {
+            // Показываем подтверждение с сохраненным номером
+            showPhoneConfirmationWithSavedNumber(orderData);
+        } else {
+            // Если номер невалидный, показываем форму ввода
+            showPhoneConfirmationModal(orderData);
+        }
+    } else {
+        // Если номера нет, показываем форму ввода
+        showPhoneConfirmationModal(orderData);
+    }
+}
+
+// Функция для сохранения в Google Sheets
+async function saveOrderToGoogleSheets(orderData) {
+    try {
+        // URL вашего Google Apps Script веб-приложения
+        const scriptUrl = 'https://script.google.com/macros/s/AKfycbxEj9S2dEsu-Kpj1fO4z1gCEoNFLoeAm5C0hw1rAELttIJiJIpuLHDPorCKHVchWt-6/exec';
+        
+        // Добавляем секретный ключ для безопасности
+        const dataToSend = {
+            ...orderData,
+            secret: 'iceberg2024_secure_key' // Должен совпадать с ключом в Google Apps Script
+        };
+        
+        console.log('📤 Отправка заказа в Google Sheets:', {
+            orderNumber: orderData.orderNumber,
+            total: orderData.total,
+            items: orderData.items_count
+        });
+        
+        // Отправляем запрос
+        const response = await fetch(scriptUrl, {
+            method: 'POST',
+            mode: 'no-cors', // Важно для Google Apps Script
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(dataToSend)
+        });
+        
+        // При mode: 'no-cors' мы не получим ответ, но запрос будет отправлен
+        console.log('✅ Заказ отправлен в Google Sheets');
+        return true;
+        
+    } catch (error) {
+        console.error('❌ Ошибка отправки в Google Sheets:', error);
+        
+        // Альтернативный метод с использованием CORS-прокси
+        try {
+            console.log('🔄 Пробуем альтернативный метод отправки...');
+            await saveOrderToGoogleSheetsAlternative(orderData);
+            return true;
+        } catch (altError) {
+            console.error('❌ Альтернативный метод также не сработал:', altError);
+            return false;
+        }
+    }
+}
+
+// Альтернативная функция на случай проблем с CORS
+async function saveOrderToGoogleSheetsAlternative(orderData) {
+    try {
+        const scriptUrl = 'https://script.google.com/macros/s/AKfycbxEj9S2dEsu-Kpj1fO4z1gCEoNFLoeAm5C0hw1rAELttIJiJIpuLHDPorCKHVchWt-6/exec';
+        
+        // Используем FormData для обхода CORS
+        const formData = new FormData();
+        formData.append('data', JSON.stringify({
+            ...orderData,
+            secret: 'iceberg2024_secure_key'
+        }));
+        
+        const response = await fetch(scriptUrl, {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (response.ok) {
+            console.log('✅ Заказ сохранен (альтернативный метод)');
+            return true;
+        }
+        throw new Error('Network response was not ok');
+        
+    } catch (error) {
+        throw error;
+    }
+}
+
+// Новая функция для показа подтверждения с сохраненным номером
+function showPhoneConfirmationWithSavedNumber(orderData) {
+    pendingOrderData = orderData;
+    
+    const modal = document.createElement('div');
+    modal.className = 'phone-confirmation-modal';
+    modal.innerHTML = `
+        <div class="phone-confirmation-content">
+            <div class="phone-confirmation-header">
+                <i class="fas fa-phone-alt"></i>
+                <h2 class="phone-modal-title">Подтвердите заказ</h2>
+            </div>
+            <div class="phone-confirmation-body">
+                <div class="delivery-method-section">
+                    <h3 class="delivery-section-title"><i class="fas fa-truck"></i> Способ получения:</h3>
+                    <div class="delivery-summary">
+                        ${deliveryMethod === 'pickup' ? `
+                            <div class="delivery-summary-item pickup">
+                                <i class="fas fa-store"></i>
+                                <div>
+                                    <strong class="summary-title">Самовывоз</strong>
+                                    <p class="summary-description">Забрать заказ самостоятельно</p>
+                                </div>
+                            </div>
+                        ` : `
+                            <div class="delivery-summary-item delivery">
+                                <i class="fas fa-motorcycle"></i>
+                                <div>
+                                    <strong class="summary-title">Доставка</strong>
+                                    <p class="summary-detail"><strong class="detail-label">Адрес:</strong> <span class="detail-value">${deliveryAddress || 'Не указан'}</span></p>
+                                    <p class="summary-detail"><strong class="detail-label">Время:</strong> <span class="detail-value">${deliveryTime || 'Не указано'}</span></p>
+                                    ${deliveryNotes ? `<p class="summary-detail"><strong class="detail-label">Комментарий:</strong> <span class="detail-value">${deliveryNotes}</span></p>` : ''}
+                                </div>
+                            </div>
+                        `}
+                        <button class="change-delivery-method-btn" onclick="showDeliveryMethodModalOverPhone()">
+                            <i class="fas fa-edit"></i> <span class="change-btn-text">Изменить способ</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="phone-confirmed-section">
+                    <div class="confirmed-phone-display">
+                        <i class="fas fa-check-circle"></i>
+                        <div class="confirmed-phone-text">
+                            <p class="confirmed-title">Ваш номер телефона:</p>
+                            <p class="confirmed-number">${formatPhoneNumber(userPhoneNumber)}</p>
+                            <p class="confirmed-note">Этот номер будет использован для связи по заказу</p>
+                        </div>
+                    </div>
+                    <button class="change-phone-btn" onclick="showPhoneConfirmationModal(pendingOrderData)">
+                        <i class="fas fa-edit"></i> Изменить номер
+                    </button>
+                </div>
+                
+                <div class="order-summary-section">
+                    <h3 class="order-summary-title"><i class="fas fa-receipt"></i> Итог заказа:</h3>
+                    <div class="order-summary-details">
+                        <div class="summary-detail-item">
+                            <span class="detail-label">Номер заказа:</span>
+                            <span class="detail-value">#${orderData.orderNumber}</span>
+                        </div>
+                        <div class="summary-detail-item">
+                            <span class="detail-label">Товаров:</span>
+                            <span class="detail-value">${orderData.items_count} шт.</span>
+                        </div>
+                        <div class="summary-detail-item">
+                            <span class="detail-label">Сумма:</span>
+                            <span class="detail-value">${orderData.total} ₽</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="confirmation-info">
+                    <p class="confirmation-info-text">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>Нажимая "Подтвердить", вы соглашаетесь с обработкой ваших данных для выполнения заказа</span>
+                    </p>
+                </div>
+            </div>
+            <div class="phone-confirmation-footer">
+                <button id="confirmWithSavedPhoneBtn" class="confirm-phone-btn">
+                    <i class="fas fa-check"></i> <span class="btn-text">Подтвердить заказ</span>
+                </button>
+                <button id="cancelPhoneBtn" class="cancel-phone-btn">
+                    <i class="fas fa-times"></i> <span class="btn-text">Отмена</span>
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    document.getElementById('confirmWithSavedPhoneBtn').addEventListener('click', function() {
+        // Проверяем данные доставки
+        const deliveryValidation = validateDeliveryInfo();
+        if (!deliveryValidation.isValid) {
+            showNotification(deliveryValidation.error, 'error');
+            modal.style.opacity = '0';
+            setTimeout(() => {
+                modal.remove();
+                showDeliveryMethodModal();
+            }, 300);
+            return;
+        }
+        
+        modal.style.opacity = '0';
+        setTimeout(() => modal.remove(), 300);
+        
+        // Добавляем телефон к данным заказа
+        orderData.userPhone = userPhoneNumber;
+        if (orderData.user) {
+            orderData.user.phone = userPhoneNumber;
+        } else {
+            orderData.user = { phone: userPhoneNumber };
+        }
+        
+        // Завершаем оформление заказа
+        completeOrderWithPhone(orderData);
+        pendingOrderData = null;
+    });
+    
+    document.getElementById('cancelPhoneBtn').addEventListener('click', function() {
+        modal.style.opacity = '0';
+        setTimeout(() => {
+            modal.remove();
+            pendingOrderData = null;
+        }, 300);
+    });
+    
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            modal.style.opacity = '0';
+            setTimeout(() => {
+                modal.remove();
+                pendingOrderData = null;
+            }, 300);
+        }
+    });
+    
+    document.addEventListener('keydown', function closeOnEscape(e) {
+        if (e.key === 'Escape') {
+            modal.style.opacity = '0';
+            setTimeout(() => {
+                modal.remove();
+                pendingOrderData = null;
+                document.removeEventListener('keydown', closeOnEscape);
+            }, 300);
+        }
+    });
 }
 
 function openFavorites() {
@@ -3512,4 +3795,5 @@ async function saveOrderToGoogleSheets(orderData) {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
+
 
