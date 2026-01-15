@@ -1,6 +1,6 @@
 // Функция для сохранения заказа через GitHub API
 async function saveOrderToGitHub(orderData) {
-    const GITHUB_TOKEN = 'ваш_токен_здесь'; // ⚠️ НЕ храните в коде на фронтенде!
+    const GITHUB_TOKEN = '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'; // ⚠️ НЕ храните в коде на фронтенде!
     const REPO_OWNER = 'sashaG7658';
     const REPO_NAME = 'lavkatest';
     const FILE_PATH = 'orders.json';
