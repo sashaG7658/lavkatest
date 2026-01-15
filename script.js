@@ -2003,316 +2003,73 @@ function showPhoneConfirmationModal(orderData) {
 
 async function completeOrderWithPhone(orderData) {
     try {
-        console.log('📱 Начинаем обработку заказа с телефоном...');
-        
-        // Добавляем телефон пользователя к данным заказа
         orderData.user = orderData.user || {};
         if (userPhoneNumber) {
             orderData.user.phone = userPhoneNumber;
         }
         
-        // Создаем полный объект заказа с дополнительными полями
-        const fullOrderData = {
-            // Основные данные из orderData
-            orderNumber: orderData.orderNumber,
-            products: orderData.products || [],
-            total: orderData.total || 0,
-            items_count: orderData.items_count || 0,
-            timestamp: orderData.timestamp || new Date().toISOString(),
-            deliveryMethod: orderData.deliveryMethod || 'pickup',
-            deliveryAddress: orderData.deliveryAddress || null,
-            deliveryTime: orderData.deliveryTime || null,
-            deliveryNotes: orderData.deliveryNotes || null,
-            user: orderData.user || {},
-            
-            // Дополнительные поля
-            userPhone: userPhoneNumber || null,
-            status: 'pending',
-            paymentStatus: 'awaiting_payment',
-            orderType: 'standard',
-            platform: window.Telegram ? 'telegram_webapp' : 'web_browser',
-            browserInfo: navigator.userAgent,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            
-            // Метки для отслеживания
-            savedLocally: false,
-            savedToGitHub: false,
-            managerNotified: false,
-            
-            // Уникальный идентификатор
-            uniqueId: `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-        };
+        const notified = await notifyManager(orderData);
         
-        console.log('📊 Данные заказа подготовлены:', fullOrderData.orderNumber);
-        
-        // Шаг 1: Сохраняем заказ в localStorage (первичное сохранение)
-        try {
-            const orderForHistory = {
-                ...fullOrderData,
-                savedLocally: true,
-                localSaveTime: new Date().toISOString()
-            };
-            
-            orderHistory.unshift(orderForHistory);
-            
-            // Ограничиваем историю до последних 50 заказов
-            if (orderHistory.length > 50) {
-                orderHistory = orderHistory.slice(0, 50);
-            }
-            
-            localStorage.setItem('iceberg_orders', JSON.stringify(orderHistory));
-            console.log('💾 Заказ сохранен в localStorage');
-            fullOrderData.savedLocally = true;
-            
-        } catch (localStorageError) {
-            console.error('Ошибка сохранения в localStorage:', localStorageError);
-            // Продолжаем, даже если localStorage не работает
-        }
-        
-        // Шаг 2: Пытаемся сохранить на GitHub
-        let githubSaveResult = {
-            success: false,
-            error: null,
-            commitUrl: null
-        };
-        
-        try {
-            console.log('☁️ Пытаемся сохранить заказ на GitHub...');
-            githubSaveResult = await saveOrderToGitHub(fullOrderData);
-            
-            if (githubSaveResult.success) {
-                fullOrderData.savedToGitHub = true;
-                fullOrderData.githubCommitUrl = githubSaveResult.commitUrl;
-                console.log('✅ Заказ успешно сохранен на GitHub');
-            } else {
-                console.warn('⚠️ Заказ не сохранен на GitHub:', githubSaveResult.error);
-            }
-            
-        } catch (githubError) {
-            console.error('❌ Ошибка при сохранении на GitHub:', githubError);
-            githubSaveResult.error = githubError.message;
-            
-            // Создаем резервную копию для повторной отправки
-            const failedOrders = JSON.parse(localStorage.getItem('failed_orders_queue') || '[]');
-            failedOrders.push({
-                orderData: fullOrderData,
-                failedAt: new Date().toISOString(),
-                retryCount: 0,
-                lastError: githubError.message
-            });
-            localStorage.setItem('failed_orders_queue', JSON.stringify(failedOrders));
-        }
-        
-        // Шаг 3: Уведомляем менеджера
-        let managerNotificationResult = {
-            success: false,
-            error: null
-        };
-        
-        try {
-            console.log('📨 Уведомляем менеджера о заказе...');
-            managerNotificationResult = await notifyManager(fullOrderData);
-            fullOrderData.managerNotified = managerNotificationResult.success;
-            
-            if (managerNotificationResult.success) {
-                console.log('✅ Менеджер уведомлен');
-            } else {
-                console.warn('⚠️ Не удалось уведомить менеджера');
-            }
-            
-        } catch (notificationError) {
-            console.error('❌ Ошибка при уведомлении менеджера:', notificationError);
-            managerNotificationResult.error = notificationError.message;
-        }
-        
-        // Шаг 4: Очищаем корзину
-        cart = [];
-        saveCart();
-        console.log('🛒 Корзина очищена');
-        
-        // Шаг 5: Закрываем модальные окна
-        const phoneModal = document.querySelector('.phone-confirmation-modal');
-        if (phoneModal) {
-            phoneModal.style.opacity = '0';
-            setTimeout(() => {
-                if (phoneModal.parentNode) {
-                    phoneModal.parentNode.removeChild(phoneModal);
-                }
-            }, 300);
-        }
-        
-        closeCart();
-        
-        // Шаг 6: Показываем результат пользователю
         if (tg && tg.showAlert) {
-            // Telegram WebApp версия
-            let alertMessage = `✅ *Заказ оформлен успешно!*\n\n`;
-            alertMessage += `📋 *Номер заказа:* #${fullOrderData.orderNumber}\n`;
-            alertMessage += `📞 *Телефон:* ${formatPhoneNumber(userPhoneNumber)}\n`;
-            alertMessage += `${fullOrderData.deliveryMethod === 'pickup' ? '🚶 *Способ:* Самовывоз' : '🏍️ *Способ:* Доставка'}\n`;
-            
-            if (fullOrderData.deliveryMethod === 'delivery') {
-                if (fullOrderData.deliveryAddress) {
-                    alertMessage += `📍 *Адрес:* ${fullOrderData.deliveryAddress}\n`;
-                }
-                if (fullOrderData.deliveryTime) {
-                    alertMessage += `⏰ *Время:* ${fullOrderData.deliveryTime}\n`;
-                }
-            }
-            
-            alertMessage += `📦 *Товаров:* ${fullOrderData.items_count} шт.\n`;
-            alertMessage += `💰 *Сумма:* ${fullOrderData.total} руб.\n\n`;
-            
-            // Добавляем информацию о сохранении
-            if (fullOrderData.savedToGitHub) {
-                alertMessage += `✅ *Статус:* Заказ сохранен в системе\n`;
-            } else {
-                alertMessage += `⚠️ *Статус:* Заказ сохранен локально\n`;
-                alertMessage += `(попробуем синхронизировать позже)\n`;
-            }
-            
-            alertMessage += `\n👤 *Менеджер свяжется с вами для подтверждения*\n`;
-            alertMessage += `🔗 @Chief_68`;
-            
-            tg.showAlert(alertMessage, function() {
-                // Колбек после закрытия алерта
-                showManagerNotification(fullOrderData.orderNumber);
-                
-                // Показываем дополнительное уведомление о статусе
-                if (!fullOrderData.savedToGitHub) {
+            tg.showAlert(
+                `✅ *Заказ оформлен успешно!*\n\n` +
+                `📋 *Номер заказа:* #${orderData.orderNumber}\n` +
+                `📞 *Ваш телефон:* ${formatPhoneNumber(userPhoneNumber)}\n` +
+                `${orderData.deliveryMethod === 'pickup' ? '🚶 *Способ:* Самовывоз' : '🏍️ *Способ:* Доставка'}\n` +
+                `${orderData.deliveryMethod === 'delivery' && orderData.deliveryAddress ? `📍 *Адрес:* ${orderData.deliveryAddress}\n` : ''}` +
+                `${orderData.deliveryMethod === 'delivery' && orderData.deliveryTime ? `⏰ *Время:* ${orderData.deliveryTime}\n` : ''}` +
+                `📦 Товаров: ${orderData.items_count} шт.\n` +
+                `💰 Сумма: ${orderData.total} руб.\n\n` +
+                `👤 *Менеджер свяжется с вами в ближайшее время*\n` +
+                `🔗 @Chief_68`,
+                function() {
+                    cart = [];
+                    saveCart();
+                    closeCart();
+                    
+                    showManagerNotification(orderData.orderNumber);
+                    
                     setTimeout(() => {
-                        tg.showAlert(
-                            '⚠️ *Внимание!*\n\n' +
-                            'Заказ сохранен локально на вашем устройстве.\n' +
-                            'При восстановлении соединения он будет автоматически отправлен.',
-                            function() {}
-                        );
-                    }, 1000);
+                        loadAndRenderProducts();
+                    }, 2000);
                 }
-                
-                // Обновляем товары через 2 секунды
-                setTimeout(() => {
-                    loadAndRenderProducts();
-                }, 2000);
-            });
-            
+            );
         } else {
-            // Браузерная версия
-            showOrderConfirmationModal(fullOrderData, fullOrderData.orderNumber);
+            showOrderConfirmationModal(orderData, orderData.orderNumber);
             
-            // Дополнительное уведомление
-            if (fullOrderData.savedToGitHub) {
-                showNotification('✅ Заказ успешно сохранен в системе!', 'success');
-            } else {
-                showNotification('⚠️ Заказ сохранен локально. Синхронизация отложена.', 'warning');
-                
-                // Показываем кнопку для повторной отправки
-                setTimeout(() => {
-                    showRetryNotification(fullOrderData.orderNumber);
-                }, 2000);
-            }
-            
-            // Показываем уведомление менеджеру
-            setTimeout(() => {
-                showManagerNotification(fullOrderData.orderNumber);
-            }, 1500);
+            cart = [];
+            saveCart();
+            closeCart();
         }
         
-        // Шаг 7: Обновляем UI
         setTimeout(() => {
             loadAndRenderProducts();
-            
-            // Обновляем счетчики
-            updateCartUI();
-            updateFavoritesUI();
-            updateTelegramButton();
-            
-            // Показываем индикатор синхронизации, если нужно
-            if (!fullOrderData.savedToGitHub) {
-                showSyncIndicator();
-            }
-            
         }, 3000);
         
-        // Шаг 8: Логируем успешное завершение
-        console.log('🎉 Заказ успешно обработан:', {
-            orderNumber: fullOrderData.orderNumber,
-            savedLocally: fullOrderData.savedLocally,
-            savedToGitHub: fullOrderData.savedToGitHub,
-            managerNotified: fullOrderData.managerNotified,
-            timestamp: new Date().toISOString()
-        });
-        
-        // Шаг 9: Запускаем фоновую синхронизацию (если нужно)
-        if (!fullOrderData.savedToGitHub) {
-            setTimeout(retryFailedOrders, 10000); // Через 10 секунд
-        }
-        
-        // Шаг 10: Сбрасываем переменные
-        pendingOrderData = null;
-        
-        return {
-            success: true,
-            orderNumber: fullOrderData.orderNumber,
-            savedToGitHub: fullOrderData.savedToGitHub,
-            githubCommitUrl: githubSaveResult.commitUrl
-        };
-        
     } catch (error) {
-        console.error('❌ Критическая ошибка при оформлении заказа:', error);
-        
-        // Показываем пользователю понятное сообщение об ошибке
-        const errorMessage = `
-            <div class="order-error-modal">
-                <div class="error-icon">
-                    <i class="fas fa-exclamation-triangle"></i>
-                </div>
-                <h3>Ошибка оформления заказа</h3>
-                <p>Произошла непредвиденная ошибка. Ваш заказ сохранен локально.</p>
-                <p class="error-detail">Номер заказа: ${orderData?.orderNumber || 'неизвестен'}</p>
-                <div class="error-actions">
-                    <button onclick="retryOrderSubmission('${orderData?.orderNumber || ''}')" class="retry-btn">
-                        <i class="fas fa-redo"></i> Попробовать снова
-                    </button>
-                    <button onclick="closeErrorModal()" class="close-btn">
-                        <i class="fas fa-times"></i> Закрыть
-                    </button>
-                </div>
-                <p class="error-help">
-                    <i class="fas fa-info-circle"></i>
-                    Вы можете связаться с менеджером: @Chief_68
-                </p>
-            </div>
-        `;
-        
-        // Создаем модальное окно с ошибкой
-        const errorModal = document.createElement('div');
-        errorModal.className = 'global-error-modal';
-        errorModal.innerHTML = errorMessage;
-        document.body.appendChild(errorModal);
-        
-        // Сохраняем заказ в очередь на повторную отправку
-        if (orderData) {
-            const emergencyQueue = JSON.parse(localStorage.getItem('emergency_order_queue') || '[]');
-            emergencyQueue.push({
-                orderData: orderData,
-                error: error.message,
-                timestamp: new Date().toISOString(),
-                phoneNumber: userPhoneNumber
-            });
-            localStorage.setItem('emergency_order_queue', JSON.stringify(emergencyQueue));
-        }
-        
-        // Не очищаем корзину при критической ошибке
-        showNotification('❌ Ошибка оформления. Заказ сохранен для повторной попытки.', 'error');
-        
-        return {
-            success: false,
-            error: error.message,
-            orderNumber: orderData?.orderNumber || null
-        };
+        console.error('Error completing order with phone:', error);
     }
+}
+
+// ✅ Отправляем заказ в Telegram
+if (window.Telegram && window.Telegram.WebApp) {
+    const orderDataForBot = {
+        orderNumber: pendingOrderData.orderNumber,
+        products: pendingOrderData.products,
+        total: pendingOrderData.total,
+        items_count: pendingOrderData.items_count,
+        timestamp: pendingOrderData.timestamp,
+        deliveryMethod: pendingOrderData.deliveryMethod,
+        deliveryAddress: pendingOrderData.deliveryAddress,
+        deliveryTime: pendingOrderData.deliveryTime,
+        deliveryNotes: pendingOrderData.deliveryNotes,
+        userPhone: pendingOrderData.userPhone
+    };
+
+    console.log("📤 Отправка в Telegram:", orderDataForBot);
+    window.Telegram.WebApp.sendData(JSON.stringify(orderDataForBot));
+} else {
+    console.warn("❌ Telegram WebApp не доступен");
 }
 
 function loadCart() {
@@ -3615,80 +3372,6 @@ function addDostavistaButtonForAdmin() {
     }
 }
 
-async function saveOrderToGitHub(orderData) {
-    try {
-        // Ваш GitHub токен (храните его безопасно!)
-        const GITHUB_TOKEN = 'ваш_github_token_здесь';
-        const REPO_OWNER = 'sashaG7658';
-        const REPO_NAME = 'lavkatest';
-        const FILE_PATH = 'orders.json';
-        
-        // URL для получения текущего содержимого файла
-        const apiUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`;
-        
-        // Получаем текущий файл
-        const response = await fetch(apiUrl, {
-            headers: {
-                'Authorization': `token ${GITHUB_TOKEN}`,
-                'Accept': 'application/vnd.github.v3+json'
-            }
-        });
-        
-        let currentOrders = [];
-        let sha = null;
-        
-        if (response.status === 200) {
-            const fileData = await response.json();
-            sha = fileData.sha; // SHA нужен для обновления файла
-            const content = atob(fileData.content); // Декодируем base64
-            currentOrders = JSON.parse(content || '[]');
-        } else if (response.status !== 404) {
-            throw new Error(`GitHub API error: ${response.status}`);
-        }
-        
-        // Добавляем новый заказ
-        const newOrder = {
-            id: Date.now(), // уникальный ID
-            ...orderData,
-            status: 'pending',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        };
-        
-        currentOrders.push(newOrder);
-        
-        // Подготавливаем данные для отправки
-        const updatedContent = JSON.stringify(currentOrders, null, 2);
-        const encodedContent = btoa(unescape(encodeURIComponent(updatedContent)));
-        
-        // Отправляем обновленный файл
-        const updateResponse = await fetch(apiUrl, {
-            method: 'PUT',
-            headers: {
-                'Authorization': `token ${GITHUB_TOKEN}`,
-                'Accept': 'application/vnd.github.v3+json',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                message: `Add order #${orderData.orderNumber}`,
-                content: encodedContent,
-                sha: sha // Требуется при обновлении существующего файла
-            })
-        });
-        
-        if (!updateResponse.ok) {
-            throw new Error(`Failed to update file: ${updateResponse.status}`);
-        }
-        
-        console.log('✅ Заказ сохранен на GitHub:', orderData.orderNumber);
-        return true;
-        
-    } catch (error) {
-        console.error('❌ Ошибка сохранения на GitHub:', error);
-        throw error;
-    }
-}
-
 async function initApp() {
     detectTheme();
     initTelegram();
@@ -3800,6 +3483,4 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
-
-
 
