@@ -3372,6 +3372,80 @@ function addDostavistaButtonForAdmin() {
     }
 }
 
+async function saveOrderToGitHub(orderData) {
+    try {
+        // Ваш GitHub токен (храните его безопасно!)
+        const GITHUB_TOKEN = 'ваш_github_token_здесь';
+        const REPO_OWNER = 'sashaG7658';
+        const REPO_NAME = 'lavkatest';
+        const FILE_PATH = 'orders.json';
+        
+        // URL для получения текущего содержимого файла
+        const apiUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`;
+        
+        // Получаем текущий файл
+        const response = await fetch(apiUrl, {
+            headers: {
+                'Authorization': `token ${GITHUB_TOKEN}`,
+                'Accept': 'application/vnd.github.v3+json'
+            }
+        });
+        
+        let currentOrders = [];
+        let sha = null;
+        
+        if (response.status === 200) {
+            const fileData = await response.json();
+            sha = fileData.sha; // SHA нужен для обновления файла
+            const content = atob(fileData.content); // Декодируем base64
+            currentOrders = JSON.parse(content || '[]');
+        } else if (response.status !== 404) {
+            throw new Error(`GitHub API error: ${response.status}`);
+        }
+        
+        // Добавляем новый заказ
+        const newOrder = {
+            id: Date.now(), // уникальный ID
+            ...orderData,
+            status: 'pending',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+        
+        currentOrders.push(newOrder);
+        
+        // Подготавливаем данные для отправки
+        const updatedContent = JSON.stringify(currentOrders, null, 2);
+        const encodedContent = btoa(unescape(encodeURIComponent(updatedContent)));
+        
+        // Отправляем обновленный файл
+        const updateResponse = await fetch(apiUrl, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `token ${GITHUB_TOKEN}`,
+                'Accept': 'application/vnd.github.v3+json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                message: `Add order #${orderData.orderNumber}`,
+                content: encodedContent,
+                sha: sha // Требуется при обновлении существующего файла
+            })
+        });
+        
+        if (!updateResponse.ok) {
+            throw new Error(`Failed to update file: ${updateResponse.status}`);
+        }
+        
+        console.log('✅ Заказ сохранен на GitHub:', orderData.orderNumber);
+        return true;
+        
+    } catch (error) {
+        console.error('❌ Ошибка сохранения на GitHub:', error);
+        throw error;
+    }
+}
+
 async function initApp() {
     detectTheme();
     initTelegram();
@@ -3483,4 +3557,5 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
+
 
