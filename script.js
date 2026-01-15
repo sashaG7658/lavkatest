@@ -3482,5 +3482,34 @@ if (document.readyState === 'loading') {
     initApp();
 }
 
+async function saveOrderToGoogleSheets(orderData) {
+  try {
+    // URL вашего Google Apps Script веб-приложения
+    const scriptUrl = 'ВАШ_URL_GOOGLE_APPS_SCRIPT';
+    
+    const response = await fetch(scriptUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(orderData)
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      console.log('✅ Заказ сохранен в Google Sheets');
+      return true;
+    } else {
+      console.error('❌ Ошибка сохранения:', result.error);
+      return false;
+    }
+    
+  } catch (error) {
+    console.error('❌ Ошибка отправки в Google Sheets:', error);
+    return false;
+  }
+}
+
 window.addEventListener('beforeunload', stopAutoUpdate);
 
