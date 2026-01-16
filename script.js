@@ -2248,23 +2248,100 @@ async function completeOrderWithPhone(orderData) {
     
     if (!orderData || !orderData.orderNumber) {
         console.error('❌ orderData не содержит orderNumber');
-        showNotification('Ошибка при оформлении заказа', 'error');
-        return;
+        showNotification('Ошибка при оформлении заказа. Пожалуйста, попробуйте снова.', 'error');
+        
+        // Пытаемся восстановить данные заказа
+        try {
+            const lastOrder = orderHistory[0];
+            if (lastOrder && lastOrder.orderNumber) {
+                console.log('Пытаемся восстановить данные из последнего заказа:', lastOrder);
+                orderData = lastOrder;
+            } else {
+                // Генерируем новый номер заказа
+                const orderNumber = generateOrderNumber();
+                orderData = {
+                    orderNumber: orderNumber,
+                    products: cart.map(item => ({
+                        id: item.id,
+                        name: item.name,
+                        price: item.price,
+                        quantity: item.quantity
+                    })),
+                    total: getCartTotal(),
+                    items_count: getCartCount(),
+                    timestamp: new Date().toISOString(),
+                    deliveryMethod: deliveryMethod,
+                    deliveryAddress: deliveryMethod === 'delivery' ? deliveryAddress : null,
+                    deliveryTime: deliveryMethod === 'delivery' ? deliveryTime : null,
+                    deliveryNotes: deliveryMethod === 'delivery' ? deliveryNotes : null,
+                    user: tg ? {
+                        id: tg.initDataUnsafe.user && tg.initDataUnsafe.user.id,
+                        username: tg.initDataUnsafe.user && tg.initDataUnsafe.user.username,
+                        first_name: tg.initDataUnsafe.user && tg.initDataUnsafe.user.first_name,
+                        last_name: tg.initDataUnsafe.user && tg.initDataUnsafe.user.last_name
+                    } : null,
+                    userPhone: userPhoneNumber
+                };
+            }
+        } catch (error) {
+            console.error('❌ Не удалось восстановить данные заказа:', error);
+            showNotification('Не удалось оформить заказ. Пожалуйста, свяжитесь с менеджером.', 'error');
+            return;
+        }
     }
     
     try {
+        // Убеждаемся, что у нас есть все необходимые данные
         orderData.user = orderData.user || {};
-        if (userPhoneNumber) {
+        if (userPhoneNumber && !orderData.userPhone) {
+            orderData.userPhone = userPhoneNumber;
             orderData.user.phone = userPhoneNumber;
         }
         
+        if (!orderData.timestamp) {
+            orderData.timestamp = new Date().toISOString();
+        }
+        
+        // Логируем данные перед отправкой
+        console.log('📤 Отправка заказа с данными:', {
+            orderNumber: orderData.orderNumber,
+            user: orderData.user,
+            total: orderData.total,
+            items: orderData.items_count,
+            deliveryMethod: orderData.deliveryMethod
+        });
+        
+        // ✅ Отправляем заказ в Telegram (если доступно)
+        if (window.Telegram && window.Telegram.WebApp && orderData.orderNumber) {
+            try {
+                const orderDataForBot = {
+                    orderNumber: orderData.orderNumber,
+                    products: orderData.products || [],
+                    total: orderData.total || 0,
+                    items_count: orderData.items_count || 0,
+                    timestamp: orderData.timestamp,
+                    deliveryMethod: orderData.deliveryMethod || 'pickup',
+                    deliveryAddress: orderData.deliveryAddress,
+                    deliveryTime: orderData.deliveryTime,
+                    deliveryNotes: orderData.deliveryNotes,
+                    userPhone: orderData.userPhone
+                };
+
+                console.log("📤 Отправка в Telegram:", orderDataForBot);
+                window.Telegram.WebApp.sendData(JSON.stringify(orderDataForBot));
+            } catch (tgError) {
+                console.warn("❌ Ошибка отправки в Telegram:", tgError);
+            }
+        }
+        
+        // Уведомляем менеджера
         const notified = await notifyManager(orderData);
         
         if (tg && tg.showAlert) {
             tg.showAlert(
                 `✅ *Заказ оформлен успешно!*\n\n` +
                 `📋 *Номер заказа:* #${orderData.orderNumber}\n` +
-                `📞 *Ваш телефон:* ${formatPhoneNumber(userPhoneNumber)}\n` +
+                `${userPhoneNumber ? `📞 *Ваш телефон:* ${formatPhoneNumber(userPhoneNumber)}\n` : ''}` +
                 `${orderData.deliveryMethod === 'pickup' ? '🚶 *Способ:* Самовывоз' : '🏍️ *Способ:* Доставка'}\n` +
                 `${orderData.deliveryMethod === 'delivery' && orderData.deliveryAddress ? `📍 *Адрес:* ${orderData.deliveryAddress}\n` : ''}` +
                 `${orderData.deliveryMethod === 'delivery' && orderData.deliveryTime ? `⏰ *Время:* ${orderData.deliveryTime}\n` : ''}` +
@@ -2273,78 +2350,58 @@ async function completeOrderWithPhone(orderData) {
                 `👤 *Менеджер свяжется с вами в ближайшее время*\n` +
                 `🔗 @Chief_68`,
                 function() {
+                    // Очищаем корзину
                     cart = [];
                     saveCart();
                     closeCart();
                     
+                    // Показываем уведомление о менеджере
                     showManagerNotification(orderData.orderNumber);
                     
+                    // Обновляем товары
                     setTimeout(() => {
                         loadAndRenderProducts();
                     }, 2000);
                 }
             );
         } else {
+            // Показываем модалку подтверждения заказа
             showOrderConfirmationModal(orderData, orderData.orderNumber);
             
+            // Очищаем корзину
             cart = [];
             saveCart();
             closeCart();
         }
         
+        // Добавляем заказ в историю
+        if (orderData.orderNumber && !orderHistory.some(order => order.orderNumber === orderData.orderNumber)) {
+            orderHistory.unshift({
+                orderNumber: orderData.orderNumber,
+                products: orderData.products || [],
+                total: orderData.total || 0,
+                items_count: orderData.items_count || 0,
+                timestamp: orderData.timestamp,
+                deliveryMethod: orderData.deliveryMethod || 'pickup',
+                deliveryAddress: orderData.deliveryAddress,
+                deliveryTime: orderData.deliveryTime,
+                deliveryNotes: orderData.deliveryNotes,
+                user: orderData.user,
+                userPhone: orderData.userPhone,
+                status: 'pending'
+            });
+            
+            saveCart();
+        }
+        
+        // Обновляем товары через некоторое время
         setTimeout(() => {
             loadAndRenderProducts();
         }, 3000);
         
     } catch (error) {
-        console.error('Error completing order with phone:', error);
-    }
-}
-
-// ✅ Отправляем заказ в Telegram
-if (window.Telegram && window.Telegram.WebApp) {
-    const orderDataForBot = {
-        orderNumber: pendingOrderData.orderNumber,
-        products: pendingOrderData.products,
-        total: pendingOrderData.total,
-        items_count: pendingOrderData.items_count,
-        timestamp: pendingOrderData.timestamp,
-        deliveryMethod: pendingOrderData.deliveryMethod,
-        deliveryAddress: pendingOrderData.deliveryAddress,
-        deliveryTime: pendingOrderData.deliveryTime,
-        deliveryNotes: pendingOrderData.deliveryNotes,
-        userPhone: pendingOrderData.userPhone
-    };
-
-    console.log("📤 Отправка в Telegram:", orderDataForBot);
-    window.Telegram.WebApp.sendData(JSON.stringify(orderDataForBot));
-} else {
-    console.warn("❌ Telegram WebApp не доступен");
-}
-
-function loadCart() {
-    try {
-        const savedCart = localStorage.getItem('iceberg_cart');
-        cart = savedCart ? JSON.parse(savedCart) : [];
-        
-        const savedOrders = localStorage.getItem('iceberg_orders');
-        orderHistory = savedOrders ? JSON.parse(savedOrders) : [];
-        
-    } catch (error) {
-        console.error('Error loading cart:', error);
-        cart = [];
-        orderHistory = [];
-    }
-}
-
-function saveCart() {
-    try {
-        localStorage.setItem('iceberg_cart', JSON.stringify(cart));
-        localStorage.setItem('iceberg_orders', JSON.stringify(orderHistory));
-        updateCartUI();
-        updateTelegramButton();
-    } catch (error) {
-        console.error('Error saving cart:', error);
+        console.error('❌ Ошибка при завершении заказа:', error);
+        showNotification('Произошла ошибка при оформлении заказа. Пожалуйста, свяжитесь с менеджером.', 'error');
     }
 }
 
@@ -3802,3 +3859,4 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
+
