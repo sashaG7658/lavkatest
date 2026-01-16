@@ -1849,14 +1849,30 @@ function formatPhoneNumber(phone) {
 
 async function saveOrderToGoogleSheets(orderData) {
     try {
-        // URL вашего Google Apps Script веб-приложения
+        // URL вашего Google Apps Script веб-приложения с публичным доступом
         const scriptUrl = 'https://script.google.com/macros/s/AKfycbxEj9S2dEsu-Kpj1fO4z1gCEoNFLoeAm5C0hw1rAELttIJiJIpuLHDPorCKHVchWt-6/exec';
         
-        // Добавляем секретный ключ для безопасности
-        const dataToSend = {
-            ...orderData,
-            secret: 'iceberg2024_secure_key' // Должен совпадать с ключом в Google Apps Script
-        };
+        // Формируем данные как query-параметры для GET-запроса
+        // Это обходит проблемы CORS и авторизации
+        const queryParams = new URLSearchParams({
+            orderNumber: orderData.orderNumber,
+            total: orderData.total,
+            items_count: orderData.items_count,
+            timestamp: orderData.timestamp,
+            deliveryMethod: orderData.deliveryMethod || 'pickup',
+            deliveryAddress: orderData.deliveryAddress || '',
+            deliveryTime: orderData.deliveryTime || '',
+            deliveryNotes: orderData.deliveryNotes || '',
+            userPhone: orderData.userPhone || '',
+            userUsername: orderData.user?.username || '',
+            userFirstName: orderData.user?.first_name || '',
+            userLastName: orderData.user?.last_name || '',
+            secret: 'iceberg2024_secure_key'
+        });
+        
+        // Добавляем товары как JSON строку
+        const productsJson = JSON.stringify(orderData.products || []);
+        queryParams.append('products', productsJson);
         
         console.log('📤 Отправка заказа в Google Sheets:', {
             orderNumber: orderData.orderNumber,
@@ -1864,26 +1880,32 @@ async function saveOrderToGoogleSheets(orderData) {
             items: orderData.items_count
         });
         
-        // Отправляем запрос
-        const response = await fetch(scriptUrl, {
-            method: 'POST',
-            mode: 'no-cors', // Важно для Google Apps Script
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(dataToSend)
-        });
+        // Используем GET запрос вместо POST - это работает лучше с Google Apps Script
+        const urlWithParams = `${scriptUrl}?${queryParams.toString()}`;
         
-        // При mode: 'no-cors' мы не получим ответ, но запрос будет отправлен
-        console.log('✅ Заказ отправлен в Google Sheets');
+        // Создаем невидимый iframe для отправки запроса
+        // Это обходит CORS ограничения
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = urlWithParams;
+        document.body.appendChild(iframe);
+        
+        // Удаляем iframe через некоторое время
+        setTimeout(() => {
+            if (document.body.contains(iframe)) {
+                document.body.removeChild(iframe);
+            }
+        }, 5000);
+        
+        console.log('✅ Заказ отправлен в Google Sheets (через iframe)');
         return true;
         
     } catch (error) {
         console.error('❌ Ошибка отправки в Google Sheets:', error);
         
-        // Альтернативный метод с использованием CORS-прокси
+        // Альтернативный метод с использованием Image beacon
         try {
-            console.log('🔄 Пробуем альтернативный метод отправки...');
+            console.log('🔄 Пробуем альтернативный метод отправки (image beacon)...');
             await saveOrderToGoogleSheetsAlternative(orderData);
             return true;
         } catch (altError) {
@@ -1897,25 +1919,24 @@ async function saveOrderToGoogleSheetsAlternative(orderData) {
     try {
         const scriptUrl = 'https://script.google.com/macros/s/AKfycbxEj9S2dEsu-Kpj1fO4z1gCEoNFLoeAm5C0hw1rAELttIJiJIpuLHDPorCKHVchWt-6/exec';
         
-        // Используем FormData для обхода CORS
-        const formData = new FormData();
-        formData.append('data', JSON.stringify({
-            ...orderData,
+        // Используем Image beacon метод - самый надежный для обхода CORS
+        const img = new Image();
+        const params = new URLSearchParams({
+            orderNumber: orderData.orderNumber,
+            total: orderData.total,
+            items_count: orderData.items_count,
+            timestamp: orderData.timestamp,
+            deliveryMethod: orderData.deliveryMethod || 'pickup',
             secret: 'iceberg2024_secure_key'
-        }));
-        
-        const response = await fetch(scriptUrl, {
-            method: 'POST',
-            body: formData
         });
         
-        if (response.ok) {
-            console.log('✅ Заказ сохранен (альтернативный метод)');
-            return true;
-        }
-        throw new Error('Network response was not ok');
+        img.src = `${scriptUrl}?${params.toString()}&method=beacon`;
+        
+        console.log('✅ Заказ отправлен (image beacon метод)');
+        return true;
         
     } catch (error) {
+        console.error('❌ Ошибка альтернативного метода:', error);
         throw error;
     }
 }
@@ -3879,3 +3900,4 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
+
