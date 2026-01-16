@@ -1898,7 +1898,7 @@ async function saveOrderToGoogleSheets(orderData) {
 function saveOrderViaJSONP(orderData) {
     return new Promise((resolve, reject) => {
         try {
-            const scriptUrl = 'https://script.google.com/macros/s/AKfycbxEj9S2dEsu-Kpj1fO4z1gCEoNFLoeAm5C0hw1rAELttIJiJIpuLHDPorCKHVchWt-6/exec';
+            const scriptUrl = 'https://script.google.com/macros/s/AKfycbwclbQ1_uBh4Nh9FDR0K9qI7RNyp0tWMIdRo-pBR2hVoqNe2pKwe8AyALeA6VsNOJJe/exec';
             
             // Создаем уникальное имя callback функции
             const callbackName = 'googleSheetsCallback_' + Date.now();
@@ -1941,7 +1941,7 @@ function saveOrderViaJSONP(orderData) {
 function saveOrderViaFormData(orderData) {
     return new Promise((resolve, reject) => {
         try {
-            const scriptUrl = 'https://script.google.com/macros/s/AKfycbxEj9S2dEsu-Kpj1fO4z1gCEoNFLoeAm5C0hw1rAELttIJiJIpuLHDPorCKHVchWt-6/exec';
+            const scriptUrl = 'https://script.google.com/macros/s/AKfycbwclbQ1_uBh4Nh9FDR0K9qI7RNyp0tWMIdRo-pBR2hVoqNe2pKwe8AyALeA6VsNOJJe/exec';
             
             // Создаем невидимую форму
             const form = document.createElement('form');
@@ -4203,3 +4203,4 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
+
