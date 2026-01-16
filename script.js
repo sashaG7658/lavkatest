@@ -1849,65 +1849,52 @@ function formatPhoneNumber(phone) {
 
 async function saveOrderToGoogleSheets(orderData) {
     try {
-        // URL вашего Google Apps Script веб-приложения с публичным доступом
-        const scriptUrl = 'https://script.google.com/macros/s/AKfycbxEj9S2dEsu-Kpj1fO4z1gCEoNFLoeAm5C0hw1rAELttIJiJIpuLHDPorCKHVchWt-6/exec';
-        
-        // Формируем данные как query-параметры для GET-запроса
-        // Это обходит проблемы CORS и авторизации
-        const queryParams = new URLSearchParams({
-            orderNumber: orderData.orderNumber,
-            total: orderData.total,
-            items_count: orderData.items_count,
-            timestamp: orderData.timestamp,
-            deliveryMethod: orderData.deliveryMethod || 'pickup',
-            deliveryAddress: orderData.deliveryAddress || '',
-            deliveryTime: orderData.deliveryTime || '',
-            deliveryNotes: orderData.deliveryNotes || '',
-            userPhone: orderData.userPhone || '',
-            userUsername: orderData.user?.username || '',
-            userFirstName: orderData.user?.first_name || '',
-            userLastName: orderData.user?.last_name || '',
-            secret: 'iceberg2024_secure_key'
-        });
-        
-        // Добавляем товары как JSON строку
-        const productsJson = JSON.stringify(orderData.products || []);
-        queryParams.append('products', productsJson);
-        
         console.log('📤 Отправка заказа в Google Sheets:', {
             orderNumber: orderData.orderNumber,
             total: orderData.total,
             items: orderData.items_count
         });
+
+        // Удаляем secret из данных, так как он может вызывать ошибки
+        const dataToSend = {
+            ...orderData
+        };
         
-        // Используем GET запрос вместо POST - это работает лучше с Google Apps Script
-        const urlWithParams = `${scriptUrl}?${queryParams.toString()}`;
+        // Убедимся что secret не отправляется (может вызвать CORS проблемы)
+        delete dataToSend.secret;
         
-        // Создаем невидимый iframe для отправки запроса
-        // Это обходит CORS ограничения
-        const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        iframe.src = urlWithParams;
-        document.body.appendChild(iframe);
+        // Основной метод - используем стандартный fetch с CORS
+        const scriptUrl = 'https://script.google.com/macros/s/AKfycbxEj9S2dEsu-Kpj1fO4z1gCEoNFLoeAm5C0hw1rAELttIJiJIpuLHDPorCKHVchWt-6/exec';
         
-        // Удаляем iframe через некоторое время
-        setTimeout(() => {
-            if (document.body.contains(iframe)) {
-                document.body.removeChild(iframe);
-            }
-        }, 5000);
+        const response = await fetch(scriptUrl, {
+            method: 'POST',
+            mode: 'cors', // Используем cors вместо no-cors
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(dataToSend)
+        });
         
-        console.log('✅ Заказ отправлен в Google Sheets (через iframe)');
-        return true;
+        console.log('📥 Получен ответ от Google Sheets:', response.status);
+        
+        if (response.ok) {
+            const result = await response.json();
+            console.log('✅ Заказ успешно сохранен в Google Sheets:', result);
+            return true;
+        } else {
+            console.warn('⚠️ Google Sheets ответил с ошибкой:', response.status);
+            // Пробуем альтернативный метод
+            return await saveOrderToGoogleSheetsAlternative(orderData);
+        }
         
     } catch (error) {
-        console.error('❌ Ошибка отправки в Google Sheets:', error);
+        console.error('❌ Ошибка отправки в Google Sheets (основной метод):', error);
         
-        // Альтернативный метод с использованием Image beacon
+        // Пробуем альтернативный метод
         try {
-            console.log('🔄 Пробуем альтернативный метод отправки (image beacon)...');
-            await saveOrderToGoogleSheetsAlternative(orderData);
-            return true;
+            console.log('🔄 Пробуем альтернативный метод отправки...');
+            const result = await saveOrderToGoogleSheetsAlternative(orderData);
+            return result;
         } catch (altError) {
             console.error('❌ Альтернативный метод также не сработал:', altError);
             return false;
@@ -1916,29 +1903,84 @@ async function saveOrderToGoogleSheets(orderData) {
 }
 
 async function saveOrderToGoogleSheetsAlternative(orderData) {
-    try {
-        const scriptUrl = 'https://script.google.com/macros/s/AKfycbxEj9S2dEsu-Kpj1fO4z1gCEoNFLoeAm5C0hw1rAELttIJiJIpuLHDPorCKHVchWt-6/exec';
-        
-        // Используем Image beacon метод - самый надежный для обхода CORS
-        const img = new Image();
-        const params = new URLSearchParams({
-            orderNumber: orderData.orderNumber,
-            total: orderData.total,
-            items_count: orderData.items_count,
-            timestamp: orderData.timestamp,
-            deliveryMethod: orderData.deliveryMethod || 'pickup',
-            secret: 'iceberg2024_secure_key'
-        });
-        
-        img.src = `${scriptUrl}?${params.toString()}&method=beacon`;
-        
-        console.log('✅ Заказ отправлен (image beacon метод)');
-        return true;
-        
-    } catch (error) {
-        console.error('❌ Ошибка альтернативного метода:', error);
-        throw error;
-    }
+    return new Promise((resolve, reject) => {
+        try {
+            // Используем FormData для обхода CORS ограничений
+            const scriptUrl = 'https://script.google.com/macros/s/AKfycbxEj9S2dEsu-Kpj1fO4z1gCEoNFLoeAm5C0hw1rAELttIJiJIpuLHDPorCKHVchWt-6/exec';
+            
+            // Создаем скрытую форму
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = scriptUrl;
+            form.target = '_blank'; // Открываем в новой вкладке
+            form.style.display = 'none';
+            
+            // Добавляем данные в форму
+            const dataInput = document.createElement('input');
+            dataInput.type = 'hidden';
+            dataInput.name = 'data';
+            dataInput.value = JSON.stringify(orderData);
+            form.appendChild(dataInput);
+            
+            // Добавляем форму на страницу
+            document.body.appendChild(form);
+            
+            console.log('📤 Отправка через FormData альтернативным методом');
+            
+            // Отправляем форму
+            form.submit();
+            
+            // Удаляем форму через некоторое время
+            setTimeout(() => {
+                if (document.body.contains(form)) {
+                    document.body.removeChild(form);
+                }
+                resolve(true); // Считаем что отправка успешна
+            }, 1000);
+            
+        } catch (error) {
+            console.error('❌ Ошибка альтернативного метода:', error);
+            reject(error);
+        }
+    });
+}
+
+// Дополнительный метод через image beacon
+async function saveOrderToGoogleSheetsBeacon(orderData) {
+    return new Promise((resolve) => {
+        try {
+            // Используем navigator.sendBeacon если доступно
+            if (navigator.sendBeacon) {
+                const scriptUrl = 'https://script.google.com/macros/s/AKfycbxEj9S2dEsu-Kpj1fO4z1gCEoNFLoeAm5C0hw1rAELttIJiJIpuLHDPorCKHVchWt-6/exec';
+                const blob = new Blob([JSON.stringify(orderData)], {type: 'application/json'});
+                
+                if (navigator.sendBeacon(scriptUrl, blob)) {
+                    console.log('✅ Заказ отправлен через sendBeacon');
+                    resolve(true);
+                } else {
+                    resolve(false);
+                }
+            } else {
+                // Fallback: image beacon
+                const scriptUrl = 'https://script.google.com/macros/s/AKfycbxEj9S2dEsu-Kpj1fO4z1gCEoNFLoeAm5C0hw1rAELttIJiJIpuLHDPorCKHVchWt-6/exec';
+                
+                const params = new URLSearchParams();
+                params.append('orderNumber', orderData.orderNumber);
+                params.append('total', orderData.total);
+                params.append('items_count', orderData.items_count);
+                params.append('timestamp', new Date().toISOString());
+                
+                const img = new Image(1, 1);
+                img.src = `${scriptUrl}?${params.toString()}&method=beacon`;
+                
+                console.log('✅ Заказ отправлен через image beacon');
+                resolve(true);
+            }
+        } catch (error) {
+            console.error('❌ Ошибка beacon метода:', error);
+            resolve(false);
+        }
+    });
 }
 
 function showPhoneConfirmationModal(orderData) {
@@ -3900,4 +3942,5 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
+
 
