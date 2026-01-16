@@ -20,6 +20,34 @@ let deliveryAddress = '';
 let deliveryTime = '';
 let deliveryNotes = '';
 
+// Функция загрузки корзины из localStorage
+function loadCart() {
+    try {
+        const savedCart = localStorage.getItem('iceberg_cart');
+        if (savedCart) {
+            cart = JSON.parse(savedCart);
+        } else {
+            cart = [];
+        }
+        updateCartUI();
+        updateTelegramButton();
+    } catch (error) {
+        console.error('Error loading cart from localStorage:', error);
+        cart = [];
+    }
+}
+
+// Функция сохранения корзины в localStorage
+function saveCart() {
+    try {
+        localStorage.setItem('iceberg_cart', JSON.stringify(cart));
+        updateCartUI();
+        updateTelegramButton();
+    } catch (error) {
+        console.error('Error saving cart to localStorage:', error);
+    }
+}
+
 function detectTheme() {
     try {
         tg = window.Telegram.WebApp;
@@ -812,7 +840,7 @@ function getLocalProducts() {
         {
             id: 1011,
             name: "ШОК КРАКСТЕР (75 МГ)",
-            description: "ЭНЕРГЕТИК С ДЫНЕЙ И КРЫЖОВНИКОМ",
+            description: "ЭНЕРГЕТИк С ДЫНЕЙ И КРЫЖОВНИКОМ",
             price: 500,
             quantity: 5,
             image: "https://static.insales-cdn.com/images/products/1/7595/889290155/large_%D0%BA%D1%80%D0%B0%D0%BA%D1%81%D1%82%D0%B5%D1%80_.png",
@@ -1372,6 +1400,7 @@ function updateDeliveryUIInCart() {
         `;
     }
 }
+
 function showDeliveryMethodModal() {
     const modal = document.createElement('div');
     modal.className = 'delivery-method-modal';
@@ -1523,7 +1552,6 @@ function showDeliveryMethodModal() {
     });
 }
 
-// Новая функция для показа модалки доставки поверх модалки телефона
 function showDeliveryMethodModalOverPhone() {
     const phoneModal = document.querySelector('.phone-confirmation-modal');
     
@@ -1684,7 +1712,6 @@ function showDeliveryMethodModalOverPhone() {
     document.addEventListener('keydown', escapeHandler);
 }
 
-// Функция для обновления способа доставки и обновления информации в модалке телефона
 function changeDeliveryMethodAndUpdatePhoneModal(method) {
     deliveryMethod = method;
     saveDeliveryInfo();
@@ -1707,7 +1734,6 @@ function changeDeliveryMethodAndUpdatePhoneModal(method) {
     updateDeliverySummaryInPhoneModal();
 }
 
-// Функция для обновления сводки доставки в модалке телефона
 function updateDeliverySummaryInPhoneModal() {
     const phoneModal = document.querySelector('.phone-confirmation-modal');
     if (!phoneModal) return;
@@ -1741,7 +1767,6 @@ function updateDeliverySummaryInPhoneModal() {
     }
 }
 
-// Новая функция для обновления полей ввода под тему
 function updateDeliveryFieldsForTheme() {
     const inputs = document.querySelectorAll('.delivery-input');
     const labels = document.querySelectorAll('.delivery-label');
@@ -1764,81 +1789,6 @@ function updateDeliveryFieldsForTheme() {
         labels.forEach(label => {
             label.style.color = '';
         });
-    }
-}
-
-// Функция для сохранения в Google Sheets
-async function saveOrderToGoogleSheets(orderData) {
-    try {
-        // URL вашего Google Apps Script веб-приложения
-        const scriptUrl = 'https://script.google.com/macros/s/AKfycbxEj9S2dEsu-Kpj1fO4z1gCEoNFLoeAm5C0hw1rAELttIJiJIpuLHDPorCKHVchWt-6/exec';
-        
-        // Добавляем секретный ключ для безопасности
-        const dataToSend = {
-            ...orderData,
-            secret: 'iceberg2024_secure_key' // Должен совпадать с ключом в Google Apps Script
-        };
-        
-        console.log('📤 Отправка заказа в Google Sheets:', {
-            orderNumber: orderData.orderNumber,
-            total: orderData.total,
-            items: orderData.items_count
-        });
-        
-        // Отправляем запрос
-        const response = await fetch(scriptUrl, {
-            method: 'POST',
-            mode: 'no-cors', // Важно для Google Apps Script
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(dataToSend)
-        });
-        
-        // При mode: 'no-cors' мы не получим ответ, но запрос будет отправлен
-        console.log('✅ Заказ отправлен в Google Sheets');
-        return true;
-        
-    } catch (error) {
-        console.error('❌ Ошибка отправки в Google Sheets:', error);
-        
-        // Альтернативный метод с использованием CORS-прокси
-        try {
-            console.log('🔄 Пробуем альтернативный метод отправки...');
-            await saveOrderToGoogleSheetsAlternative(orderData);
-            return true;
-        } catch (altError) {
-            console.error('❌ Альтернативный метод также не сработал:', altError);
-            return false;
-        }
-    }
-}
-
-// Альтернативная функция на случай проблем с CORS
-async function saveOrderToGoogleSheetsAlternative(orderData) {
-    try {
-        const scriptUrl = 'https://script.google.com/macros/s/AKfycbxEj9S2dEsu-Kpj1fO4z1gCEoNFLoeAm5C0hw1rAELttIJiJIpuLHDPorCKHVchWt-6/exec';
-        
-        // Используем FormData для обхода CORS
-        const formData = new FormData();
-        formData.append('data', JSON.stringify({
-            ...orderData,
-            secret: 'iceberg2024_secure_key'
-        }));
-        
-        const response = await fetch(scriptUrl, {
-            method: 'POST',
-            body: formData
-        });
-        
-        if (response.ok) {
-            console.log('✅ Заказ сохранен (альтернативный метод)');
-            return true;
-        }
-        throw new Error('Network response was not ok');
-        
-    } catch (error) {
-        throw error;
     }
 }
 
@@ -1895,6 +1845,79 @@ function formatPhoneNumber(phone) {
     }
     
     return phone;
+}
+
+async function saveOrderToGoogleSheets(orderData) {
+    try {
+        // URL вашего Google Apps Script веб-приложения
+        const scriptUrl = 'https://script.google.com/macros/s/AKfycbxEj9S2dEsu-Kpj1fO4z1gCEoNFLoeAm5C0hw1rAELttIJiJIpuLHDPorCKHVchWt-6/exec';
+        
+        // Добавляем секретный ключ для безопасности
+        const dataToSend = {
+            ...orderData,
+            secret: 'iceberg2024_secure_key' // Должен совпадать с ключом в Google Apps Script
+        };
+        
+        console.log('📤 Отправка заказа в Google Sheets:', {
+            orderNumber: orderData.orderNumber,
+            total: orderData.total,
+            items: orderData.items_count
+        });
+        
+        // Отправляем запрос
+        const response = await fetch(scriptUrl, {
+            method: 'POST',
+            mode: 'no-cors', // Важно для Google Apps Script
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(dataToSend)
+        });
+        
+        // При mode: 'no-cors' мы не получим ответ, но запрос будет отправлен
+        console.log('✅ Заказ отправлен в Google Sheets');
+        return true;
+        
+    } catch (error) {
+        console.error('❌ Ошибка отправки в Google Sheets:', error);
+        
+        // Альтернативный метод с использованием CORS-прокси
+        try {
+            console.log('🔄 Пробуем альтернативный метод отправки...');
+            await saveOrderToGoogleSheetsAlternative(orderData);
+            return true;
+        } catch (altError) {
+            console.error('❌ Альтернативный метод также не сработал:', altError);
+            return false;
+        }
+    }
+}
+
+async function saveOrderToGoogleSheetsAlternative(orderData) {
+    try {
+        const scriptUrl = 'https://script.google.com/macros/s/AKfycbxEj9S2dEsu-Kpj1fO4z1gCEoNFLoeAm5C0hw1rAELttIJiJIpuLHDPorCKHVchWt-6/exec';
+        
+        // Используем FormData для обхода CORS
+        const formData = new FormData();
+        formData.append('data', JSON.stringify({
+            ...orderData,
+            secret: 'iceberg2024_secure_key'
+        }));
+        
+        const response = await fetch(scriptUrl, {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (response.ok) {
+            console.log('✅ Заказ сохранен (альтернативный метод)');
+            return true;
+        }
+        throw new Error('Network response was not ok');
+        
+    } catch (error) {
+        throw error;
+    }
 }
 
 function showPhoneConfirmationModal(orderData) {
@@ -2083,7 +2106,6 @@ function showPhoneConfirmationModal(orderData) {
     });
 }
 
-// Функция для показа подтверждения с сохраненным номером
 function showPhoneConfirmationWithSavedNumber(orderData) {
     console.log('showPhoneConfirmationWithSavedNumber вызвана с orderData:', orderData);
     
@@ -2402,169 +2424,6 @@ async function completeOrderWithPhone(orderData) {
     } catch (error) {
         console.error('❌ Ошибка при завершении заказа:', error);
         showNotification('Произошла ошибка при оформлении заказа. Пожалуйста, свяжитесь с менеджером.', 'error');
-    }
-}
-
-async function checkout() {
-    console.log('checkout() вызвана, товаров в корзине:', cart.length);
-    
-    if (cart.length === 0) {
-        console.log('Корзина пуста');
-        return;
-    }
-    
-    // Проверяем наличие товаров
-    const unavailableItems = cart.filter(function(item) {
-        const product = products.find(function(p) { return p.id === item.id; });
-        return !product || product.quantity <= 0;
-    });
-    
-    if (unavailableItems.length > 0) {
-        console.log('Найдены недоступные товары:', unavailableItems);
-        cart = cart.filter(function(item) {
-            const product = products.find(function(p) { return p.id === item.id; });
-            return product && product.quantity > 0;
-        });
-        
-        saveCart();
-        showNotification('Некоторые товары недоступны и были удалены из корзины', 'warning');
-        return;
-    }
-    
-    // Проверяем количество товаров
-    const exceededItems = cart.filter(function(item) {
-        const product = products.find(function(p) { return p.id === item.id; });
-        return product && item.quantity > product.quantity;
-    });
-    
-    if (exceededItems.length > 0) {
-        console.log('Количество товаров превышает доступное:', exceededItems);
-        exceededItems.forEach(function(item) {
-            const product = products.find(function(p) { return p.id === item.id; });
-            if (product) {
-                item.quantity = product.quantity;
-            }
-        });
-        saveCart();
-        showNotification('Количество некоторых товаров было уменьшено до доступного', 'warning');
-        return;
-    }
-
-    // Генерируем номер заказа
-    const orderNumber = generateOrderNumber();
-    console.log('Создан номер заказа:', orderNumber);
-    
-    // Подготавливаем данные заказа
-    const orderData = {
-        orderNumber: orderNumber,
-        products: cart.map(function(item) {
-            return {
-                id: item.id,
-                name: item.name,
-                price: item.price,
-                quantity: item.quantity
-            };
-        }),
-        total: getCartTotal(),
-        items_count: getCartCount(),
-        timestamp: new Date().toISOString(),
-        deliveryMethod: deliveryMethod,
-        deliveryAddress: deliveryMethod === 'delivery' ? deliveryAddress : null,
-        deliveryTime: deliveryMethod === 'delivery' ? deliveryTime : null,
-        deliveryNotes: deliveryMethod === 'delivery' ? deliveryNotes : null,
-        user: tg ? {
-            id: tg.initDataUnsafe.user && tg.initDataUnsafe.user.id,
-            username: tg.initDataUnsafe.user && tg.initDataUnsafe.user.username,
-            first_name: tg.initDataUnsafe.user && tg.initDataUnsafe.user.first_name,
-            last_name: tg.initDataUnsafe.user && tg.initDataUnsafe.user.last_name
-        } : null,
-        secret: 'iceberg2024_secure_key' // Секретный ключ для защиты
-    };
-    
-    // Добавляем телефон пользователя, если есть
-    if (userPhoneNumber) {
-        orderData.userPhone = userPhoneNumber;
-        if (orderData.user) {
-            orderData.user.phone = userPhoneNumber;
-        } else {
-            orderData.user = { phone: userPhoneNumber };
-        }
-    }
-    
-    console.log('Данные заказа подготовлены:', {
-        orderNumber: orderData.orderNumber,
-        total: orderData.total,
-        items: orderData.items_count,
-        deliveryMethod: orderData.deliveryMethod
-    });
-    
-    // Сохраняем историю заказов локально
-    orderHistory.unshift({
-        orderNumber: orderData.orderNumber,
-        products: orderData.products,
-        total: orderData.total,
-        items_count: orderData.items_count,
-        timestamp: orderData.timestamp,
-        deliveryMethod: orderData.deliveryMethod,
-        deliveryAddress: orderData.deliveryAddress,
-        deliveryTime: orderData.deliveryTime,
-        deliveryNotes: orderData.deliveryNotes,
-        user: orderData.user,
-        status: 'pending'
-    });
-    
-    saveCart();
-    
-    // ✅ Сохраняем заказ в Google Sheets
-    try {
-        console.log('Сохранение заказа в Google Sheets...');
-        const savedToSheets = await saveOrderToGoogleSheets(orderData);
-        
-        if (!savedToSheets) {
-            console.warn('⚠️ Заказ создан, но не сохранен в Google Sheets');
-            // Не показываем ошибку пользователю, чтобы не прерывать процесс
-        } else {
-            console.log('✅ Заказ успешно сохранен в Google Sheets');
-        }
-    } catch (sheetsError) {
-        console.error('❌ Ошибка при сохранении в Google Sheets:', sheetsError);
-        // Не прерываем процесс оформления заказа из-за ошибки сохранения
-    }
-    
-    // Проверяем данные доставки
-    const deliveryValidation = validateDeliveryInfo();
-    if (!deliveryValidation.isValid) {
-        console.log('Ошибка валидации доставки:', deliveryValidation.error);
-        showNotification(deliveryValidation.error, 'error');
-        
-        // Показываем модалку выбора способа доставки
-        setTimeout(() => {
-            showDeliveryMethodModal();
-        }, 500);
-        
-        return;
-    }
-    
-    console.log('Данные доставки валидны, проверяем наличие телефона...');
-    
-    // Если у пользователя уже есть сохраненный номер телефона, оформляем заказ сразу
-    if (userPhoneNumber) {
-        console.log('У пользователя есть сохраненный телефон:', userPhoneNumber);
-        // Проверяем валидность номера
-        const validatedPhone = validatePhoneNumber(userPhoneNumber);
-        if (validatedPhone) {
-            // Показываем подтверждение с сохраненным номером
-            console.log('Телефон валиден, показываем подтверждение с сохраненным номером');
-            showPhoneConfirmationWithSavedNumber(orderData);
-        } else {
-            // Если номер невалидный, показываем форму ввода
-            console.log('Телефон невалиден, показываем форму ввода');
-            showPhoneConfirmationModal(orderData);
-        }
-    } else {
-        // Если номера нет, показываем форму ввода
-        console.log('Телефона нет, показываем форму ввода');
-        showPhoneConfirmationModal(orderData);
     }
 }
 
@@ -3009,7 +2868,6 @@ function clearFavorites() {
     }
 }
 
-// ИСПРАВЛЕННАЯ ФУНКЦИЯ - теперь нумерация начинается с 0 и увеличивается последовательно
 function generateOrderNumber() {
     // Загружаем счетчик из localStorage
     let orderCounter = localStorage.getItem('iceberg_order_counter');
@@ -3035,6 +2893,169 @@ function generateOrderNumber() {
     
     // Создаем номер заказа в формате ORD-YYMMDD-XXXXX
     return 'ORD-' + year + month + day + '-' + orderCounter.toString().padStart(5, '0');
+}
+
+async function checkout() {
+    console.log('checkout() вызвана, товаров в корзине:', cart.length);
+    
+    if (cart.length === 0) {
+        console.log('Корзина пуста');
+        return;
+    }
+    
+    // Проверяем наличие товаров
+    const unavailableItems = cart.filter(function(item) {
+        const product = products.find(function(p) { return p.id === item.id; });
+        return !product || product.quantity <= 0;
+    });
+    
+    if (unavailableItems.length > 0) {
+        console.log('Найдены недоступные товары:', unavailableItems);
+        cart = cart.filter(function(item) {
+            const product = products.find(function(p) { return p.id === item.id; });
+            return product && product.quantity > 0;
+        });
+        
+        saveCart();
+        showNotification('Некоторые товары недоступны и были удалены из корзины', 'warning');
+        return;
+    }
+    
+    // Проверяем количество товаров
+    const exceededItems = cart.filter(function(item) {
+        const product = products.find(function(p) { return p.id === item.id; });
+        return product && item.quantity > product.quantity;
+    });
+    
+    if (exceededItems.length > 0) {
+        console.log('Количество товаров превышает доступное:', exceededItems);
+        exceededItems.forEach(function(item) {
+            const product = products.find(function(p) { return p.id === item.id; });
+            if (product) {
+                item.quantity = product.quantity;
+            }
+        });
+        saveCart();
+        showNotification('Количество некоторых товаров было уменьшено до доступного', 'warning');
+        return;
+    }
+
+    // Генерируем номер заказа
+    const orderNumber = generateOrderNumber();
+    console.log('Создан номер заказа:', orderNumber);
+    
+    // Подготавливаем данные заказа
+    const orderData = {
+        orderNumber: orderNumber,
+        products: cart.map(function(item) {
+            return {
+                id: item.id,
+                name: item.name,
+                price: item.price,
+                quantity: item.quantity
+            };
+        }),
+        total: getCartTotal(),
+        items_count: getCartCount(),
+        timestamp: new Date().toISOString(),
+        deliveryMethod: deliveryMethod,
+        deliveryAddress: deliveryMethod === 'delivery' ? deliveryAddress : null,
+        deliveryTime: deliveryMethod === 'delivery' ? deliveryTime : null,
+        deliveryNotes: deliveryMethod === 'delivery' ? deliveryNotes : null,
+        user: tg ? {
+            id: tg.initDataUnsafe.user && tg.initDataUnsafe.user.id,
+            username: tg.initDataUnsafe.user && tg.initDataUnsafe.user.username,
+            first_name: tg.initDataUnsafe.user && tg.initDataUnsafe.user.first_name,
+            last_name: tg.initDataUnsafe.user && tg.initDataUnsafe.user.last_name
+        } : null,
+        secret: 'iceberg2024_secure_key' // Секретный ключ для защиты
+    };
+    
+    // Добавляем телефон пользователя, если есть
+    if (userPhoneNumber) {
+        orderData.userPhone = userPhoneNumber;
+        if (orderData.user) {
+            orderData.user.phone = userPhoneNumber;
+        } else {
+            orderData.user = { phone: userPhoneNumber };
+        }
+    }
+    
+    console.log('Данные заказа подготовлены:', {
+        orderNumber: orderData.orderNumber,
+        total: orderData.total,
+        items: orderData.items_count,
+        deliveryMethod: orderData.deliveryMethod
+    });
+    
+    // Сохраняем историю заказов локально
+    orderHistory.unshift({
+        orderNumber: orderData.orderNumber,
+        products: orderData.products,
+        total: orderData.total,
+        items_count: orderData.items_count,
+        timestamp: orderData.timestamp,
+        deliveryMethod: orderData.deliveryMethod,
+        deliveryAddress: orderData.deliveryAddress,
+        deliveryTime: orderData.deliveryTime,
+        deliveryNotes: orderData.deliveryNotes,
+        user: orderData.user,
+        status: 'pending'
+    });
+    
+    saveCart();
+    
+    // ✅ Сохраняем заказ в Google Sheets
+    try {
+        console.log('Сохранение заказа в Google Sheets...');
+        const savedToSheets = await saveOrderToGoogleSheets(orderData);
+        
+        if (!savedToSheets) {
+            console.warn('⚠️ Заказ создан, но не сохранен в Google Sheets');
+            // Не показываем ошибку пользователю, чтобы не прерывать процесс
+        } else {
+            console.log('✅ Заказ успешно сохранен в Google Sheets');
+        }
+    } catch (sheetsError) {
+        console.error('❌ Ошибка при сохранении в Google Sheets:', sheetsError);
+        // Не прерываем процесс оформления заказа из-за ошибки сохранения
+    }
+    
+    // Проверяем данные доставки
+    const deliveryValidation = validateDeliveryInfo();
+    if (!deliveryValidation.isValid) {
+        console.log('Ошибка валидации доставки:', deliveryValidation.error);
+        showNotification(deliveryValidation.error, 'error');
+        
+        // Показываем модалку выбора способа доставки
+        setTimeout(() => {
+            showDeliveryMethodModal();
+        }, 500);
+        
+        return;
+    }
+    
+    console.log('Данные доставки валидны, проверяем наличие телефона...');
+    
+    // Если у пользователя уже есть сохраненный номер телефона, оформляем заказ сразу
+    if (userPhoneNumber) {
+        console.log('У пользователя есть сохраненный телефон:', userPhoneNumber);
+        // Проверяем валидность номера
+        const validatedPhone = validatePhoneNumber(userPhoneNumber);
+        if (validatedPhone) {
+            // Показываем подтверждение с сохраненным номером
+            console.log('Телефон валиден, показываем подтверждение с сохраненным номером');
+            showPhoneConfirmationWithSavedNumber(orderData);
+        } else {
+            // Если номер невалидный, показываем форму ввода
+            console.log('Телефон невалиден, показываем форму ввода');
+            showPhoneConfirmationModal(orderData);
+        }
+    } else {
+        // Если номера нет, показываем форму ввода
+        console.log('Телефона нет, показываем форму ввода');
+        showPhoneConfirmationModal(orderData);
+    }
 }
 
 async function notifyManager(orderData) {
@@ -3829,7 +3850,6 @@ async function initApp() {
     window.showDeliveryMethodModal = showDeliveryMethodModal;
     window.changeDeliveryMethod = changeDeliveryMethod;
     
-    // Новые функции для работы с модалками поверх друг друга
     window.showDeliveryMethodModalOverPhone = showDeliveryMethodModalOverPhone;
     window.changeDeliveryMethodAndUpdatePhoneModal = changeDeliveryMethodAndUpdatePhoneModal;
     
@@ -3859,4 +3879,3 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
-
