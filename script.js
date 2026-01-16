@@ -20,34 +20,6 @@ let deliveryAddress = '';
 let deliveryTime = '';
 let deliveryNotes = '';
 
-// Функция загрузки корзины из localStorage
-function loadCart() {
-    try {
-        const savedCart = localStorage.getItem('iceberg_cart');
-        if (savedCart) {
-            cart = JSON.parse(savedCart);
-        } else {
-            cart = [];
-        }
-        updateCartUI();
-        updateTelegramButton();
-    } catch (error) {
-        console.error('Error loading cart from localStorage:', error);
-        cart = [];
-    }
-}
-
-// Функция сохранения корзины в localStorage
-function saveCart() {
-    try {
-        localStorage.setItem('iceberg_cart', JSON.stringify(cart));
-        updateCartUI();
-        updateTelegramButton();
-    } catch (error) {
-        console.error('Error saving cart to localStorage:', error);
-    }
-}
-
 function detectTheme() {
     try {
         tg = window.Telegram.WebApp;
@@ -840,7 +812,7 @@ function getLocalProducts() {
         {
             id: 1011,
             name: "ШОК КРАКСТЕР (75 МГ)",
-            description: "ЭНЕРГЕТИк С ДЫНЕЙ И КРЫЖОВНИКОМ",
+            description: "ЭНЕРГЕТИК С ДЫНЕЙ И КРЫЖОВНИКОМ",
             price: 500,
             quantity: 5,
             image: "https://static.insales-cdn.com/images/products/1/7595/889290155/large_%D0%BA%D1%80%D0%B0%D0%BA%D1%81%D1%82%D0%B5%D1%80_.png",
@@ -1552,6 +1524,7 @@ function showDeliveryMethodModal() {
     });
 }
 
+// Новая функция для показа модалки доставки поверх модалки телефона
 function showDeliveryMethodModalOverPhone() {
     const phoneModal = document.querySelector('.phone-confirmation-modal');
     
@@ -1712,6 +1685,7 @@ function showDeliveryMethodModalOverPhone() {
     document.addEventListener('keydown', escapeHandler);
 }
 
+// Функция для обновления способа доставки и обновления информации в модалке телефона
 function changeDeliveryMethodAndUpdatePhoneModal(method) {
     deliveryMethod = method;
     saveDeliveryInfo();
@@ -1734,6 +1708,7 @@ function changeDeliveryMethodAndUpdatePhoneModal(method) {
     updateDeliverySummaryInPhoneModal();
 }
 
+// Функция для обновления сводки доставки в модалке телефона
 function updateDeliverySummaryInPhoneModal() {
     const phoneModal = document.querySelector('.phone-confirmation-modal');
     if (!phoneModal) return;
@@ -1767,6 +1742,7 @@ function updateDeliverySummaryInPhoneModal() {
     }
 }
 
+// Новая функция для обновления полей ввода под тему
 function updateDeliveryFieldsForTheme() {
     const inputs = document.querySelectorAll('.delivery-input');
     const labels = document.querySelectorAll('.delivery-label');
@@ -1847,375 +1823,7 @@ function formatPhoneNumber(phone) {
     return phone;
 }
 
-// =============== ИСПРАВЛЕННЫЙ КОД ДЛЯ ОТПРАВКИ В GOOGLE SHEETS ===============
-async function saveOrderToGoogleSheets(orderData) {
-    try {
-        console.log('📤 Отправка заказа в Google Sheets:', {
-            orderNumber: orderData.orderNumber,
-            total: orderData.total,
-            items: orderData.items_count
-        });
-
-        // Метод 1: Используем JSONP через callback
-        try {
-            await saveOrderViaJSONP(orderData);
-            console.log('✅ Заказ отправлен через JSONP');
-            return true;
-        } catch (jsonpError) {
-            console.log('❌ JSONP не сработал, пробуем метод 2:', jsonpError);
-            
-            // Метод 2: Используем FormData и iframe
-            try {
-                await saveOrderViaFormData(orderData);
-                console.log('✅ Заказ отправлен через FormData');
-                return true;
-            } catch (formError) {
-                console.log('❌ FormData не сработал, пробуем метод 3:', formError);
-                
-                // Метод 3: Используем Google Sheets API напрямую (если настроен)
-                try {
-                    await saveOrderViaGoogleSheetsAPI(orderData);
-                    console.log('✅ Заказ отправлен через Google Sheets API');
-                    return true;
-                } catch (apiError) {
-                    console.log('❌ Все методы не сработали, сохраняем локально:', apiError);
-                    
-                    // Сохраняем заказ локально для последующей ручной отправки
-                    saveOrderLocally(orderData);
-                    return false;
-                }
-            }
-        }
-        
-    } catch (error) {
-        console.error('❌ Все методы отправки провалились:', error);
-        saveOrderLocally(orderData);
-        return false;
-    }
-}
-
-// Метод 1: JSONP через callback
-function saveOrderViaJSONP(orderData) {
-    return new Promise((resolve, reject) => {
-        try {
-            const scriptUrl = 'https://script.google.com/macros/s/AKfycbwclbQ1_uBh4Nh9FDR0K9qI7RNyp0tWMIdRo-pBR2hVoqNe2pKwe8AyALeA6VsNOJJe/exec';
-            
-            // Создаем уникальное имя callback функции
-            const callbackName = 'googleSheetsCallback_' + Date.now();
-            
-            // Создаем URL с callback
-            const url = new URL(scriptUrl);
-            url.searchParams.append('callback', callbackName);
-            url.searchParams.append('data', JSON.stringify(orderData));
-            
-            // Создаем callback функцию
-            window[callbackName] = function(response) {
-                console.log('📥 JSONP ответ:', response);
-                
-                // Очищаем
-                delete window[callbackName];
-                if (script.parentNode) {
-                    script.parentNode.removeChild(script);
-                }
-                
-                resolve(true);
-            };
-            
-            // Создаем и добавляем script тег
-            const script = document.createElement('script');
-            script.src = url.toString();
-            script.onerror = () => {
-                delete window[callbackName];
-                reject(new Error('JSONP загрузка не удалась'));
-            };
-            
-            document.head.appendChild(script);
-            
-        } catch (error) {
-            reject(error);
-        }
-    });
-}
-
-// Метод 2: FormData через iframe
-function saveOrderViaFormData(orderData) {
-    return new Promise((resolve, reject) => {
-        try {
-            const scriptUrl = 'https://script.google.com/macros/s/AKfycbwclbQ1_uBh4Nh9FDR0K9qI7RNyp0tWMIdRo-pBR2hVoqNe2pKwe8AyALeA6VsNOJJe/exec';
-            
-            // Создаем невидимую форму
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = scriptUrl;
-            form.target = 'googleSheetsFrame';
-            form.style.display = 'none';
-            
-            // Создаем iframe для отправки
-            const iframe = document.createElement('iframe');
-            iframe.name = 'googleSheetsFrame';
-            iframe.style.display = 'none';
-            
-            // Добавляем скрытые поля с данными
-            const dataInput = document.createElement('input');
-            dataInput.type = 'hidden';
-            dataInput.name = 'data';
-            dataInput.value = JSON.stringify(orderData);
-            form.appendChild(dataInput);
-            
-            // Добавляем timestamp
-            const tsInput = document.createElement('input');
-            tsInput.type = 'hidden';
-            tsInput.name = 'timestamp';
-            tsInput.value = Date.now();
-            form.appendChild(tsInput);
-            
-            // Добавляем на страницу
-            document.body.appendChild(iframe);
-            document.body.appendChild(form);
-            
-            // Назначаем обработчик загрузки iframe
-            iframe.onload = function() {
-                setTimeout(() => {
-                    // Очищаем
-                    if (document.body.contains(form)) {
-                        document.body.removeChild(form);
-                    }
-                    if (document.body.contains(iframe)) {
-                        document.body.removeChild(iframe);
-                    }
-                    resolve(true);
-                }, 1000);
-            };
-            
-            iframe.onerror = function() {
-                // Очищаем
-                if (document.body.contains(form)) {
-                    document.body.removeChild(form);
-                }
-                if (document.body.contains(iframe)) {
-                    document.body.removeChild(iframe);
-                }
-                reject(new Error('FormData отправка не удалась'));
-            };
-            
-            // Отправляем форму
-            form.submit();
-            
-        } catch (error) {
-            reject(error);
-        }
-    });
-}
-
-// Метод 3: Прямое обращение к Google Sheets API (если настроен)
-async function saveOrderViaGoogleSheetsAPI(orderData) {
-    // Этот метод требует настройки OAuth 2.0 и API ключа
-    // Здесь оставляем заглушку
-    return Promise.reject(new Error('Google Sheets API не настроен'));
-}
-
-// Метод 4: Локальное сохранение для последующей ручной отправки
-function saveOrderLocally(orderData) {
-    try {
-        // Сохраняем заказ в localStorage для последующей отправки
-        const pendingOrders = JSON.parse(localStorage.getItem('iceberg_pending_orders') || '[]');
-        
-        pendingOrders.push({
-            ...orderData,
-            retryCount: 0,
-            lastRetry: new Date().toISOString()
-        });
-        
-        // Сохраняем только последние 50 заказов
-        if (pendingOrders.length > 50) {
-            pendingOrders.splice(0, pendingOrders.length - 50);
-        }
-        
-        localStorage.setItem('iceberg_pending_orders', JSON.stringify(pendingOrders));
-        console.log('💾 Заказ сохранен локально для повторной отправки');
-        
-        // Запускаем повторную отправку в фоне
-        retryPendingOrders();
-        
-    } catch (error) {
-        console.error('❌ Ошибка локального сохранения:', error);
-    }
-}
-
-// Функция для повторной отправки неотправленных заказов
-async function retryPendingOrders() {
-    try {
-        const pendingOrders = JSON.parse(localStorage.getItem('iceberg_pending_orders') || '[]');
-        
-        if (pendingOrders.length === 0) return;
-        
-        console.log(`🔄 Попытка повторной отправки ${pendingOrders.length} заказов...`);
-        
-        // Пробуем отправить самые старые заказы
-        const ordersToRetry = pendingOrders
-            .filter(order => order.retryCount < 3) // Максимум 3 попытки
-            .sort((a, b) => new Date(a.lastRetry) - new Date(b.lastRetry))
-            .slice(0, 5); // Не больше 5 за раз
-            
-        for (const order of ordersToRetry) {
-            try {
-                // Пробуем отправить через FormData (самый надежный метод)
-                await saveOrderViaFormData(order);
-                
-                // Удаляем успешно отправленный заказ
-                const updatedOrders = pendingOrders.filter(o => o.orderNumber !== order.orderNumber);
-                localStorage.setItem('iceberg_pending_orders', JSON.stringify(updatedOrders));
-                
-                console.log(`✅ Заказ ${order.orderNumber} успешно отправлен после повторной попытки`);
-                
-            } catch (error) {
-                // Увеличиваем счетчик попыток
-                order.retryCount += 1;
-                order.lastRetry = new Date().toISOString();
-                console.log(`⚠️ Не удалось отправить заказ ${order.orderNumber}, попытка ${order.retryCount}/3`);
-            }
-        }
-        
-        // Обновляем localStorage
-        localStorage.setItem('iceberg_pending_orders', JSON.stringify(pendingOrders));
-        
-    } catch (error) {
-        console.error('❌ Ошибка повторной отправки:', error);
-    }
-}
-
-// Функция для ручной отправки накопленных заказов
-async function sendPendingOrdersManually() {
-    const pendingOrders = JSON.parse(localStorage.getItem('iceberg_pending_orders') || '[]');
-    
-    if (pendingOrders.length === 0) {
-        alert('Нет неотправленных заказов');
-        return;
-    }
-    
-    const confirmed = confirm(`У вас есть ${pendingOrders.length} неотправленных заказов. Отправить их сейчас?`);
-    
-    if (confirmed) {
-        // Создаем текстовый файл с заказами
-        const ordersText = pendingOrders.map(order => 
-            `Заказ #${order.orderNumber}\n` +
-            `Дата: ${new Date(order.timestamp).toLocaleString('ru-RU')}\n` +
-            `Сумма: ${order.total} руб.\n` +
-            `Товаров: ${order.items_count} шт.\n` +
-            `Телефон: ${order.userPhone || 'Не указан'}\n` +
-            `Способ: ${order.deliveryMethod === 'pickup' ? 'Самовывоз' : 'Доставка'}\n` +
-            `${order.deliveryMethod === 'delivery' ? `Адрес: ${order.deliveryAddress || 'Не указан'}\n` : ''}` +
-            `${order.deliveryMethod === 'delivery' ? `Время: ${order.deliveryTime || 'Не указано'}\n` : ''}` +
-            `Товары:\n${order.products.map(p => `  - ${p.name} × ${p.quantity} шт. = ${p.price * p.quantity} руб.`).join('\n')}\n` +
-            `---\n`
-        ).join('\n');
-        
-        // Создаем ссылку для отправки в Telegram
-        const telegramText = `*НЕОТПРАВЛЕННЫЕ ЗАКАЗЫ* (${pendingOrders.length} шт.)\n\n` +
-            pendingOrders.map(order => 
-                `*Заказ #${order.orderNumber}*\n` +
-                `💰 ${order.total} руб. | 📦 ${order.items_count} шт.\n` +
-                `📞 ${order.userPhone || 'Нет телефона'}\n` +
-                `${order.deliveryMethod === 'delivery' ? `📍 ${order.deliveryAddress || 'Нет адреса'}\n` : ''}` +
-                `---`
-            ).join('\n');
-        
-        const telegramLink = `https://t.me/Chief_68?text=${encodeURIComponent(telegramText)}`;
-        
-        // Показываем инструкцию
-        const modal = document.createElement('div');
-        modal.className = 'pending-orders-modal';
-        modal.innerHTML = `
-            <div class="pending-orders-content">
-                <div class="pending-orders-header">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <h2>Неотправленные заказы</h2>
-                </div>
-                <div class="pending-orders-body">
-                    <p>Найдено <strong>${pendingOrders.length}</strong> неотправленных заказов.</p>
-                    <p>Для отправки менеджеру:</p>
-                    <ol>
-                        <li>Нажмите "Открыть Telegram"</li>
-                        <li>Отправьте сообщение менеджеру</li>
-                        <li>Нажмите "Очистить список" после отправки</li>
-                    </ol>
-                    <div class="orders-summary">
-                        <pre>${ordersText.substring(0, 500)}${ordersText.length > 500 ? '...' : ''}</pre>
-                    </div>
-                </div>
-                <div class="pending-orders-footer">
-                    <button class="open-telegram-btn" onclick="window.open('${telegramLink}', '_blank')">
-                        <i class="fab fa-telegram"></i> Открыть Telegram
-                    </button>
-                    <button class="clear-orders-btn" onclick="clearPendingOrders()">
-                        <i class="fas fa-trash"></i> Очистить список
-                    </button>
-                    <button class="close-pending-modal">
-                        <i class="fas fa-times"></i> Закрыть
-                    </button>
-                </div>
-            </div>
-        `;
-        
-        document.body.appendChild(modal);
-        
-        modal.querySelector('.close-pending-modal').onclick = function() {
-            modal.remove();
-        };
-    }
-}
-
-// Функция очистки неотправленных заказов
-function clearPendingOrders() {
-    localStorage.removeItem('iceberg_pending_orders');
-    alert('Список неотправленных заказов очищен');
-    const modal = document.querySelector('.pending-orders-modal');
-    if (modal) modal.remove();
-}
-
-// Добавляем кнопку для администратора
-function addPendingOrdersButton() {
-    const pendingOrders = JSON.parse(localStorage.getItem('iceberg_pending_orders') || '[]');
-    
-    if (pendingOrders.length > 0) {
-        const pendingBtn = document.createElement('button');
-        pendingBtn.className = 'pending-orders-button';
-        pendingBtn.innerHTML = `
-            <i class="fas fa-exclamation-circle"></i>
-            <span class="pending-count">${pendingOrders.length}</span>
-        `;
-        pendingBtn.title = `${pendingOrders.length} неотправленных заказов`;
-        pendingBtn.onclick = sendPendingOrdersManually;
-        
-        const headerNav = document.querySelector('.header-nav');
-        if (headerNav) {
-            headerNav.appendChild(pendingBtn);
-        }
-    }
-}
-
-// Функция для проверки и отправки неотправленных заказов при загрузке страницы
-function checkAndSendPendingOrdersOnLoad() {
-    setTimeout(() => {
-        const pendingOrders = JSON.parse(localStorage.getItem('iceberg_pending_orders') || '[]');
-        if (pendingOrders.length > 0) {
-            console.log(`📋 Найдено ${pendingOrders.length} неотправленных заказов при загрузке`);
-            retryPendingOrders();
-        }
-    }, 3000); // Ждем 3 секунды после загрузки страницы
-}
-
-// =============== КОНЕЦ ИСПРАВЛЕННОГО КОДА ДЛЯ GOOGLE SHEETS ===============
-
 function showPhoneConfirmationModal(orderData) {
-    console.log('showPhoneConfirmationModal вызвана с orderData:', orderData);
-    
-    if (!orderData) {
-        console.error('❌ orderData равен null или undefined');
-        showNotification('Ошибка при оформлении заказа', 'error');
-        return;
-    }
-    
     pendingOrderData = orderData;
     
     const modal = document.createElement('div');
@@ -2393,274 +2001,20 @@ function showPhoneConfirmationModal(orderData) {
     });
 }
 
-function showPhoneConfirmationWithSavedNumber(orderData) {
-    console.log('showPhoneConfirmationWithSavedNumber вызвана с orderData:', orderData);
-    
-    if (!orderData) {
-        console.error('❌ orderData равен null или undefined');
-        showNotification('Ошибка при оформлении заказа', 'error');
-        return;
-    }
-    
-    pendingOrderData = orderData; // Сохраняем данные заказа
-    
-    const modal = document.createElement('div');
-    modal.className = 'phone-confirmation-modal';
-    modal.innerHTML = `
-        <div class="phone-confirmation-content">
-            <div class="phone-confirmation-header">
-                <i class="fas fa-phone-alt"></i>
-                <h2 class="phone-modal-title">Подтвердите заказ</h2>
-            </div>
-            <div class="phone-confirmation-body">
-                <div class="delivery-method-section">
-                    <h3 class="delivery-section-title"><i class="fas fa-truck"></i> Способ получения:</h3>
-                    <div class="delivery-summary">
-                        ${deliveryMethod === 'pickup' ? `
-                            <div class="delivery-summary-item pickup">
-                                <i class="fas fa-store"></i>
-                                <div>
-                                    <strong class="summary-title">Самовывоз</strong>
-                                    <p class="summary-description">Забрать заказ самостоятельно</p>
-                                </div>
-                            </div>
-                        ` : `
-                            <div class="delivery-summary-item delivery">
-                                <i class="fas fa-motorcycle"></i>
-                                <div>
-                                    <strong class="summary-title">Доставка</strong>
-                                    <p class="summary-detail"><strong class="detail-label">Адрес:</strong> <span class="detail-value">${deliveryAddress || 'Не указан'}</span></p>
-                                    <p class="summary-detail"><strong class="detail-label">Время:</strong> <span class="detail-value">${deliveryTime || 'Не указано'}</span></p>
-                                    ${deliveryNotes ? `<p class="summary-detail"><strong class="detail-label">Комментарий:</strong> <span class="detail-value">${deliveryNotes}</span></p>` : ''}
-                                </div>
-                            </div>
-                        `}
-                        <button class="change-delivery-method-btn" onclick="showDeliveryMethodModalOverPhone()">
-                            <i class="fas fa-edit"></i> <span class="change-btn-text">Изменить способ</span>
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="phone-confirmed-section">
-                    <div class="confirmed-phone-display">
-                        <i class="fas fa-check-circle"></i>
-                        <div class="confirmed-phone-text">
-                            <p class="confirmed-title">Ваш номер телефона:</p>
-                            <p class="confirmed-number">${formatPhoneNumber(userPhoneNumber)}</p>
-                            <p class="confirmed-note">Этот номер будет использован для связи по заказу</p>
-                        </div>
-                    </div>
-                    <button class="change-phone-btn" onclick="showPhoneConfirmationModal(${JSON.stringify(orderData).replace(/"/g, '&quot;')})">
-                        <i class="fas fa-edit"></i> Изменить номер
-                    </button>
-                </div>
-                
-                <div class="order-summary-section">
-                    <h3 class="order-summary-title"><i class="fas fa-receipt"></i> Итог заказа:</h3>
-                    <div class="order-summary-details">
-                        <div class="summary-detail-item">
-                            <span class="detail-label">Номер заказа:</span>
-                            <span class="detail-value">#${orderData.orderNumber}</span>
-                        </div>
-                        <div class="summary-detail-item">
-                            <span class="detail-label">Товаров:</span>
-                            <span class="detail-value">${orderData.items_count} шт.</span>
-                        </div>
-                        <div class="summary-detail-item">
-                            <span class="detail-label">Сумма:</span>
-                            <span class="detail-value">${orderData.total} ₽</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="confirmation-info">
-                    <p class="confirmation-info-text">
-                        <i class="fas fa-shield-alt"></i>
-                        <span>Нажимая "Подтвердить", вы соглашаетесь с обработкой ваших данных для выполнения заказа</span>
-                    </p>
-                </div>
-            </div>
-            <div class="phone-confirmation-footer">
-                <button id="confirmWithSavedPhoneBtn" class="confirm-phone-btn">
-                    <i class="fas fa-check"></i> <span class="btn-text">Подтвердить заказ</span>
-                </button>
-                <button id="cancelPhoneBtn" class="cancel-phone-btn">
-                    <i class="fas fa-times"></i> <span class="btn-text">Отмена</span>
-                </button>
-            </div>
-        </div>
-    `;
-    
-    document.body.appendChild(modal);
-    
-    document.getElementById('confirmWithSavedPhoneBtn').addEventListener('click', function() {
-        // Проверяем данные доставки
-        const deliveryValidation = validateDeliveryInfo();
-        if (!deliveryValidation.isValid) {
-            showNotification(deliveryValidation.error, 'error');
-            modal.style.opacity = '0';
-            setTimeout(() => {
-                modal.remove();
-                showDeliveryMethodModal();
-            }, 300);
-            return;
-        }
-        
-        modal.style.opacity = '0';
-        setTimeout(() => modal.remove(), 300);
-        
-        // Добавляем телефон к данным заказа
-        orderData.userPhone = userPhoneNumber;
-        if (orderData.user) {
-            orderData.user.phone = userPhoneNumber;
-        } else {
-            orderData.user = { phone: userPhoneNumber };
-        }
-        
-        // Завершаем оформление заказа
-        completeOrderWithPhone(orderData);
-        pendingOrderData = null;
-    });
-    
-    document.getElementById('cancelPhoneBtn').addEventListener('click', function() {
-        modal.style.opacity = '0';
-        setTimeout(() => {
-            modal.remove();
-            pendingOrderData = null;
-        }, 300);
-    });
-    
-    modal.addEventListener('click', function(e) {
-        if (e.target === modal) {
-            modal.style.opacity = '0';
-            setTimeout(() => {
-                modal.remove();
-                pendingOrderData = null;
-            }, 300);
-        }
-    });
-    
-    document.addEventListener('keydown', function closeOnEscape(e) {
-        if (e.key === 'Escape') {
-            modal.style.opacity = '0';
-            setTimeout(() => {
-                modal.remove();
-                pendingOrderData = null;
-                document.removeEventListener('keydown', closeOnEscape);
-            }, 300);
-        }
-    });
-}
-
 async function completeOrderWithPhone(orderData) {
-    console.log('completeOrderWithPhone вызвана с orderData:', orderData);
-    
-    if (!orderData || !orderData.orderNumber) {
-        console.error('❌ orderData не содержит orderNumber');
-        showNotification('Ошибка при оформлении заказа. Пожалуйста, попробуйте снова.', 'error');
-        
-        // Пытаемся восстановить данные заказа
-        try {
-            const lastOrder = orderHistory[0];
-            if (lastOrder && lastOrder.orderNumber) {
-                console.log('Пытаемся восстановить данные из последнего заказа:', lastOrder);
-                orderData = lastOrder;
-            } else {
-                // Генерируем новый номер заказа
-                const orderNumber = generateOrderNumber();
-                orderData = {
-                    orderNumber: orderNumber,
-                    products: cart.map(item => ({
-                        id: item.id,
-                        name: item.name,
-                        price: item.price,
-                        quantity: item.quantity
-                    })),
-                    total: getCartTotal(),
-                    items_count: getCartCount(),
-                    timestamp: new Date().toISOString(),
-                    deliveryMethod: deliveryMethod,
-                    deliveryAddress: deliveryMethod === 'delivery' ? deliveryAddress : null,
-                    deliveryTime: deliveryMethod === 'delivery' ? deliveryTime : null,
-                    deliveryNotes: deliveryMethod === 'delivery' ? deliveryNotes : null,
-                    user: tg ? {
-                        id: tg.initDataUnsafe.user && tg.initDataUnsafe.user.id,
-                        username: tg.initDataUnsafe.user && tg.initDataUnsafe.user.username,
-                        first_name: tg.initDataUnsafe.user && tg.initDataUnsafe.user.first_name,
-                        last_name: tg.initDataUnsafe.user && tg.initDataUnsafe.user.last_name
-                    } : null,
-                    userPhone: userPhoneNumber
-                };
-            }
-        } catch (error) {
-            console.error('❌ Не удалось восстановить данные заказа:', error);
-            showNotification('Не удалось оформить заказ. Пожалуйста, свяжитесь с менеджером.', 'error');
-            return;
-        }
-    }
-    
     try {
-        // Убеждаемся, что у нас есть все необходимые данные
         orderData.user = orderData.user || {};
-        if (userPhoneNumber && !orderData.userPhone) {
-            orderData.userPhone = userPhoneNumber;
+        if (userPhoneNumber) {
             orderData.user.phone = userPhoneNumber;
         }
         
-        if (!orderData.timestamp) {
-            orderData.timestamp = new Date().toISOString();
-        }
-        
-        // Логируем данные перед отправкой
-        console.log('📤 Отправка заказа с данными:', {
-            orderNumber: orderData.orderNumber,
-            user: orderData.user,
-            total: orderData.total,
-            items: orderData.items_count,
-            deliveryMethod: orderData.deliveryMethod
-        });
-        
-        // ✅ Отправляем заказ в Telegram (если доступно)
-        if (window.Telegram && window.Telegram.WebApp && orderData.orderNumber) {
-            try {
-                const orderDataForBot = {
-                    orderNumber: orderData.orderNumber,
-                    products: orderData.products || [],
-                    total: orderData.total || 0,
-                    items_count: orderData.items_count || 0,
-                    timestamp: orderData.timestamp,
-                    deliveryMethod: orderData.deliveryMethod || 'pickup',
-                    deliveryAddress: orderData.deliveryAddress,
-                    deliveryTime: orderData.deliveryTime,
-                    deliveryNotes: orderData.deliveryNotes,
-                    userPhone: orderData.userPhone
-                };
-
-                console.log("📤 Отправка в Telegram:", orderDataForBot);
-                window.Telegram.WebApp.sendData(JSON.stringify(orderDataForBot));
-            } catch (tgError) {
-                console.warn("❌ Ошибка отправки в Telegram:", tgError);
-            }
-        }
-        
-        // ✅ Сохраняем заказ в Google Sheets (используем исправленный метод)
-        console.log('📊 Сохранение заказа в Google Sheets...');
-        const savedToSheets = await saveOrderToGoogleSheets(orderData);
-        
-        if (savedToSheets) {
-            console.log('✅ Заказ успешно сохранен в Google Sheets');
-        } else {
-            console.warn('⚠️ Заказ не был сохранен в Google Sheets, но сохранен локально');
-        }
-        
-        // Уведомляем менеджера
         const notified = await notifyManager(orderData);
         
         if (tg && tg.showAlert) {
             tg.showAlert(
                 `✅ *Заказ оформлен успешно!*\n\n` +
                 `📋 *Номер заказа:* #${orderData.orderNumber}\n` +
-                `${userPhoneNumber ? `📞 *Ваш телефон:* ${formatPhoneNumber(userPhoneNumber)}\n` : ''}` +
+                `📞 *Ваш телефон:* ${formatPhoneNumber(userPhoneNumber)}\n` +
                 `${orderData.deliveryMethod === 'pickup' ? '🚶 *Способ:* Самовывоз' : '🏍️ *Способ:* Доставка'}\n` +
                 `${orderData.deliveryMethod === 'delivery' && orderData.deliveryAddress ? `📍 *Адрес:* ${orderData.deliveryAddress}\n` : ''}` +
                 `${orderData.deliveryMethod === 'delivery' && orderData.deliveryTime ? `⏰ *Время:* ${orderData.deliveryTime}\n` : ''}` +
@@ -2669,58 +2023,78 @@ async function completeOrderWithPhone(orderData) {
                 `👤 *Менеджер свяжется с вами в ближайшее время*\n` +
                 `🔗 @Chief_68`,
                 function() {
-                    // Очищаем корзину
                     cart = [];
                     saveCart();
                     closeCart();
                     
-                    // Показываем уведомление о менеджере
                     showManagerNotification(orderData.orderNumber);
                     
-                    // Обновляем товары
                     setTimeout(() => {
                         loadAndRenderProducts();
                     }, 2000);
                 }
             );
         } else {
-            // Показываем модалку подтверждения заказа
             showOrderConfirmationModal(orderData, orderData.orderNumber);
             
-            // Очищаем корзину
             cart = [];
             saveCart();
             closeCart();
         }
         
-        // Добавляем заказ в историю
-        if (orderData.orderNumber && !orderHistory.some(order => order.orderNumber === orderData.orderNumber)) {
-            orderHistory.unshift({
-                orderNumber: orderData.orderNumber,
-                products: orderData.products || [],
-                total: orderData.total || 0,
-                items_count: orderData.items_count || 0,
-                timestamp: orderData.timestamp,
-                deliveryMethod: orderData.deliveryMethod || 'pickup',
-                deliveryAddress: orderData.deliveryAddress,
-                deliveryTime: orderData.deliveryTime,
-                deliveryNotes: orderData.deliveryNotes,
-                user: orderData.user,
-                userPhone: orderData.userPhone,
-                status: 'pending'
-            });
-            
-            saveCart();
-        }
-        
-        // Обновляем товары через некоторое время
         setTimeout(() => {
             loadAndRenderProducts();
         }, 3000);
         
     } catch (error) {
-        console.error('❌ Ошибка при завершении заказа:', error);
-        showNotification('Произошла ошибка при оформлении заказа. Пожалуйста, свяжитесь с менеджером.', 'error');
+        console.error('Error completing order with phone:', error);
+    }
+}
+
+// ✅ Отправляем заказ в Telegram
+if (window.Telegram && window.Telegram.WebApp) {
+    const orderDataForBot = {
+        orderNumber: pendingOrderData.orderNumber,
+        products: pendingOrderData.products,
+        total: pendingOrderData.total,
+        items_count: pendingOrderData.items_count,
+        timestamp: pendingOrderData.timestamp,
+        deliveryMethod: pendingOrderData.deliveryMethod,
+        deliveryAddress: pendingOrderData.deliveryAddress,
+        deliveryTime: pendingOrderData.deliveryTime,
+        deliveryNotes: pendingOrderData.deliveryNotes,
+        userPhone: pendingOrderData.userPhone
+    };
+
+    console.log("📤 Отправка в Telegram:", orderDataForBot);
+    window.Telegram.WebApp.sendData(JSON.stringify(orderDataForBot));
+} else {
+    console.warn("❌ Telegram WebApp не доступен");
+}
+
+function loadCart() {
+    try {
+        const savedCart = localStorage.getItem('iceberg_cart');
+        cart = savedCart ? JSON.parse(savedCart) : [];
+        
+        const savedOrders = localStorage.getItem('iceberg_orders');
+        orderHistory = savedOrders ? JSON.parse(savedOrders) : [];
+        
+    } catch (error) {
+        console.error('Error loading cart:', error);
+        cart = [];
+        orderHistory = [];
+    }
+}
+
+function saveCart() {
+    try {
+        localStorage.setItem('iceberg_cart', JSON.stringify(cart));
+        localStorage.setItem('iceberg_orders', JSON.stringify(orderHistory));
+        updateCartUI();
+        updateTelegramButton();
+    } catch (error) {
+        console.error('Error saving cart:', error);
     }
 }
 
@@ -3165,6 +2539,7 @@ function clearFavorites() {
     }
 }
 
+// ИСПРАВЛЕННАЯ ФУНКЦИЯ - теперь нумерация начинается с 0 и увеличивается последовательно
 function generateOrderNumber() {
     // Загружаем счетчик из localStorage
     let orderCounter = localStorage.getItem('iceberg_order_counter');
@@ -3190,185 +2565,6 @@ function generateOrderNumber() {
     
     // Создаем номер заказа в формате ORD-YYMMDD-XXXXX
     return 'ORD-' + year + month + day + '-' + orderCounter.toString().padStart(5, '0');
-}
-
-async function checkout() {
-    console.log('checkout() вызвана, товаров в корзине:', cart.length);
-    
-    if (cart.length === 0) {
-        console.log('Корзина пуста');
-        return;
-    }
-    
-    // Проверяем наличие товаров
-    const unavailableItems = cart.filter(function(item) {
-        const product = products.find(function(p) { return p.id === item.id; });
-        return !product || product.quantity <= 0;
-    });
-    
-    if (unavailableItems.length > 0) {
-        console.log('Найдены недоступные товары:', unavailableItems);
-        cart = cart.filter(function(item) {
-            const product = products.find(function(p) { return p.id === item.id; });
-            return product && product.quantity > 0;
-        });
-        
-        saveCart();
-        showNotification('Некоторые товары недоступны и были удалены из корзины', 'warning');
-        return;
-    }
-    
-    // Проверяем количество товаров
-    const exceededItems = cart.filter(function(item) {
-        const product = products.find(function(p) { return p.id === item.id; });
-        return product && item.quantity > product.quantity;
-    });
-    
-    if (exceededItems.length > 0) {
-        console.log('Количество товаров превышает доступное:', exceededItems);
-        exceededItems.forEach(function(item) {
-            const product = products.find(function(p) { return p.id === item.id; });
-            if (product) {
-                item.quantity = product.quantity;
-            }
-        });
-        saveCart();
-        showNotification('Количество некоторых товаров было уменьшено до доступного', 'warning');
-        return;
-    }
-
-    // Генерируем номер заказа
-    const orderNumber = generateOrderNumber();
-    console.log('Создан номер заказа:', orderNumber);
-    
-    // Подготавливаем данные заказа
-    const orderData = {
-        orderNumber: orderNumber,
-        products: cart.map(function(item) {
-            return {
-                id: item.id,
-                name: item.name,
-                price: item.price,
-                quantity: item.quantity
-            };
-        }),
-        total: getCartTotal(),
-        items_count: getCartCount(),
-        timestamp: new Date().toISOString(),
-        deliveryMethod: deliveryMethod,
-        deliveryAddress: deliveryMethod === 'delivery' ? deliveryAddress : null,
-        deliveryTime: deliveryMethod === 'delivery' ? deliveryTime : null,
-        deliveryNotes: deliveryMethod === 'delivery' ? deliveryNotes : null,
-        user: tg ? {
-            id: tg.initDataUnsafe.user && tg.initDataUnsafe.user.id,
-            username: tg.initDataUnsafe.user && tg.initDataUnsafe.user.username,
-            first_name: tg.initDataUnsafe.user && tg.initDataUnsafe.user.first_name,
-            last_name: tg.initDataUnsafe.user && tg.initDataUnsafe.user.last_name
-        } : null,
-        secret: 'iceberg2024_secure_key' // Секретный ключ для защиты
-    };
-    
-    // Добавляем телефон пользователя, если есть
-    if (userPhoneNumber) {
-        orderData.userPhone = userPhoneNumber;
-        if (orderData.user) {
-            orderData.user.phone = userPhoneNumber;
-        } else {
-            orderData.user = { phone: userPhoneNumber };
-        }
-    }
-    
-    console.log('Данные заказа подготовлены:', {
-        orderNumber: orderData.orderNumber,
-        total: orderData.total,
-        items: orderData.items_count,
-        deliveryMethod: orderData.deliveryMethod
-    });
-    
-    // Сохраняем историю заказов локально
-    orderHistory.unshift({
-        orderNumber: orderData.orderNumber,
-        products: orderData.products,
-        total: orderData.total,
-        items_count: orderData.items_count,
-        timestamp: orderData.timestamp,
-        deliveryMethod: orderData.deliveryMethod,
-        deliveryAddress: orderData.deliveryAddress,
-        deliveryTime: orderData.deliveryTime,
-        deliveryNotes: orderData.deliveryNotes,
-        user: orderData.user,
-        status: 'pending'
-    });
-    
-    saveCart();
-    
-    // ✅ Сохраняем заказ в Google Sheets (используем исправленный метод)
-    try {
-        console.log('📊 Сохранение заказа в Google Sheets...');
-        
-        // Создаем копию данных без секретного ключа для отправки
-        const sheetsData = {
-            orderNumber: orderData.orderNumber,
-            products: orderData.products,
-            total: orderData.total,
-            items_count: orderData.items_count,
-            timestamp: orderData.timestamp,
-            deliveryMethod: orderData.deliveryMethod,
-            deliveryAddress: orderData.deliveryAddress,
-            deliveryTime: orderData.deliveryTime,
-            deliveryNotes: orderData.deliveryNotes,
-            user: orderData.user,
-            userPhone: orderData.userPhone
-        };
-        
-        const savedToSheets = await saveOrderToGoogleSheets(sheetsData);
-        
-        if (savedToSheets) {
-            console.log('✅ Заказ успешно сохранен в Google Sheets');
-        } else {
-            console.warn('⚠️ Заказ не был сохранен в Google Sheets, но сохранен локально');
-            // Не показываем ошибку пользователю, чтобы не прерывать процесс
-        }
-    } catch (sheetsError) {
-        console.error('❌ Ошибка при сохранении в Google Sheets:', sheetsError);
-        // Не прерываем процесс оформления заказа из-за ошибки сохранения
-    }
-    
-    // Проверяем данные доставки
-    const deliveryValidation = validateDeliveryInfo();
-    if (!deliveryValidation.isValid) {
-        console.log('Ошибка валидации доставки:', deliveryValidation.error);
-        showNotification(deliveryValidation.error, 'error');
-        
-        // Показываем модалку выбора способа доставки
-        setTimeout(() => {
-            showDeliveryMethodModal();
-        }, 500);
-        
-        return;
-    }
-    
-    console.log('Данные доставки валидны, проверяем наличие телефона...');
-    
-    // Если у пользователя уже есть сохраненный номер телефона, оформляем заказ сразу
-    if (userPhoneNumber) {
-        console.log('У пользователя есть сохраненный телефон:', userPhoneNumber);
-        // Проверяем валидность номера
-        const validatedPhone = validatePhoneNumber(userPhoneNumber);
-        if (validatedPhone) {
-            // Показываем подтверждение с сохраненным номером
-            console.log('Телефон валиден, показываем подтверждение с сохраненным номером');
-            showPhoneConfirmationWithSavedNumber(orderData);
-        } else {
-            // Если номер невалидный, показываем форму ввода
-            console.log('Телефон невалиден, показываем форму ввода');
-            showPhoneConfirmationModal(orderData);
-        }
-    } else {
-        // Если номера нет, показываем форму ввода
-        console.log('Телефона нет, показываем форму ввода');
-        showPhoneConfirmationModal(orderData);
-    }
 }
 
 async function notifyManager(orderData) {
@@ -3746,6 +2942,100 @@ function openManagerChat(orderNumber) {
     }
 }
 
+// ИСПРАВЛЕННАЯ ФУНКЦИЯ checkout() - исправлена синтаксическая ошибка
+async function checkout() {
+    if (cart.length === 0) return;
+    
+    const unavailableItems = cart.filter(function(item) {
+        const product = products.find(function(p) { return p.id === item.id; });
+        return !product || product.quantity <= 0;
+    });
+    
+    if (unavailableItems.length > 0) {
+        cart = cart.filter(function(item) {
+            const product = products.find(function(p) { return p.id === item.id; });
+            return product && product.quantity > 0;
+        });
+        
+        saveCart();
+        return;
+    }
+    
+    const exceededItems = cart.filter(function(item) {
+        const product = products.find(function(p) { return p.id === item.id; });
+        return product && item.quantity > product.quantity;
+    });
+    
+    if (exceededItems.length > 0) {
+        exceededItems.forEach(function(item) {
+            const product = products.find(function(p) { return p.id === item.id; });
+            if (product) {
+                item.quantity = product.quantity;
+            }
+        });
+        saveCart();
+        return;
+    }
+
+    const orderNumber = generateOrderNumber();
+    
+    const orderData = {
+        orderNumber: orderNumber,
+        products: cart.map(function(item) {
+            return {
+                id: item.id,
+                name: item.name,
+                price: item.price,
+                quantity: item.quantity
+            };
+        }),
+        total: getCartTotal(),
+        items_count: getCartCount(),
+        timestamp: new Date().toISOString(),
+        deliveryMethod: deliveryMethod,
+        deliveryAddress: deliveryMethod === 'delivery' ? deliveryAddress : null,
+        deliveryTime: deliveryMethod === 'delivery' ? deliveryTime : null,
+        deliveryNotes: deliveryMethod === 'delivery' ? deliveryNotes : null, // ИСПРАВЛЕНО: двоеточие вместо равно
+        user: tg ? {
+            id: tg.initDataUnsafe.user && tg.initDataUnsafe.user.id,
+            username: tg.initDataUnsafe.user && tg.initDataUnsafe.user.username,
+            first_name: tg.initDataUnsafe.user && tg.initDataUnsafe.user.first_name,
+            last_name: tg.initDataUnsafe.user && tg.initDataUnsafe.user.last_name
+        } : null
+    };
+    
+    orderHistory.unshift({
+        orderNumber: orderData.orderNumber,
+        products: orderData.products,
+        total: orderData.total,
+        items_count: orderData.items_count,
+        timestamp: orderData.timestamp,
+        deliveryMethod: orderData.deliveryMethod,
+        deliveryAddress: orderData.deliveryAddress,
+        deliveryTime: orderData.deliveryTime,
+        deliveryNotes: orderData.deliveryNotes,
+        user: orderData.user,
+        status: 'pending'
+    });
+    
+    saveCart();
+    
+    // Проверяем данные доставки перед показом окна с телефоном
+    const deliveryValidation = validateDeliveryInfo();
+    if (!deliveryValidation.isValid) {
+        showNotification(deliveryValidation.error, 'error');
+        
+        // Показываем модалку выбора способа доставки
+        setTimeout(() => {
+            showDeliveryMethodModal();
+        }, 500);
+        
+        return;
+    }
+    
+    showPhoneConfirmationModal(orderData);
+}
+
 function openFavorites() {
     document.getElementById('favoritesSidebar').classList.add('active');
     document.getElementById('cartOverlay').classList.add('active');
@@ -4093,9 +3383,6 @@ async function initApp() {
     loadPhoneNumber();
     startAutoUpdate();
     
-    // Запускаем проверку неотправленных заказов
-    checkAndSendPendingOrdersOnLoad();
-    
     const themeSwitch = document.createElement('div');
     themeSwitch.className = 'theme-switch';
     themeSwitch.innerHTML = '<i class="fas fa-moon"></i>';
@@ -4166,22 +3453,15 @@ async function initApp() {
     window.showDeliveryMethodModal = showDeliveryMethodModal;
     window.changeDeliveryMethod = changeDeliveryMethod;
     
+    // Новые функции для работы с модалками поверх друг друга
     window.showDeliveryMethodModalOverPhone = showDeliveryMethodModalOverPhone;
     window.changeDeliveryMethodAndUpdatePhoneModal = changeDeliveryMethodAndUpdatePhoneModal;
-    
-    // Добавляем функции для работы с неотправленными заказами
-    window.sendPendingOrdersManually = sendPendingOrdersManually;
-    window.clearPendingOrders = clearPendingOrders;
     
     initCategoriesScroll();
     initKeyboardNavigation();
     initSearch();
     
     addDostavistaButtonForAdmin();
-    addPendingOrdersButton();
-    
-    // Запускаем периодическую проверку неотправленных заказов
-    setInterval(retryPendingOrders, 5 * 60 * 1000); // Каждые 5 минут
     
     setTimeout(function() {
         const loader = document.getElementById('loader');
