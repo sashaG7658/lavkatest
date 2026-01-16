@@ -1847,6 +1847,7 @@ function formatPhoneNumber(phone) {
     return phone;
 }
 
+// =============== ИСПРАВЛЕННЫЙ КОД ДЛЯ ОТПРАВКИ В GOOGLE SHEETS ===============
 async function saveOrderToGoogleSheets(orderData) {
     try {
         console.log('📤 Отправка заказа в Google Sheets:', {
@@ -1855,133 +1856,356 @@ async function saveOrderToGoogleSheets(orderData) {
             items: orderData.items_count
         });
 
-        // Удаляем secret из данных, так как он может вызывать ошибки
-        const dataToSend = {
-            ...orderData
-        };
-        
-        // Убедимся что secret не отправляется (может вызвать CORS проблемы)
-        delete dataToSend.secret;
-        
-        // Основной метод - используем стандартный fetch с CORS
-        const scriptUrl = 'https://script.google.com/macros/s/AKfycbxEj9S2dEsu-Kpj1fO4z1gCEoNFLoeAm5C0hw1rAELttIJiJIpuLHDPorCKHVchWt-6/exec';
-        
-        const response = await fetch(scriptUrl, {
-            method: 'POST',
-            mode: 'cors', // Используем cors вместо no-cors
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(dataToSend)
-        });
-        
-        console.log('📥 Получен ответ от Google Sheets:', response.status);
-        
-        if (response.ok) {
-            const result = await response.json();
-            console.log('✅ Заказ успешно сохранен в Google Sheets:', result);
+        // Метод 1: Используем JSONP через callback
+        try {
+            await saveOrderViaJSONP(orderData);
+            console.log('✅ Заказ отправлен через JSONP');
             return true;
-        } else {
-            console.warn('⚠️ Google Sheets ответил с ошибкой:', response.status);
-            // Пробуем альтернативный метод
-            return await saveOrderToGoogleSheetsAlternative(orderData);
+        } catch (jsonpError) {
+            console.log('❌ JSONP не сработал, пробуем метод 2:', jsonpError);
+            
+            // Метод 2: Используем FormData и iframe
+            try {
+                await saveOrderViaFormData(orderData);
+                console.log('✅ Заказ отправлен через FormData');
+                return true;
+            } catch (formError) {
+                console.log('❌ FormData не сработал, пробуем метод 3:', formError);
+                
+                // Метод 3: Используем Google Sheets API напрямую (если настроен)
+                try {
+                    await saveOrderViaGoogleSheetsAPI(orderData);
+                    console.log('✅ Заказ отправлен через Google Sheets API');
+                    return true;
+                } catch (apiError) {
+                    console.log('❌ Все методы не сработали, сохраняем локально:', apiError);
+                    
+                    // Сохраняем заказ локально для последующей ручной отправки
+                    saveOrderLocally(orderData);
+                    return false;
+                }
+            }
         }
         
     } catch (error) {
-        console.error('❌ Ошибка отправки в Google Sheets (основной метод):', error);
-        
-        // Пробуем альтернативный метод
-        try {
-            console.log('🔄 Пробуем альтернативный метод отправки...');
-            const result = await saveOrderToGoogleSheetsAlternative(orderData);
-            return result;
-        } catch (altError) {
-            console.error('❌ Альтернативный метод также не сработал:', altError);
-            return false;
-        }
+        console.error('❌ Все методы отправки провалились:', error);
+        saveOrderLocally(orderData);
+        return false;
     }
 }
 
-async function saveOrderToGoogleSheetsAlternative(orderData) {
+// Метод 1: JSONP через callback
+function saveOrderViaJSONP(orderData) {
     return new Promise((resolve, reject) => {
         try {
-            // Используем FormData для обхода CORS ограничений
             const scriptUrl = 'https://script.google.com/macros/s/AKfycbxEj9S2dEsu-Kpj1fO4z1gCEoNFLoeAm5C0hw1rAELttIJiJIpuLHDPorCKHVchWt-6/exec';
             
-            // Создаем скрытую форму
+            // Создаем уникальное имя callback функции
+            const callbackName = 'googleSheetsCallback_' + Date.now();
+            
+            // Создаем URL с callback
+            const url = new URL(scriptUrl);
+            url.searchParams.append('callback', callbackName);
+            url.searchParams.append('data', JSON.stringify(orderData));
+            
+            // Создаем callback функцию
+            window[callbackName] = function(response) {
+                console.log('📥 JSONP ответ:', response);
+                
+                // Очищаем
+                delete window[callbackName];
+                if (script.parentNode) {
+                    script.parentNode.removeChild(script);
+                }
+                
+                resolve(true);
+            };
+            
+            // Создаем и добавляем script тег
+            const script = document.createElement('script');
+            script.src = url.toString();
+            script.onerror = () => {
+                delete window[callbackName];
+                reject(new Error('JSONP загрузка не удалась'));
+            };
+            
+            document.head.appendChild(script);
+            
+        } catch (error) {
+            reject(error);
+        }
+    });
+}
+
+// Метод 2: FormData через iframe
+function saveOrderViaFormData(orderData) {
+    return new Promise((resolve, reject) => {
+        try {
+            const scriptUrl = 'https://script.google.com/macros/s/AKfycbxEj9S2dEsu-Kpj1fO4z1gCEoNFLoeAm5C0hw1rAELttIJiJIpuLHDPorCKHVchWt-6/exec';
+            
+            // Создаем невидимую форму
             const form = document.createElement('form');
             form.method = 'POST';
             form.action = scriptUrl;
-            form.target = '_blank'; // Открываем в новой вкладке
+            form.target = 'googleSheetsFrame';
             form.style.display = 'none';
             
-            // Добавляем данные в форму
+            // Создаем iframe для отправки
+            const iframe = document.createElement('iframe');
+            iframe.name = 'googleSheetsFrame';
+            iframe.style.display = 'none';
+            
+            // Добавляем скрытые поля с данными
             const dataInput = document.createElement('input');
             dataInput.type = 'hidden';
             dataInput.name = 'data';
             dataInput.value = JSON.stringify(orderData);
             form.appendChild(dataInput);
             
-            // Добавляем форму на страницу
+            // Добавляем timestamp
+            const tsInput = document.createElement('input');
+            tsInput.type = 'hidden';
+            tsInput.name = 'timestamp';
+            tsInput.value = Date.now();
+            form.appendChild(tsInput);
+            
+            // Добавляем на страницу
+            document.body.appendChild(iframe);
             document.body.appendChild(form);
             
-            console.log('📤 Отправка через FormData альтернативным методом');
+            // Назначаем обработчик загрузки iframe
+            iframe.onload = function() {
+                setTimeout(() => {
+                    // Очищаем
+                    if (document.body.contains(form)) {
+                        document.body.removeChild(form);
+                    }
+                    if (document.body.contains(iframe)) {
+                        document.body.removeChild(iframe);
+                    }
+                    resolve(true);
+                }, 1000);
+            };
+            
+            iframe.onerror = function() {
+                // Очищаем
+                if (document.body.contains(form)) {
+                    document.body.removeChild(form);
+                }
+                if (document.body.contains(iframe)) {
+                    document.body.removeChild(iframe);
+                }
+                reject(new Error('FormData отправка не удалась'));
+            };
             
             // Отправляем форму
             form.submit();
             
-            // Удаляем форму через некоторое время
-            setTimeout(() => {
-                if (document.body.contains(form)) {
-                    document.body.removeChild(form);
-                }
-                resolve(true); // Считаем что отправка успешна
-            }, 1000);
-            
         } catch (error) {
-            console.error('❌ Ошибка альтернативного метода:', error);
             reject(error);
         }
     });
 }
 
-// Дополнительный метод через image beacon
-async function saveOrderToGoogleSheetsBeacon(orderData) {
-    return new Promise((resolve) => {
-        try {
-            // Используем navigator.sendBeacon если доступно
-            if (navigator.sendBeacon) {
-                const scriptUrl = 'https://script.google.com/macros/s/AKfycbxEj9S2dEsu-Kpj1fO4z1gCEoNFLoeAm5C0hw1rAELttIJiJIpuLHDPorCKHVchWt-6/exec';
-                const blob = new Blob([JSON.stringify(orderData)], {type: 'application/json'});
-                
-                if (navigator.sendBeacon(scriptUrl, blob)) {
-                    console.log('✅ Заказ отправлен через sendBeacon');
-                    resolve(true);
-                } else {
-                    resolve(false);
-                }
-            } else {
-                // Fallback: image beacon
-                const scriptUrl = 'https://script.google.com/macros/s/AKfycbxEj9S2dEsu-Kpj1fO4z1gCEoNFLoeAm5C0hw1rAELttIJiJIpuLHDPorCKHVchWt-6/exec';
-                
-                const params = new URLSearchParams();
-                params.append('orderNumber', orderData.orderNumber);
-                params.append('total', orderData.total);
-                params.append('items_count', orderData.items_count);
-                params.append('timestamp', new Date().toISOString());
-                
-                const img = new Image(1, 1);
-                img.src = `${scriptUrl}?${params.toString()}&method=beacon`;
-                
-                console.log('✅ Заказ отправлен через image beacon');
-                resolve(true);
-            }
-        } catch (error) {
-            console.error('❌ Ошибка beacon метода:', error);
-            resolve(false);
-        }
-    });
+// Метод 3: Прямое обращение к Google Sheets API (если настроен)
+async function saveOrderViaGoogleSheetsAPI(orderData) {
+    // Этот метод требует настройки OAuth 2.0 и API ключа
+    // Здесь оставляем заглушку
+    return Promise.reject(new Error('Google Sheets API не настроен'));
 }
+
+// Метод 4: Локальное сохранение для последующей ручной отправки
+function saveOrderLocally(orderData) {
+    try {
+        // Сохраняем заказ в localStorage для последующей отправки
+        const pendingOrders = JSON.parse(localStorage.getItem('iceberg_pending_orders') || '[]');
+        
+        pendingOrders.push({
+            ...orderData,
+            retryCount: 0,
+            lastRetry: new Date().toISOString()
+        });
+        
+        // Сохраняем только последние 50 заказов
+        if (pendingOrders.length > 50) {
+            pendingOrders.splice(0, pendingOrders.length - 50);
+        }
+        
+        localStorage.setItem('iceberg_pending_orders', JSON.stringify(pendingOrders));
+        console.log('💾 Заказ сохранен локально для повторной отправки');
+        
+        // Запускаем повторную отправку в фоне
+        retryPendingOrders();
+        
+    } catch (error) {
+        console.error('❌ Ошибка локального сохранения:', error);
+    }
+}
+
+// Функция для повторной отправки неотправленных заказов
+async function retryPendingOrders() {
+    try {
+        const pendingOrders = JSON.parse(localStorage.getItem('iceberg_pending_orders') || '[]');
+        
+        if (pendingOrders.length === 0) return;
+        
+        console.log(`🔄 Попытка повторной отправки ${pendingOrders.length} заказов...`);
+        
+        // Пробуем отправить самые старые заказы
+        const ordersToRetry = pendingOrders
+            .filter(order => order.retryCount < 3) // Максимум 3 попытки
+            .sort((a, b) => new Date(a.lastRetry) - new Date(b.lastRetry))
+            .slice(0, 5); // Не больше 5 за раз
+            
+        for (const order of ordersToRetry) {
+            try {
+                // Пробуем отправить через FormData (самый надежный метод)
+                await saveOrderViaFormData(order);
+                
+                // Удаляем успешно отправленный заказ
+                const updatedOrders = pendingOrders.filter(o => o.orderNumber !== order.orderNumber);
+                localStorage.setItem('iceberg_pending_orders', JSON.stringify(updatedOrders));
+                
+                console.log(`✅ Заказ ${order.orderNumber} успешно отправлен после повторной попытки`);
+                
+            } catch (error) {
+                // Увеличиваем счетчик попыток
+                order.retryCount += 1;
+                order.lastRetry = new Date().toISOString();
+                console.log(`⚠️ Не удалось отправить заказ ${order.orderNumber}, попытка ${order.retryCount}/3`);
+            }
+        }
+        
+        // Обновляем localStorage
+        localStorage.setItem('iceberg_pending_orders', JSON.stringify(pendingOrders));
+        
+    } catch (error) {
+        console.error('❌ Ошибка повторной отправки:', error);
+    }
+}
+
+// Функция для ручной отправки накопленных заказов
+async function sendPendingOrdersManually() {
+    const pendingOrders = JSON.parse(localStorage.getItem('iceberg_pending_orders') || '[]');
+    
+    if (pendingOrders.length === 0) {
+        alert('Нет неотправленных заказов');
+        return;
+    }
+    
+    const confirmed = confirm(`У вас есть ${pendingOrders.length} неотправленных заказов. Отправить их сейчас?`);
+    
+    if (confirmed) {
+        // Создаем текстовый файл с заказами
+        const ordersText = pendingOrders.map(order => 
+            `Заказ #${order.orderNumber}\n` +
+            `Дата: ${new Date(order.timestamp).toLocaleString('ru-RU')}\n` +
+            `Сумма: ${order.total} руб.\n` +
+            `Товаров: ${order.items_count} шт.\n` +
+            `Телефон: ${order.userPhone || 'Не указан'}\n` +
+            `Способ: ${order.deliveryMethod === 'pickup' ? 'Самовывоз' : 'Доставка'}\n` +
+            `${order.deliveryMethod === 'delivery' ? `Адрес: ${order.deliveryAddress || 'Не указан'}\n` : ''}` +
+            `${order.deliveryMethod === 'delivery' ? `Время: ${order.deliveryTime || 'Не указано'}\n` : ''}` +
+            `Товары:\n${order.products.map(p => `  - ${p.name} × ${p.quantity} шт. = ${p.price * p.quantity} руб.`).join('\n')}\n` +
+            `---\n`
+        ).join('\n');
+        
+        // Создаем ссылку для отправки в Telegram
+        const telegramText = `*НЕОТПРАВЛЕННЫЕ ЗАКАЗЫ* (${pendingOrders.length} шт.)\n\n` +
+            pendingOrders.map(order => 
+                `*Заказ #${order.orderNumber}*\n` +
+                `💰 ${order.total} руб. | 📦 ${order.items_count} шт.\n` +
+                `📞 ${order.userPhone || 'Нет телефона'}\n` +
+                `${order.deliveryMethod === 'delivery' ? `📍 ${order.deliveryAddress || 'Нет адреса'}\n` : ''}` +
+                `---`
+            ).join('\n');
+        
+        const telegramLink = `https://t.me/Chief_68?text=${encodeURIComponent(telegramText)}`;
+        
+        // Показываем инструкцию
+        const modal = document.createElement('div');
+        modal.className = 'pending-orders-modal';
+        modal.innerHTML = `
+            <div class="pending-orders-content">
+                <div class="pending-orders-header">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h2>Неотправленные заказы</h2>
+                </div>
+                <div class="pending-orders-body">
+                    <p>Найдено <strong>${pendingOrders.length}</strong> неотправленных заказов.</p>
+                    <p>Для отправки менеджеру:</p>
+                    <ol>
+                        <li>Нажмите "Открыть Telegram"</li>
+                        <li>Отправьте сообщение менеджеру</li>
+                        <li>Нажмите "Очистить список" после отправки</li>
+                    </ol>
+                    <div class="orders-summary">
+                        <pre>${ordersText.substring(0, 500)}${ordersText.length > 500 ? '...' : ''}</pre>
+                    </div>
+                </div>
+                <div class="pending-orders-footer">
+                    <button class="open-telegram-btn" onclick="window.open('${telegramLink}', '_blank')">
+                        <i class="fab fa-telegram"></i> Открыть Telegram
+                    </button>
+                    <button class="clear-orders-btn" onclick="clearPendingOrders()">
+                        <i class="fas fa-trash"></i> Очистить список
+                    </button>
+                    <button class="close-pending-modal">
+                        <i class="fas fa-times"></i> Закрыть
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        modal.querySelector('.close-pending-modal').onclick = function() {
+            modal.remove();
+        };
+    }
+}
+
+// Функция очистки неотправленных заказов
+function clearPendingOrders() {
+    localStorage.removeItem('iceberg_pending_orders');
+    alert('Список неотправленных заказов очищен');
+    const modal = document.querySelector('.pending-orders-modal');
+    if (modal) modal.remove();
+}
+
+// Добавляем кнопку для администратора
+function addPendingOrdersButton() {
+    const pendingOrders = JSON.parse(localStorage.getItem('iceberg_pending_orders') || '[]');
+    
+    if (pendingOrders.length > 0) {
+        const pendingBtn = document.createElement('button');
+        pendingBtn.className = 'pending-orders-button';
+        pendingBtn.innerHTML = `
+            <i class="fas fa-exclamation-circle"></i>
+            <span class="pending-count">${pendingOrders.length}</span>
+        `;
+        pendingBtn.title = `${pendingOrders.length} неотправленных заказов`;
+        pendingBtn.onclick = sendPendingOrdersManually;
+        
+        const headerNav = document.querySelector('.header-nav');
+        if (headerNav) {
+            headerNav.appendChild(pendingBtn);
+        }
+    }
+}
+
+// Функция для проверки и отправки неотправленных заказов при загрузке страницы
+function checkAndSendPendingOrdersOnLoad() {
+    setTimeout(() => {
+        const pendingOrders = JSON.parse(localStorage.getItem('iceberg_pending_orders') || '[]');
+        if (pendingOrders.length > 0) {
+            console.log(`📋 Найдено ${pendingOrders.length} неотправленных заказов при загрузке`);
+            retryPendingOrders();
+        }
+    }, 3000); // Ждем 3 секунды после загрузки страницы
+}
+
+// =============== КОНЕЦ ИСПРАВЛЕННОГО КОДА ДЛЯ GOOGLE SHEETS ===============
 
 function showPhoneConfirmationModal(orderData) {
     console.log('showPhoneConfirmationModal вызвана с orderData:', orderData);
@@ -2417,6 +2641,16 @@ async function completeOrderWithPhone(orderData) {
             } catch (tgError) {
                 console.warn("❌ Ошибка отправки в Telegram:", tgError);
             }
+        }
+        
+        // ✅ Сохраняем заказ в Google Sheets (используем исправленный метод)
+        console.log('📊 Сохранение заказа в Google Sheets...');
+        const savedToSheets = await saveOrderToGoogleSheets(orderData);
+        
+        if (savedToSheets) {
+            console.log('✅ Заказ успешно сохранен в Google Sheets');
+        } else {
+            console.warn('⚠️ Заказ не был сохранен в Google Sheets, но сохранен локально');
         }
         
         // Уведомляем менеджера
@@ -3068,16 +3302,32 @@ async function checkout() {
     
     saveCart();
     
-    // ✅ Сохраняем заказ в Google Sheets
+    // ✅ Сохраняем заказ в Google Sheets (используем исправленный метод)
     try {
-        console.log('Сохранение заказа в Google Sheets...');
-        const savedToSheets = await saveOrderToGoogleSheets(orderData);
+        console.log('📊 Сохранение заказа в Google Sheets...');
         
-        if (!savedToSheets) {
-            console.warn('⚠️ Заказ создан, но не сохранен в Google Sheets');
-            // Не показываем ошибку пользователю, чтобы не прерывать процесс
-        } else {
+        // Создаем копию данных без секретного ключа для отправки
+        const sheetsData = {
+            orderNumber: orderData.orderNumber,
+            products: orderData.products,
+            total: orderData.total,
+            items_count: orderData.items_count,
+            timestamp: orderData.timestamp,
+            deliveryMethod: orderData.deliveryMethod,
+            deliveryAddress: orderData.deliveryAddress,
+            deliveryTime: orderData.deliveryTime,
+            deliveryNotes: orderData.deliveryNotes,
+            user: orderData.user,
+            userPhone: orderData.userPhone
+        };
+        
+        const savedToSheets = await saveOrderToGoogleSheets(sheetsData);
+        
+        if (savedToSheets) {
             console.log('✅ Заказ успешно сохранен в Google Sheets');
+        } else {
+            console.warn('⚠️ Заказ не был сохранен в Google Sheets, но сохранен локально');
+            // Не показываем ошибку пользователю, чтобы не прерывать процесс
         }
     } catch (sheetsError) {
         console.error('❌ Ошибка при сохранении в Google Sheets:', sheetsError);
@@ -3843,6 +4093,9 @@ async function initApp() {
     loadPhoneNumber();
     startAutoUpdate();
     
+    // Запускаем проверку неотправленных заказов
+    checkAndSendPendingOrdersOnLoad();
+    
     const themeSwitch = document.createElement('div');
     themeSwitch.className = 'theme-switch';
     themeSwitch.innerHTML = '<i class="fas fa-moon"></i>';
@@ -3916,11 +4169,19 @@ async function initApp() {
     window.showDeliveryMethodModalOverPhone = showDeliveryMethodModalOverPhone;
     window.changeDeliveryMethodAndUpdatePhoneModal = changeDeliveryMethodAndUpdatePhoneModal;
     
+    // Добавляем функции для работы с неотправленными заказами
+    window.sendPendingOrdersManually = sendPendingOrdersManually;
+    window.clearPendingOrders = clearPendingOrders;
+    
     initCategoriesScroll();
     initKeyboardNavigation();
     initSearch();
     
     addDostavistaButtonForAdmin();
+    addPendingOrdersButton();
+    
+    // Запускаем периодическую проверку неотправленных заказов
+    setInterval(retryPendingOrders, 5 * 60 * 1000); // Каждые 5 минут
     
     setTimeout(function() {
         const loader = document.getElementById('loader');
@@ -3942,5 +4203,3 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
-
-
