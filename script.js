@@ -2009,11 +2009,30 @@ function showPhoneConfirmationModal(orderData) {
 
 async function completeOrderWithPhone(orderData) {
     try {
-        // Добавьте проверку в начале функции
-        if (!orderData || !orderData.orderNumber) {
-            console.error('Invalid order data:', orderData);
-            showNotification('Ошибка при оформлении заказа', 'error');
-            return;
+        orderData.user = orderData.user || {};
+        if (userPhoneNumber) {
+            orderData.user.phone = userPhoneNumber;
+        }
+        
+        // ✅ Отправляем заказ в Telegram WebApp
+        if (window.Telegram && window.Telegram.WebApp) {
+            const orderDataForBot = {
+                orderNumber: orderData.orderNumber,
+                products: orderData.products,
+                total: orderData.total,
+                items_count: orderData.items_count,
+                timestamp: orderData.timestamp,
+                deliveryMethod: orderData.deliveryMethod,
+                deliveryAddress: orderData.deliveryAddress,
+                deliveryTime: orderData.deliveryTime,
+                deliveryNotes: orderData.deliveryNotes,
+                userPhone: orderData.userPhone
+            };
+
+            console.log("📤 Отправка в Telegram:", orderDataForBot);
+            window.Telegram.WebApp.sendData(JSON.stringify(orderDataForBot));
+        } else {
+            console.warn("❌ Telegram WebApp не доступен");
         }
         
         const notified = await notifyManager(orderData);
@@ -3552,5 +3571,6 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
+
 
 
