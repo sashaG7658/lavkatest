@@ -24,7 +24,7 @@ let deliveryTime = '';
 let deliveryNotes = '';
 
 // GitHub configuration
-const GITHUB_TOKEN = 'YOUR_GITHUB_TOKEN'; // Замените на ваш токен
+const GITHUB_TOKEN = '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'; // Замените на ваш токен
 const GITHUB_REPO = 'sashaG7658/lavkatest';
 const GITHUB_FILE_PATH = 'orders.json';
 
@@ -3457,4 +3457,5 @@ window.showManagerNotification = showManagerNotification;
 window.addEventListener('beforeunload', stopAutoUpdate);
 
 window.addEventListener('beforeunload', stopAutoUpdate);
+
 
