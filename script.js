@@ -2567,6 +2567,58 @@ function generateOrderNumber() {
     return 'ORD-' + year + month + day + '-' + orderCounter.toString().padStart(5, '0');
 }
 
+// Функция для сохранения заказа в локальный файл
+async function saveOrder(orderData) {
+    try {
+        // Преобразуем данные в JSON строку
+        const orderJson = JSON.stringify(orderData, null, 2);
+        
+        // Создаем Blob из данных
+        const blob = new Blob([orderJson], { type: 'application/json' });
+        
+        // Создаем ссылку для скачивания
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'orders.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        console.log('Заказ сохранен локально');
+        
+        // Вызываем Python скрипт для загрузки на GitHub
+        await uploadToGitHub();
+        
+        return true;
+    } catch (error) {
+        console.error('Ошибка при сохранении заказа:', error);
+        return false;
+    }
+}
+
+// Функция для вызова Python скрипта
+async function uploadToGitHub() {
+    try {
+        // Отправляем запрос к локальному серверу Python
+        const response = await fetch('http://localhost:5000/upload', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+        
+        const result = await response.json();
+        console.log('Результат загрузки на GitHub:', result);
+        
+        return result.success;
+    } catch (error) {
+        console.error('Ошибка при загрузке на GitHub:', error);
+        return false;
+    }
+}
+
 async function notifyManager(orderData) {
     try {
         let message = '**НОВЫЙ ЗАКАЗ #' + orderData.orderNumber + '**\n\n';
@@ -2697,6 +2749,9 @@ async function notifyManager(orderData) {
         }
         
         showContactButton(orderData.orderNumber);
+        
+        // Сохраняем заказ локально и загружаем на GitHub
+        await saveOrder(orderData);
         
         return true;
         
@@ -2995,7 +3050,7 @@ async function checkout() {
         deliveryMethod: deliveryMethod,
         deliveryAddress: deliveryMethod === 'delivery' ? deliveryAddress : null,
         deliveryTime: deliveryMethod === 'delivery' ? deliveryTime : null,
-        deliveryNotes: deliveryMethod === 'delivery' ? deliveryNotes : null, // ИСПРАВЛЕНО: двоеточие вместо равно
+        deliveryNotes: deliveryMethod === 'delivery' ? deliveryNotes : null,
         user: tg ? {
             id: tg.initDataUnsafe.user && tg.initDataUnsafe.user.id,
             username: tg.initDataUnsafe.user && tg.initDataUnsafe.user.username,
@@ -3483,4 +3538,3 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
-
