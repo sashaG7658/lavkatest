@@ -1,3 +1,6 @@
+// Полный код JavaScript с прямой отправкой заказов в GitHub
+// Замените YOUR_GITHUB_TOKEN на ваш реальный токен
+
 let currentTheme = 'light';
 let tg = null;
 let products = [];
@@ -19,6 +22,11 @@ let deliveryMethod = 'pickup'; // 'pickup' или 'delivery'
 let deliveryAddress = '';
 let deliveryTime = '';
 let deliveryNotes = '';
+
+// GitHub configuration
+const GITHUB_TOKEN = 'YOUR_GITHUB_TOKEN'; // Замените на ваш токен
+const GITHUB_REPO = 'sashaG7658/lavkatest';
+const GITHUB_FILE_PATH = 'orders.json';
 
 function detectTheme() {
     try {
@@ -50,7 +58,7 @@ function detectTheme() {
             currentTheme = prefersDark ? 'dark' : 'light';
         }
         
-        document.body.classList.remove('light-theme', 'dark-theme', 'auto-theme');
+        document.body.classList.remove('light-theme', 'dark-theme');
         document.body.classList.add(currentTheme + '-theme');
         
     } catch (error) {
@@ -523,7 +531,7 @@ function initSmoothDrag(containerId) {
     container.addEventListener('wheel', (e) => {
         e.preventDefault();
         container.scrollLeft += e.deltaY * 0.4;
-    }, { passive: false });
+    });
 
     container.addEventListener('scroll', () => {
         const maxScroll = container.scrollWidth - container.clientWidth;
@@ -1501,11 +1509,6 @@ function showDeliveryMethodModal() {
         setTimeout(() => modal.remove(), 300);
     });
     
-    document.getElementById('cancelDeliveryBtn').addEventListener('click', function() {
-        modal.style.opacity = '0';
-        setTimeout(() => modal.remove(), 300);
-    });
-    
     modal.addEventListener('click', function(e) {
         if (e.target === modal) {
             modal.style.opacity = '0';
@@ -1524,7 +1527,7 @@ function showDeliveryMethodModal() {
     });
 }
 
-// Новая функция для показа модалки доставки поверх модалки телефона
+// Функция для показа модалки доставки поверх модалки телефона
 function showDeliveryMethodModalOverPhone() {
     const phoneModal = document.querySelector('.phone-confirmation-modal');
     
@@ -1742,7 +1745,7 @@ function updateDeliverySummaryInPhoneModal() {
     }
 }
 
-// Новая функция для обновления полей ввода под тему
+// Функция для обновления полей ввода под тему
 function updateDeliveryFieldsForTheme() {
     const inputs = document.querySelectorAll('.delivery-input');
     const labels = document.querySelectorAll('.delivery-label');
@@ -2001,6 +2004,63 @@ function showPhoneConfirmationModal(orderData) {
     });
 }
 
+// НОВАЯ ФУНКЦИЯ: Прямая отправка заказа в GitHub
+async function saveOrderToGitHub(orderData) {
+    try {
+        // Получаем текущий файл orders.json из GitHub
+        const response = await fetch('https://api.github.com/repos/' + GITHUB_REPO + '/contents/' + GITHUB_FILE_PATH, {
+            headers: {
+                'Authorization': 'token ' + GITHUB_TOKEN,
+                'Accept': 'application/vnd.github.v3+json'
+            }
+        });
+
+        let existingOrders = [];
+        let sha = '';
+
+        if (response.ok) {
+            const data = await response.json();
+            const content = atob(data.content.replace(/\s/g, ''));
+            existingOrders = JSON.parse(content);
+            sha = data.sha;
+        }
+
+        // Добавляем новый заказ
+        existingOrders.push(orderData);
+
+        // Подготовка данных для обновления
+        const fileContent = JSON.stringify(existingOrders, null, 2);
+        const content = btoa(unescape(encodeURIComponent(fileContent)));
+
+        // Обновляем файл в GitHub
+        const updateResponse = await fetch('https://api.github.com/repos/' + GITHUB_REPO + '/contents/' + GITHUB_FILE_PATH, {
+            method: 'PUT',
+            headers: {
+                'Authorization': 'token ' + GITHUB_TOKEN,
+                'Accept': 'application/vnd.github.v3+json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                message: 'Добавлен новый заказ #' + orderData.orderNumber,
+                content: content,
+                sha: sha
+            })
+        });
+
+        if (updateResponse.ok) {
+            console.log('Заказ успешно сохранен в GitHub');
+            return true;
+        } else {
+            console.error('Ошибка при сохранении в GitHub:', updateResponse.statusText);
+            return false;
+        }
+        
+    } catch (error) {
+        console.error('Ошибка при сохранении заказа в GitHub:', error);
+        return false;
+    }
+}
+
 async function completeOrderWithPhone(orderData) {
     try {
         orderData.user = orderData.user || {};
@@ -2008,7 +2068,7 @@ async function completeOrderWithPhone(orderData) {
             orderData.user.phone = userPhoneNumber;
         }
         
-        // ✅ Отправляем заказ в Telegram WebApp
+        // Отправляем заказ в Telegram WebApp
         if (window.Telegram && window.Telegram.WebApp) {
             const orderDataForBot = {
                 orderNumber: orderData.orderNumber,
@@ -2023,11 +2083,14 @@ async function completeOrderWithPhone(orderData) {
                 userPhone: orderData.userPhone || userPhoneNumber
             };
 
-            console.log("📤 Отправка в Telegram:", orderDataForBot);
+            console.log("Отправка в Telegram:", orderDataForBot);
             window.Telegram.WebApp.sendData(JSON.stringify(orderDataForBot));
         } else {
-            console.warn("❌ Telegram WebApp не доступен");
+            console.warn("Telegram WebApp не доступен");
         }
+        
+        // Сохраняем заказ в GitHub
+        await saveOrderToGitHub(orderData);
         
         const notified = await notifyManager(orderData);
         
@@ -2426,8 +2489,7 @@ function renderFavoritesItems() {
             <div class="favorites-empty-msg">
                 <i class="fas fa-heart fa-2x"></i>
                 <p>${emptyMessage}</p>
-                <p class="small">Добавляйте товары, нажимая на сердечко</p>
-            </div>
+                <p class="small">Добавляйте товары, нажимая на сердечко</            </div>
         `;
         addAllToCartBtn.disabled = true;
     } else {
@@ -2567,58 +2629,6 @@ function generateOrderNumber() {
     return 'ORD-' + year + month + day + '-' + orderCounter.toString().padStart(5, '0');
 }
 
-// Функция для сохранения заказа в локальный файл
-async function saveOrder(orderData) {
-    try {
-        // Преобразуем данные в JSON строку
-        const orderJson = JSON.stringify(orderData, null, 2);
-        
-        // Создаем Blob из данных
-        const blob = new Blob([orderJson], { type: 'application/json' });
-        
-        // Создаем ссылку для скачивания
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'orders.json';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        
-        console.log('Заказ сохранен локально');
-        
-        // Вызываем Python скрипт для загрузки на GitHub
-        await uploadToGitHub();
-        
-        return true;
-    } catch (error) {
-        console.error('Ошибка при сохранении заказа:', error);
-        return false;
-    }
-}
-
-// Функция для вызова Python скрипта
-async function uploadToGitHub() {
-    try {
-        // Отправляем запрос к локальному серверу Python
-        const response = await fetch('http://localhost:5000/upload', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        });
-        
-        const result = await response.json();
-        console.log('Результат загрузки на GitHub:', result);
-        
-        return result.success;
-    } catch (error) {
-        console.error('Ошибка при загрузке на GitHub:', error);
-        return false;
-    }
-}
-
 async function notifyManager(orderData) {
     try {
         let message = '**НОВЫЙ ЗАКАЗ #' + orderData.orderNumber + '**\n\n';
@@ -2750,9 +2760,6 @@ async function notifyManager(orderData) {
         
         showContactButton(orderData.orderNumber);
         
-        // Сохраняем заказ локально и загружаем на GitHub
-        await saveOrder(orderData);
-        
         return true;
         
     } catch (error) {
@@ -2815,185 +2822,6 @@ function showContactButton(orderNumber) {
     `;
     
     document.body.appendChild(contactBtn);
-}
-
-function showOrderConfirmationModal(orderData, orderNumber) {
-    const oldModals = document.querySelectorAll('.order-confirmation-modal, .manager-notification');
-    oldModals.forEach(function(modal) { modal.remove(); });
-    
-    const modal = document.createElement('div');
-    modal.className = 'order-confirmation-modal';
-    modal.innerHTML = `
-        <div class="order-confirmation-content">
-            <div class="order-confirmation-header">
-                <i class="fas fa-check-circle"></i>
-                <h2 class="confirmation-title">Заказ оформлен!</h2>
-            </div>
-            <div class="order-confirmation-body">
-                <div class="order-number">
-                    <i class="fas fa-hashtag"></i>
-                    <span class="order-number-text">Номер заказа: <strong>#${orderNumber}</strong></span>
-                </div>
-                <div class="order-summary">
-                    <div class="order-summary-item">
-                        <i class="fas fa-box"></i>
-                        <span class="summary-text">Товаров: ${orderData.items_count} шт.</span>
-                    </div>
-                    <div class="order-summary-item">
-                        <i class="fas fa-ruble-sign"></i>
-                        <span class="summary-text">Сумма: ${orderData.total} руб.</span>
-                    </div>
-                    <div class="order-summary-item">
-                        <i class="fas fa-clock"></i>
-                        <span class="summary-text">Время: ${new Date(orderData.timestamp).toLocaleTimeString('ru-RU')}</span>
-                    </div>
-                    <div class="order-summary-item">
-                        <i class="${orderData.deliveryMethod === 'pickup' ? 'fas fa-store' : 'fas fa-motorcycle'}"></i>
-                        <span class="summary-text">Способ: ${orderData.deliveryMethod === 'pickup' ? 'Самовывоз' : 'Доставка'}</span>
-                    </div>
-                    ${userPhoneNumber ? `
-                    <div class="order-summary-item">
-                        <i class="fas fa-phone"></i>
-                        <span class="summary-text">Телефон: ${formatPhoneNumber(userPhoneNumber)}</span>
-                    </div>
-                    ` : ''}
-                </div>
-                ${orderData.deliveryMethod === 'delivery' ? `
-                <div class="delivery-details">
-                    <h3 class="delivery-details-title">Детали доставки:</h3>
-                    <div class="delivery-info">
-                        <p class="delivery-info-item"><strong class="delivery-label">Адрес:</strong> <span class="delivery-value">${orderData.deliveryAddress || 'Не указан'}</span></p>
-                        <p class="delivery-info-item"><strong class="delivery-label">Время:</strong> <span class="delivery-value">${orderData.deliveryTime || 'Не указано'}</span></p>
-                        ${orderData.deliveryNotes ? `<p class="delivery-info-item"><strong class="delivery-label">Комментарий:</strong> <span class="delivery-value">${orderData.deliveryNotes}</span></p>` : ''}
-                    </div>
-                </div>
-                ` : ''}
-                <div class="order-products">
-                    <h3 class="products-title">Состав заказа:</h3>
-                    <ul class="products-list">
-                        ${orderData.products.map(function(item) {
-                            return `
-                                <li class="product-item">${item.name} × ${item.quantity} шт. = ${item.price * item.quantity} руб.</li>
-                            `;
-                        }).join('')}
-                </div>
-                <div class="order-instructions">
-                    <p class="instruction-item"><i class="fas fa-info-circle"></i> <span class="instruction-text">Сохраните номер заказа для связи с менеджером</span></p>
-                    <p class="instruction-item"><i class="fas fa-truck"></i> <span class="instruction-text">${orderData.deliveryMethod === 'pickup' ? 'Самовывоз - забирайте заказ самостоятельно' : 'Доставка - курьер свяжется с вами'}</span></p>
-                </div>
-            </div>
-            <div class="order-confirmation-footer">
-                <button class="close-order-modal">
-                    <i class="fas fa-times"></i> <span class="close-btn-text">Закрыть</span>
-                </button>
-            </div>
-        </div>
-    `;
-    
-    document.body.appendChild(modal);
-    
-    setTimeout(function() {
-        showManagerNotification(orderNumber);
-    }, 1000);
-    
-    const closeBtn = modal.querySelector('.close-order-modal');
-    closeBtn.addEventListener('click', function() {
-        modal.style.opacity = '0';
-        setTimeout(function() { modal.remove(); }, 300);
-    });
-    
-    setTimeout(function() {
-        if (document.body.contains(modal)) {
-            modal.style.opacity = '0';
-            setTimeout(function() { modal.remove(); }, 300);
-        }
-    }, 10000);
-}
-
-function showManagerNotification(orderNumber) {
-    const oldNotifications = document.querySelectorAll('.manager-notification');
-    oldNotifications.forEach(function(n) { n.remove(); });
-    
-    const notification = document.createElement('div');
-    notification.className = 'manager-notification';
-    notification.innerHTML = `
-        <div class="manager-notification-content">
-            <div class="manager-notification-icon">
-                <i class="fas fa-comment-alt"></i>
-            </div>
-            <div class="manager-notification-text">
-                <h3 class="notification-title">Напишите менеджеру</h3>
-                <p class="notification-message">Сообщите номер заказа <strong>#${orderNumber}</strong></p>
-                <p class="manager-username">👤 @Chief_68</p>
-            </div>
-            <button class="manager-notification-close">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <div class="manager-notification-action">
-            <button class="contact-manager-btn" onclick="openManagerChat('${orderNumber}')">
-                <i class="fab fa-telegram"></i> <span class="contact-btn-text">Написать менеджеру</span>
-            </button>
-        </div>
-    `;
-    
-    document.body.appendChild(notification);
-    
-    setTimeout(function() {
-        notification.style.opacity = '1';
-        notification.style.transform = 'translateY(0)';
-    }, 100);
-    
-    const closeBtn = notification.querySelector('.manager-notification-close');
-    closeBtn.addEventListener('click', function() {
-        notification.style.opacity = '0';
-        notification.style.transform = 'translateY(100%)';
-        setTimeout(function() { notification.remove(); }, 300);
-    });
-    
-    setTimeout(function() {
-        if (document.body.contains(notification)) {
-            notification.style.opacity = '0';
-            notification.style.transform = 'translateY(100%)';
-            setTimeout(function() { notification.remove(); }, 300);
-        }
-    }, 30000);
-}
-
-function openManagerChat(orderNumber) {
-    const message = '*НОВЫЙ ЗАКАЗ #' + orderNumber + '*\n\n' +
-                   '👤 *Покупатель:*\n' +
-                   'ID: \n' +
-                   '@ \n' +
-                   'Имя: \n' +
-                   'Фамилия: \n' +
-                   '📞 *Номер телефона клиента:* ' + (userPhoneNumber || 'Не указан') + '\n\n' +
-                   '🚚 *Способ получения:* ' + (deliveryMethod === 'pickup' ? 'Самовывоз' : 'Доставка') + '\n' +
-                   (deliveryMethod === 'delivery' ? '📍 *Адрес доставки:* ' + (deliveryAddress || 'Не указан') + '\n' : '') +
-                   (deliveryMethod === 'delivery' ? '⏰ *Время доставки:* ' + (deliveryTime || 'Не указано') + '\n' : '') +
-                   '\n📅 *Дата:* ' + new Date().toLocaleString('ru-RU') + '\n\n' +
-                   '🛒 *Товары:*\n' +
-                   'Заказ #' + orderNumber + '\n\n' +
-                   '⚡️ *Статус:* Ожидает обработки\n' +
-                   '🔗 Для связи: @Chief_68\n\n' +
-                   '📋 *Номер заказа:* #' + orderNumber;
-    
-    const managerUsername = 'Chief_68';
-    
-    const tgLink = 'https://t.me/' + managerUsername + '?text=' + encodeURIComponent(message);
-    
-    if (tg && tg.openLink) {
-        tg.openLink(tgLink);
-    } else {
-        window.open(tgLink, '_blank');
-    }
-    
-    const notification = document.querySelector('.manager-notification');
-    if (notification) {
-        notification.style.opacity = '0';
-        notification.style.transform = 'translateY(100%)';
-        setTimeout(function() { notification.remove(); }, 300);
-    }
 }
 
 // ИСПРАВЛЕННАЯ ФУНКЦИЯ checkout() - исправлена синтаксическая ошибка
@@ -3537,3 +3365,4 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
+   
