@@ -2026,7 +2026,7 @@ async function completeOrderWithPhone(orderData) {
                 deliveryAddress: orderData.deliveryAddress,
                 deliveryTime: orderData.deliveryTime,
                 deliveryNotes: orderData.deliveryNotes,
-                userPhone: orderData.userPhone
+                userPhone: orderData.userPhone || userPhoneNumber
             };
 
             console.log("📤 Отправка в Telegram:", orderDataForBot);
@@ -2102,7 +2102,6 @@ if (window.Telegram && window.Telegram.WebApp) {
     }
 } else {
     console.warn("❌ Telegram WebApp не доступен");
-}warn("❌ Telegram WebApp не доступен");
 }
 
 function loadCart() {
@@ -3571,6 +3570,7 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
+
 
 
 
