@@ -34,15 +34,16 @@ function getGitHubToken() {
     // 2. Если нет, можно попробовать из других источников
     if (!token) {
         // Для тестирования можно временно вставить токен здесь:
-        // token = 'ваш_новый_токен_здесь';
+        token = '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'; // ВАШ ТОКЕН ЗДЕСЬ
         
-        // Или показать запрос на ввод токена
-        // token = promptForGitHubToken();
+        // Сохраняем в localStorage для будущего использования
+        if (token && token.startsWith('ghp_')) {
+            localStorage.setItem('iceberg_github_token', token);
+        }
     }
     
     return token;
 }
-
 // Функция для запроса токена у пользователя
 function promptForGitHubToken() {
     const modal = document.createElement('div');
@@ -3742,3 +3743,4 @@ window.showManagerNotification = showManagerNotification;
 window.promptForGitHubToken = promptForGitHubToken;
 
 window.addEventListener('beforeunload', stopAutoUpdate);
+
