@@ -3390,4 +3390,71 @@ if (document.readyState === 'loading') {
     initApp();
 }
 
+// Недостающие функции, которые вызываются в коде
+
+function openManagerChat() {
+    const managerUsername = 'Chief_68';
+    const tgLink = 'https://t.me/' + managerUsername;
+    window.open(tgLink, '_blank');
+}
+
+function showOrderConfirmationModal(orderData, orderNumber) {
+    const modal = document.createElement('div');
+    modal.className = 'order-confirmation-modal';
+    modal.innerHTML = `
+        <div class="order-confirmation-content">
+            <div class="order-confirmation-header">
+                <i class="fas fa-check-circle" style="color: #4CAF50; font-size: 48px;"></i>
+                <h2 class="order-modal-title">Заказ успешно оформлен!</h2>
+            </div>
+            <div class="order-confirmation-body">
+                <div class="order-details">
+                    <p><strong>Номер заказа:</strong> #${orderNumber}</p>
+                    <p><strong>Сумма заказа:</strong> ${orderData.total} ₽</p>
+                    <p><strong>Товаров:</strong> ${orderData.items_count} шт.</p>
+                    <p><strong>Способ получения:</strong> ${orderData.deliveryMethod === 'pickup' ? 'Самовывоз' : 'Доставка'}</p>
+                    ${orderData.deliveryMethod === 'delivery' && orderData.deliveryAddress ? `<p><strong>Адрес доставки:</strong> ${orderData.deliveryAddress}</p>` : ''}
+                    ${orderData.deliveryMethod === 'delivery' && orderData.deliveryTime ? `<p><strong>Время доставки:</strong> ${orderData.deliveryTime}</p>` : ''}
+                </div>
+                <div class="order-notification">
+                    <i class="fas fa-info-circle"></i>
+                    <p>Менеджер свяжется с вами в ближайшее время для подтверждения заказа.</p>
+                </div>
+            </div>
+            <div class="order-confirmation-footer">
+                <button id="closeOrderModalBtn" class="close-order-modal-btn">
+                    <i class="fas fa-times"></i> <span class="btn-text">Закрыть</span>
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    document.getElementById('closeOrderModalBtn').addEventListener('click', function() {
+        modal.style.opacity = '0';
+        setTimeout(() => modal.remove(), 300);
+    });
+    
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            modal.style.opacity = '0';
+            setTimeout(() => modal.remove(), 300);
+        }
+    });
+}
+
+function showManagerNotification(orderNumber) {
+    // Можно оставить пустым или добавить логику уведомления
+    console.log(`Заказ #${orderNumber} отправлен менеджеру`);
+}
+
+// Добавьте в глобальную область видимости
+window.openManagerChat = openManagerChat;
+window.showOrderConfirmationModal = showOrderConfirmationModal;
+window.showManagerNotification = showManagerNotification;
+
 window.addEventListener('beforeunload', stopAutoUpdate);
+
+window.addEventListener('beforeunload', stopAutoUpdate);
+
