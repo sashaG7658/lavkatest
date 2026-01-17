@@ -1824,12 +1824,6 @@ function formatPhoneNumber(phone) {
 }
 
 function showPhoneConfirmationModal(orderData) {
-     if (!orderData) {
-        console.error('No order data provided to phone confirmation modal');
-        showNotification('Ошибка при оформлении заказа', 'error');
-        return;
-    }
-    
     pendingOrderData = orderData;
     
     const modal = document.createElement('div');
@@ -2076,32 +2070,6 @@ async function completeOrderWithPhone(orderData) {
     } catch (error) {
         console.error('Error completing order with phone:', error);
     }
-}
-
-// ✅ Отправляем заказ в Telegram
-// ✅ Отправляем заказ в Telegram
-if (window.Telegram && window.Telegram.WebApp) {
-    if (pendingOrderData) { // Проверяем, что данные существуют
-        const orderDataForBot = {
-            orderNumber: pendingOrderData.orderNumber,
-            products: pendingOrderData.products,
-            total: pendingOrderData.total,
-            items_count: pendingOrderData.items_count,
-            timestamp: pendingOrderData.timestamp,
-            deliveryMethod: pendingOrderData.deliveryMethod,
-            deliveryAddress: pendingOrderData.deliveryAddress,
-            deliveryTime: pendingOrderData.deliveryTime,
-            deliveryNotes: pendingOrderData.deliveryNotes,
-            userPhone: pendingOrderData.userPhone
-        };
-
-        console.log("📤 Отправка в Telegram:", orderDataForBot);
-        window.Telegram.WebApp.sendData(JSON.stringify(orderDataForBot));
-    } else {
-        console.warn("❌ Нет данных заказа для отправки в Telegram");
-    }
-} else {
-    console.warn("❌ Telegram WebApp не доступен");
 }
 
 function loadCart() {
@@ -2908,7 +2876,6 @@ function showOrderConfirmationModal(orderData, orderNumber) {
                                 <li class="product-item">${item.name} × ${item.quantity} шт. = ${item.price * item.quantity} руб.</li>
                             `;
                         }).join('')}
-                    </ul>
                 </div>
                 <div class="order-instructions">
                     <p class="instruction-item"><i class="fas fa-info-circle"></i> <span class="instruction-text">Сохраните номер заказа для связи с менеджером</span></p>
@@ -3570,8 +3537,3 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
-
-
-
-
-
