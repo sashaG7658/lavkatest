@@ -2023,6 +2023,12 @@ async function saveOrderToGitHub(orderData) {
             const content = atob(data.content.replace(/\s/g, ''));
             existingOrders = JSON.parse(content);
             sha = data.sha;
+        } else if (response.status === 404) {
+            // Файл не существует, создаем новый
+            existingOrders = [];
+        } else {
+            console.error('Ошибка при получении файла:', response.statusText);
+            return false;
         }
 
         // Добавляем новый заказ
@@ -2032,32 +2038,65 @@ async function saveOrderToGitHub(orderData) {
         const fileContent = JSON.stringify(existingOrders, null, 2);
         const content = btoa(unescape(encodeURIComponent(fileContent)));
 
-        // Обновляем файл в GitHub
-        const updateResponse = await fetch('https://api.github.com/repos/' + GITHUB_REPO + '/contents/' + GITHUB_FILE_PATH, {
-            method: 'PUT',
+        // Определяем метод (создать или обновить)
+        const method = sha ? 'PUT' : 'POST';
+        const url = 'https://api.github.com/repos/' + GITHUB_REPO + '/contents/' + GITHUB_FILE_PATH;
+        
+        const requestBody = {
+            message: 'Добавлен новый заказ #' + orderData.orderNumber,
+            content: content
+        };
+        
+        // Если файл существует, добавляем sha
+        if (sha) {
+            requestBody.sha = sha;
+        }
+
+        // Обновляем/создаем файл в GitHub
+        const updateResponse = await fetch(url, {
+            method: method,
             headers: {
                 'Authorization': 'token ' + GITHUB_TOKEN,
                 'Accept': 'application/vnd.github.v3+json',
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                message: 'Добавлен новый заказ #' + orderData.orderNumber,
-                content: content,
-                sha: sha
-            })
+            body: JSON.stringify(requestBody)
         });
 
         if (updateResponse.ok) {
-            console.log('Заказ успешно сохранен в GitHub');
+            console.log('✅ Заказ успешно сохранен в GitHub');
             return true;
         } else {
-            console.error('Ошибка при сохранении в GitHub:', updateResponse.statusText);
+            const errorData = await updateResponse.json();
+            console.error('❌ Ошибка при сохранении в GitHub:', errorData.message);
             return false;
         }
         
     } catch (error) {
-        console.error('Ошибка при сохранении заказа в GitHub:', error);
+        console.error('❌ Ошибка при сохранении заказа в GitHub:', error);
         return false;
+    }
+}
+
+// Функция для получения всех заказов из GitHub (опционально, для статистики)
+async function getOrdersFromGitHub() {
+    try {
+        const response = await fetch('https://api.github.com/repos/' + GITHUB_REPO + '/contents/' + GITHUB_FILE_PATH, {
+            headers: {
+                'Authorization': 'token ' + GITHUB_TOKEN,
+                'Accept': 'application/vnd.github.v3+json'
+            }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            const content = atob(data.content.replace(/\s/g, ''));
+            return JSON.parse(content);
+        }
+        return [];
+    } catch (error) {
+        console.error('Ошибка при получении заказов из GitHub:', error);
+        return [];
     }
 }
 
@@ -2066,6 +2105,14 @@ async function completeOrderWithPhone(orderData) {
         orderData.user = orderData.user || {};
         if (userPhoneNumber) {
             orderData.user.phone = userPhoneNumber;
+        }
+        
+        // Отправляем заказ в GitHub
+        const savedToGitHub = await saveOrderToGitHub(orderData);
+        
+        if (!savedToGitHub) {
+            showNotification('Ошибка сохранения заказа. Попробуйте снова.', 'error');
+            return;
         }
         
         // Отправляем заказ в Telegram WebApp
@@ -2089,9 +2136,6 @@ async function completeOrderWithPhone(orderData) {
             console.warn("Telegram WebApp не доступен");
         }
         
-        // Сохраняем заказ в GitHub
-        await saveOrderToGitHub(orderData);
-        
         const notified = await notifyManager(orderData);
         
         if (tg && tg.showAlert) {
@@ -2108,7 +2152,7 @@ async function completeOrderWithPhone(orderData) {
                 `🔗 @Chief_68`,
                 function() {
                     cart = [];
-                    saveCart();
+                    saveCart(); // Очищаем корзину, но заказ уже в GitHub
                     closeCart();
                     
                     showManagerNotification(orderData.orderNumber);
@@ -2122,7 +2166,7 @@ async function completeOrderWithPhone(orderData) {
             showOrderConfirmationModal(orderData, orderData.orderNumber);
             
             cart = [];
-            saveCart();
+            saveCart(); // Очищаем корзину, но заказ уже в GitHub
             closeCart();
         }
         
@@ -2140,8 +2184,8 @@ function loadCart() {
         const savedCart = localStorage.getItem('iceberg_cart');
         cart = savedCart ? JSON.parse(savedCart) : [];
         
-        const savedOrders = localStorage.getItem('iceberg_orders');
-        orderHistory = savedOrders ? JSON.parse(savedOrders) : [];
+        // НЕ загружаем orderHistory из localStorage - заказы теперь только в GitHub
+        orderHistory = [];
         
     } catch (error) {
         console.error('Error loading cart:', error);
@@ -2152,8 +2196,8 @@ function loadCart() {
 
 function saveCart() {
     try {
+        // Сохраняем только корзину локально
         localStorage.setItem('iceberg_cart', JSON.stringify(cart));
-        localStorage.setItem('iceberg_orders', JSON.stringify(orderHistory));
         updateCartUI();
         updateTelegramButton();
     } catch (error) {
@@ -2489,7 +2533,8 @@ function renderFavoritesItems() {
             <div class="favorites-empty-msg">
                 <i class="fas fa-heart fa-2x"></i>
                 <p>${emptyMessage}</p>
-                <p class="small">Добавляйте товары, нажимая на сердечко</            </div>
+                <p class="small">Добавляйте товары, нажимая на сердечко</p>
+            </div>
         `;
         addAllToCartBtn.disabled = true;
     } else {
@@ -2601,31 +2646,24 @@ function clearFavorites() {
     }
 }
 
-// ИСПРАВЛЕННАЯ ФУНКЦИЯ - теперь нумерация начинается с 0 и увеличивается последовательно
 function generateOrderNumber() {
-    // Загружаем счетчик из localStorage
     let orderCounter = localStorage.getItem('iceberg_order_counter');
     
-    // Если счетчика нет, начинаем с 0
     if (!orderCounter) {
         orderCounter = 0;
     } else {
         orderCounter = parseInt(orderCounter);
     }
     
-    // Увеличиваем счетчик на 1
     orderCounter += 1;
     
-    // Сохраняем обновленный счетчик
     localStorage.setItem('iceberg_order_counter', orderCounter.toString());
     
-    // Форматируем номер заказа
     const date = new Date();
     const year = date.getFullYear().toString().slice(-2);
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
     const day = date.getDate().toString().padStart(2, '0');
     
-    // Создаем номер заказа в формате ORD-YYMMDD-XXXXX
     return 'ORD-' + year + month + day + '-' + orderCounter.toString().padStart(5, '0');
 }
 
@@ -2824,7 +2862,6 @@ function showContactButton(orderNumber) {
     document.body.appendChild(contactBtn);
 }
 
-// ИСПРАВЛЕННАЯ ФУНКЦИЯ checkout() - исправлена синтаксическая ошибка
 async function checkout() {
     if (cart.length === 0) return;
     
@@ -2886,21 +2923,10 @@ async function checkout() {
         } : null
     };
     
-    orderHistory.unshift({
-        orderNumber: orderData.orderNumber,
-        products: orderData.products,
-        total: orderData.total,
-        items_count: orderData.items_count,
-        timestamp: orderData.timestamp,
-        deliveryMethod: orderData.deliveryMethod,
-        deliveryAddress: orderData.deliveryAddress,
-        deliveryTime: orderData.deliveryTime,
-        deliveryNotes: orderData.deliveryNotes,
-        user: orderData.user,
-        status: 'pending'
-    });
+    // НЕ сохраняем локально в orderHistory - только отправляем в GitHub
+    // orderHistory.unshift({...}); // Убрано локальное сохранение
     
-    saveCart();
+    saveCart(); // Сохраняем только корзину (очистка будет после отправки)
     
     // Проверяем данные доставки перед показом окна с телефоном
     const deliveryValidation = validateDeliveryInfo();
@@ -3365,4 +3391,3 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
-   
