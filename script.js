@@ -1824,6 +1824,12 @@ function formatPhoneNumber(phone) {
 }
 
 function showPhoneConfirmationModal(orderData) {
+     if (!orderData) {
+        console.error('No order data provided to phone confirmation modal');
+        showNotification('Ошибка при оформлении заказа', 'error');
+        return;
+    }
+    
     pendingOrderData = orderData;
     
     const modal = document.createElement('div');
@@ -2003,9 +2009,11 @@ function showPhoneConfirmationModal(orderData) {
 
 async function completeOrderWithPhone(orderData) {
     try {
-        orderData.user = orderData.user || {};
-        if (userPhoneNumber) {
-            orderData.user.phone = userPhoneNumber;
+        // Добавьте проверку в начале функции
+        if (!orderData || !orderData.orderNumber) {
+            console.error('Invalid order data:', orderData);
+            showNotification('Ошибка при оформлении заказа', 'error');
+            return;
         }
         
         const notified = await notifyManager(orderData);
@@ -3544,4 +3552,5 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', stopAutoUpdate);
+
 
