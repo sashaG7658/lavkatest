@@ -1,5 +1,4 @@
 // Полный код JavaScript с прямой отправкой заказов в GitHub
-// Замените YOUR_GITHUB_TOKEN на ваш реальный токен
 
 let currentTheme = 'light';
 let tg = null;
@@ -24,9 +23,132 @@ let deliveryTime = '';
 let deliveryNotes = '';
 
 // GitHub configuration
-const GITHUB_TOKEN = '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'; // Замените на ваш токен
 const GITHUB_REPO = 'sashaG7658/lavkatest';
 const GITHUB_FILE_PATH = 'orders.json';
+
+// Токен будет получаться динамически
+function getGitHubToken() {
+    // 1. Пробуем получить из localStorage
+    let token = localStorage.getItem('iceberg_github_token');
+    
+    // 2. Если нет, можно попробовать из других источников
+    if (!token) {
+        // Для тестирования можно временно вставить токен здесь:
+        // token = 'ваш_новый_токен_здесь';
+        
+        // Или показать запрос на ввод токена
+        // token = promptForGitHubToken();
+    }
+    
+    return token;
+}
+
+// Функция для запроса токена у пользователя
+function promptForGitHubToken() {
+    const modal = document.createElement('div');
+    modal.className = 'token-prompt-modal';
+    modal.innerHTML = `
+        <div class="token-prompt-content">
+            <div class="token-prompt-header">
+                <i class="fas fa-key"></i>
+                <h2 class="token-modal-title">Требуется GitHub токен</h2>
+            </div>
+            <div class="token-prompt-body">
+                <p class="token-info-text">
+                    Для сохранения заказов в GitHub необходим токен доступа.
+                    <br><br>
+                    <strong>Как получить токен:</strong>
+                    <ol class="token-instructions">
+                        <li>Зайдите на GitHub → Settings → Developer settings</li>
+                        <li>Personal access tokens → Tokens (classic)</li>
+                        <li>Generate new token → Generate new token (classic)</li>
+                        <li>Выберите права: <code>repo</code> (все репозитории)</li>
+                        <li>Скопируйте токен и вставьте ниже</li>
+                    </ol>
+                </p>
+                <div class="token-input-group">
+                    <label for="tokenInput" class="token-label">
+                        <i class="fas fa-key"></i>
+                        <span class="label-text">GitHub Token:</span>
+                    </label>
+                    <input type="password" 
+                           id="tokenInput" 
+                           class="token-input" 
+                           placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                           maxlength="100">
+                </div>
+                <div id="tokenError" class="token-validation-error" style="display: none;">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span id="tokenErrorMessage" class="error-text">Неверный формат токена</span>
+                </div>
+                <div class="token-note">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Токен сохраняется только в вашем браузере и используется только для отправки заказов.</span>
+                </div>
+            </div>
+            <div class="token-prompt-footer">
+                <button id="saveTokenBtn" class="save-token-btn">
+                    <i class="fas fa-save"></i> <span class="btn-text">Сохранить токен</span>
+                </button>
+                <button id="skipTokenBtn" class="skip-token-btn">
+                    <i class="fas fa-times"></i> <span class="btn-text">Пропустить</span>
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    const tokenInput = document.getElementById('tokenInput');
+    const tokenError = document.getElementById('tokenError');
+    
+    setTimeout(() => tokenInput.focus(), 300);
+    
+    document.getElementById('saveTokenBtn').addEventListener('click', function() {
+        const token = tokenInput.value.trim();
+        
+        if (!token || token.length < 10) {
+            tokenError.style.display = 'flex';
+            document.getElementById('tokenErrorMessage').textContent = 'Токен должен содержать не менее 10 символов';
+            tokenInput.focus();
+            return;
+        }
+        
+        // Проверяем формат токена (примерная проверка)
+        if (!token.startsWith('ghp_') && !token.startsWith('github_pat_')) {
+            tokenError.style.display = 'flex';
+            document.getElementById('tokenErrorMessage').textContent = 'Неверный формат токена GitHub';
+            tokenInput.focus();
+            return;
+        }
+        
+        // Сохраняем токен
+        localStorage.setItem('iceberg_github_token', token);
+        
+        modal.style.opacity = '0';
+        setTimeout(() => {
+            modal.remove();
+            showNotification('✅ Токен успешно сохранен! Теперь заказы будут сохраняться в GitHub.', 'success');
+        }, 300);
+    });
+    
+    document.getElementById('skipTokenBtn').addEventListener('click', function() {
+        modal.style.opacity = '0';
+        setTimeout(() => {
+            modal.remove();
+            showNotification('⚠️ Заказы не будут сохраняться в GitHub. Вы можете добавить токен позже в настройках.', 'warning');
+        }, 300);
+    });
+    
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            modal.style.opacity = '0';
+            setTimeout(() => modal.remove(), 300);
+        }
+    });
+    
+    return null;
+}
 
 function detectTheme() {
     try {
@@ -1030,7 +1152,7 @@ function getLocalProducts() {
             description: "КОЛА, ЭНЕРГЕТИК",
             price: 500,
             quantity: 12,
-            image: "https://static.insales-cdn.com/images/products/1/4018/748212146/large_%D0%9A%D0%9E%D0%9B%D0%90_%D0%A1_%D0%AD%D0%9D%D0%95%D0%A0%D0%9D%D0%93%D0%95%D0%A2%D0%98%D0%9A%D0%9E%D0%9C.png",
+            image: "https://static.insales-cdn.com/images/products/1/4018/748212146/large_%D0%9A%D0%9E%D0%9B%D0%90_%D0%A1_%D0%AD%D0%9D%D0%95%D0%A0%D0%93%D0%95%D0%A2%D0%98%D0%9A%D0%9E%D0%9C.png",
             isNew: false
         },
         {
@@ -2007,10 +2129,21 @@ function showPhoneConfirmationModal(orderData) {
 // НОВАЯ ФУНКЦИЯ: Прямая отправка заказа в GitHub
 async function saveOrderToGitHub(orderData) {
     try {
+        // Получаем токен
+        const token = getGitHubToken();
+        
+        if (!token) {
+            console.warn('⚠️ GitHub токен не найден. Заказ не будет сохранен в GitHub.');
+            showNotification('⚠️ Заказ сохранен локально. Добавьте GitHub токен для сохранения в облаке.', 'warning');
+            return true; // Возвращаем true, чтобы продолжить оформление заказа
+        }
+        
+        console.log('🔑 Используем токен:', token.substring(0, 4) + '...');
+
         // Получаем текущий файл orders.json из GitHub
         const response = await fetch('https://api.github.com/repos/' + GITHUB_REPO + '/contents/' + GITHUB_FILE_PATH, {
             headers: {
-                'Authorization': 'token ' + GITHUB_TOKEN,
+                'Authorization': 'token ' + token,
                 'Accept': 'application/vnd.github.v3+json'
             }
         });
@@ -2023,11 +2156,22 @@ async function saveOrderToGitHub(orderData) {
             const content = atob(data.content.replace(/\s/g, ''));
             existingOrders = JSON.parse(content);
             sha = data.sha;
+            console.log('📄 Файл orders.json загружен, найдено заказов:', existingOrders.length);
         } else if (response.status === 404) {
             // Файл не существует, создаем новый
             existingOrders = [];
+            console.log('📄 Файл orders.json не найден, создаем новый');
         } else {
-            console.error('Ошибка при получении файла:', response.statusText);
+            const errorData = await response.json();
+            console.error('❌ Ошибка при получении файла:', response.status, errorData.message);
+            
+            // Если токен недействителен, удаляем его
+            if (response.status === 401 || response.status === 403) {
+                localStorage.removeItem('iceberg_github_token');
+                console.log('🗑️ Недействительный токен удален из localStorage');
+                showNotification('❌ GitHub токен недействителен. Обновите токен в настройках.', 'error');
+            }
+            
             return false;
         }
 
@@ -2056,7 +2200,7 @@ async function saveOrderToGitHub(orderData) {
         const updateResponse = await fetch(url, {
             method: method,
             headers: {
-                'Authorization': 'token ' + GITHUB_TOKEN,
+                'Authorization': 'token ' + token,
                 'Accept': 'application/vnd.github.v3+json',
                 'Content-Type': 'application/json'
             },
@@ -2065,15 +2209,26 @@ async function saveOrderToGitHub(orderData) {
 
         if (updateResponse.ok) {
             console.log('✅ Заказ успешно сохранен в GitHub');
+            showNotification('✅ Заказ успешно сохранен в GitHub!', 'success');
             return true;
         } else {
             const errorData = await updateResponse.json();
-            console.error('❌ Ошибка при сохранении в GitHub:', errorData.message);
+            console.error('❌ Ошибка при сохранении в GitHub:', updateResponse.status, errorData.message);
+            
+            // Если токен недействителен, удаляем его
+            if (updateResponse.status === 401 || updateResponse.status === 403) {
+                localStorage.removeItem('iceberg_github_token');
+                showNotification('❌ GitHub токен недействителен. Обновите токен в настройках.', 'error');
+            } else {
+                showNotification('⚠️ Заказ сохранен локально. Ошибка GitHub: ' + errorData.message, 'warning');
+            }
+            
             return false;
         }
         
     } catch (error) {
-        console.error('❌ Ошибка при сохранении заказа в GitHub:', error);
+        console.error('❌ Критическая ошибка при сохранении заказа в GitHub:', error);
+        showNotification('⚠️ Заказ сохранен локально. Ошибка при сохранении в GitHub.', 'warning');
         return false;
     }
 }
@@ -2081,9 +2236,12 @@ async function saveOrderToGitHub(orderData) {
 // Функция для получения всех заказов из GitHub (опционально, для статистики)
 async function getOrdersFromGitHub() {
     try {
+        const token = getGitHubToken();
+        if (!token) return [];
+        
         const response = await fetch('https://api.github.com/repos/' + GITHUB_REPO + '/contents/' + GITHUB_FILE_PATH, {
             headers: {
-                'Authorization': 'token ' + GITHUB_TOKEN,
+                'Authorization': 'token ' + token,
                 'Accept': 'application/vnd.github.v3+json'
             }
         });
@@ -2110,8 +2268,9 @@ async function completeOrderWithPhone(orderData) {
         // Отправляем заказ в GitHub
         const savedToGitHub = await saveOrderToGitHub(orderData);
         
-        if (!savedToGitHub) {
-            showNotification('Ошибка сохранения заказа. Попробуйте снова.', 'error');
+        if (!savedToGitHub && getGitHubToken()) {
+            // Если токен есть, но сохранение не удалось, показываем ошибку
+            showNotification('Ошибка сохранения заказа в GitHub. Попробуйте снова.', 'error');
             return;
         }
         
@@ -2127,7 +2286,8 @@ async function completeOrderWithPhone(orderData) {
                 deliveryAddress: orderData.deliveryAddress,
                 deliveryTime: orderData.deliveryTime,
                 deliveryNotes: orderData.deliveryNotes,
-                userPhone: orderData.userPhone || userPhoneNumber
+                userPhone: orderData.userPhone || userPhoneNumber,
+                savedToGitHub: savedToGitHub
             };
 
             console.log("Отправка в Telegram:", orderDataForBot);
@@ -2148,11 +2308,12 @@ async function completeOrderWithPhone(orderData) {
                 `${orderData.deliveryMethod === 'delivery' && orderData.deliveryTime ? `⏰ *Время:* ${orderData.deliveryTime}\n` : ''}` +
                 `📦 Товаров: ${orderData.items_count} шт.\n` +
                 `💰 Сумма: ${orderData.total} руб.\n\n` +
+                `${savedToGitHub ? '✅ *Заказ сохранен в GitHub*\n' : '⚠️ *Заказ сохранен только локально*\n'}` +
                 `👤 *Менеджер свяжется с вами в ближайшее время*\n` +
                 `🔗 @Chief_68`,
                 function() {
                     cart = [];
-                    saveCart(); // Очищаем корзину, но заказ уже в GitHub
+                    saveCart(); // Очищаем корзину
                     closeCart();
                     
                     showManagerNotification(orderData.orderNumber);
@@ -2166,7 +2327,7 @@ async function completeOrderWithPhone(orderData) {
             showOrderConfirmationModal(orderData, orderData.orderNumber);
             
             cart = [];
-            saveCart(); // Очищаем корзину, но заказ уже в GitHub
+            saveCart(); // Очищаем корзину
             closeCart();
         }
         
@@ -2176,6 +2337,7 @@ async function completeOrderWithPhone(orderData) {
         
     } catch (error) {
         console.error('Error completing order with phone:', error);
+        showNotification('Ошибка при оформлении заказа. Попробуйте снова.', 'error');
     }
 }
 
@@ -3280,6 +3442,114 @@ function addDostavistaButtonForAdmin() {
     }
 }
 
+// Функция для добавления кнопки управления токеном
+function addTokenManagementButton() {
+    const tokenBtn = document.createElement('button');
+    tokenBtn.className = 'token-management-btn';
+    tokenBtn.innerHTML = `
+        <i class="fas fa-key"></i>
+        <span class="token-btn-text">GitHub Token</span>
+    `;
+    tokenBtn.onclick = function() {
+        // Проверяем, есть ли уже токен
+        const existingToken = localStorage.getItem('iceberg_github_token');
+        
+        if (existingToken) {
+            // Показываем меню управления токеном
+            showTokenManagementMenu();
+        } else {
+            // Предлагаем ввести токен
+            promptForGitHubToken();
+        }
+    };
+    
+    const headerNav = document.querySelector('.header-nav');
+    if (headerNav) {
+        headerNav.appendChild(tokenBtn);
+    } else {
+        document.body.appendChild(tokenBtn);
+    }
+}
+
+function showTokenManagementMenu() {
+    const modal = document.createElement('div');
+    modal.className = 'token-management-modal';
+    modal.innerHTML = `
+        <div class="token-management-content">
+            <div class="token-management-header">
+                <i class="fas fa-key"></i>
+                <h2 class="token-management-title">Управление GitHub токеном</h2>
+            </div>
+            <div class="token-management-body">
+                <div class="token-status">
+                    <i class="fas fa-check-circle" style="color: #4CAF50;"></i>
+                    <span class="token-status-text">Токен настроен</span>
+                </div>
+                <div class="token-actions">
+                    <button id="viewTokenBtn" class="token-action-btn view-token">
+                        <i class="fas fa-eye"></i> <span class="action-text">Просмотр токена</span>
+                    </button>
+                    <button id="updateTokenBtn" class="token-action-btn update-token">
+                        <i class="fas fa-sync-alt"></i> <span class="action-text">Обновить токен</span>
+                    </button>
+                    <button id="removeTokenBtn" class="token-action-btn remove-token">
+                        <i class="fas fa-trash"></i> <span class="action-text">Удалить токен</span>
+                    </button>
+                </div>
+                <div class="token-info">
+                    <p><i class="fas fa-info-circle"></i> Токен используется для сохранения заказов в GitHub репозитории.</p>
+                </div>
+            </div>
+            <div class="token-management-footer">
+                <button id="closeTokenModalBtn" class="close-token-modal-btn">
+                    <i class="fas fa-times"></i> <span class="btn-text">Закрыть</span>
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    document.getElementById('viewTokenBtn').addEventListener('click', function() {
+        const token = localStorage.getItem('iceberg_github_token');
+        if (token) {
+            const maskedToken = token.substring(0, 8) + '...' + token.substring(token.length - 4);
+            alert(`Ваш GitHub токен: ${maskedToken}\n\nПолный токен скрыт в целях безопасности.`);
+        }
+    });
+    
+    document.getElementById('updateTokenBtn').addEventListener('click', function() {
+        modal.style.opacity = '0';
+        setTimeout(() => {
+            modal.remove();
+            promptForGitHubToken();
+        }, 300);
+    });
+    
+    document.getElementById('removeTokenBtn').addEventListener('click', function() {
+        if (confirm('Вы уверены, что хотите удалить токен? Заказы перестанут сохраняться в GitHub.')) {
+            localStorage.removeItem('iceberg_github_token');
+            modal.style.opacity = '0';
+            setTimeout(() => {
+                modal.remove();
+                showNotification('✅ Токен успешно удален', 'success');
+            }, 300);
+        }
+    });
+    
+    document.getElementById('closeTokenModalBtn').addEventListener('click', function() {
+        modal.style.opacity = '0';
+        setTimeout(() => modal.remove(), 300);
+    });
+    
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            modal.style.opacity = '0';
+            setTimeout(() => modal.remove(), 300);
+        }
+    });
+}
+
 async function initApp() {
     detectTheme();
     initTelegram();
@@ -3365,11 +3635,24 @@ async function initApp() {
     window.showDeliveryMethodModalOverPhone = showDeliveryMethodModalOverPhone;
     window.changeDeliveryMethodAndUpdatePhoneModal = changeDeliveryMethodAndUpdatePhoneModal;
     
+    // Добавляем кнопку управления токеном
+    addTokenManagementButton();
+    
     initCategoriesScroll();
     initKeyboardNavigation();
     initSearch();
     
     addDostavistaButtonForAdmin();
+    
+    // Проверяем наличие токена при запуске
+    setTimeout(() => {
+        const token = getGitHubToken();
+        if (!token) {
+            console.warn('⚠️ GitHub токен не найден. Заказы не будут сохраняться в GitHub.');
+            // Можете раскомментировать для автоматического запроса токена:
+            // setTimeout(() => promptForGitHubToken(), 3000);
+        }
+    }, 2000);
     
     setTimeout(function() {
         const loader = document.getElementById('loader');
@@ -3399,6 +3682,8 @@ function openManagerChat() {
 }
 
 function showOrderConfirmationModal(orderData, orderNumber) {
+    const savedToGitHub = getGitHubToken() ? true : false;
+    
     const modal = document.createElement('div');
     modal.className = 'order-confirmation-modal';
     modal.innerHTML = `
@@ -3415,10 +3700,12 @@ function showOrderConfirmationModal(orderData, orderNumber) {
                     <p><strong>Способ получения:</strong> ${orderData.deliveryMethod === 'pickup' ? 'Самовывоз' : 'Доставка'}</p>
                     ${orderData.deliveryMethod === 'delivery' && orderData.deliveryAddress ? `<p><strong>Адрес доставки:</strong> ${orderData.deliveryAddress}</p>` : ''}
                     ${orderData.deliveryMethod === 'delivery' && orderData.deliveryTime ? `<p><strong>Время доставки:</strong> ${orderData.deliveryTime}</p>` : ''}
+                    <p><strong>Статус сохранения:</strong> ${savedToGitHub ? '✅ Сохранен в GitHub' : '⚠️ Только локально'}</p>
                 </div>
                 <div class="order-notification">
                     <i class="fas fa-info-circle"></i>
                     <p>Менеджер свяжется с вами в ближайшее время для подтверждения заказа.</p>
+                    ${!savedToGitHub ? '<p style="color: #FF9800; margin-top: 10px;"><i class="fas fa-exclamation-triangle"></i> Заказ сохранен только локально. Добавьте GitHub токен для сохранения в облаке.</p>' : ''}
                 </div>
             </div>
             <div class="order-confirmation-footer">
@@ -3445,7 +3732,6 @@ function showOrderConfirmationModal(orderData, orderNumber) {
 }
 
 function showManagerNotification(orderNumber) {
-    // Можно оставить пустым или добавить логику уведомления
     console.log(`Заказ #${orderNumber} отправлен менеджеру`);
 }
 
@@ -3453,9 +3739,6 @@ function showManagerNotification(orderNumber) {
 window.openManagerChat = openManagerChat;
 window.showOrderConfirmationModal = showOrderConfirmationModal;
 window.showManagerNotification = showManagerNotification;
+window.promptForGitHubToken = promptForGitHubToken;
 
 window.addEventListener('beforeunload', stopAutoUpdate);
-
-window.addEventListener('beforeunload', stopAutoUpdate);
-
-
