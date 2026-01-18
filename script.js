@@ -35,7 +35,7 @@ function getGitHubToken() {
     // 2. Если нет в localStorage, используем тестовый токен
     if (!token) {
         // Тестовый токен (автоматическая установка)
-        token = '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';
+        token = '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';
         
         // Сохраняем в localStorage для будущего использования
         if (token && token.startsWith('ghp_')) {
@@ -3253,3 +3253,4 @@ window.showManagerNotification = showManagerNotification;
 window.promptForGitHubToken = promptForGitHubToken;
 
 window.addEventListener('beforeunload', stopAutoUpdate);
+
