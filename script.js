@@ -1,7 +1,3 @@
-[file name]: script (19).js
-[file content begin]
-// Полный код JavaScript с отправкой заказов в GitHub Gist
-
 let currentTheme = 'light';
 let tg = null;
 let products = [];
@@ -3277,4 +3273,5 @@ window.showManagerNotification = showManagerNotification;
 window.promptForGitHubToken = promptForGitHubToken;
 
 window.addEventListener('beforeunload', stopAutoUpdate);
-[file content end]
+
+
