@@ -26,6 +26,8 @@ let deliveryNotes = '';
 const GITHUB_REPO = 'sashaG7658/lavkatest';
 const GITHUB_FILE_PATH = 'orders.json';
 
+// Gist configuration
+const GIST_FILENAME = 'orders.json';
 
 // Токен будет получаться автоматически
 function getGitHubToken() {
@@ -1652,6 +1654,7 @@ async function saveOrderToGitHub(orderData) {
         console.log('🔑 Используем токен:', token.substring(0, 4) + '...');
 
         // Получаем текущий файл orders.json из GitHub
+        // В функции saveOrderToGitHub (строка 1655):
         const response = await fetch('https://api.github.com/repos/' + GITHUB_REPO + '/contents/' + GITHUB_FILE_PATH, {
             headers: {
                 'Authorization': 'token ' + token,
@@ -3253,5 +3256,6 @@ window.showManagerNotification = showManagerNotification;
 window.promptForGitHubToken = promptForGitHubToken;
 
 window.addEventListener('beforeunload', stopAutoUpdate);
+
 
 
