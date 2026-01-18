@@ -1,4 +1,6 @@
-// Полный код JavaScript с прямой отправкой заказов в GitHub
+[file name]: script (19).js
+[file content begin]
+// Полный код JavaScript с отправкой заказов в GitHub Gist
 
 let currentTheme = 'light';
 let tg = null;
@@ -22,10 +24,6 @@ let deliveryAddress = '';
 let deliveryTime = '';
 let deliveryNotes = '';
 
-// GitHub configuration
-const GITHUB_REPO = 'sashaG7658/lavkatest';
-const GITHUB_FILE_PATH = 'orders.json';
-
 // Gist configuration
 const GIST_FILENAME = 'orders.json';
 
@@ -40,7 +38,7 @@ function getGitHubToken() {
         token = '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';
         
         // Сохраняем в localStorage для будущего использования
-        if (token && token.startsWith('ghp_')) {
+        if (token && (token.startsWith('ghp_') || token.startsWith('github_pat_'))) {
             localStorage.setItem('iceberg_github_token', token);
             console.log('✅ Токен автоматически установлен в localStorage');
         }
@@ -69,7 +67,7 @@ function promptForGitHubToken() {
                 <div class="token-success-message">
                     <i class="fas fa-check-circle"></i>
                     <p>GitHub токен уже настроен и готов к использованию!</p>
-                    <p class="token-status-info">Заказы будут автоматически сохраняться в репозитории GitHub.</p>
+                    <p class="token-status-info">Заказы будут автоматически сохраняться в Gist.</p>
                 </div>
                 <div class="token-note">
                     <i class="fas fa-info-circle"></i>
@@ -101,6 +99,154 @@ function promptForGitHubToken() {
     });
     
     return null;
+}
+
+// НОВАЯ ФУНКЦИЯ: Сохранение заказа в GitHub Gist
+async function saveOrderToGist(orderData) {
+    try {
+        // Получаем токен
+        const token = getGitHubToken();
+        
+        if (!token) {
+            console.warn('⚠️ GitHub токен не найден. Заказ не будет сохранен в Gist.');
+            showNotification('⚠️ Заказ сохранен локально. Добавьте GitHub токен для сохранения в облаке.', 'warning');
+            return true; // Все равно возвращаем true, чтобы заказ обработался
+        }
+        
+        console.log('🔑 Используем токен для Gist API');
+        
+        // Проверяем, есть ли gist ID
+        let gistId = localStorage.getItem('iceberg_gist_id');
+        
+        let existingOrders = [];
+        
+        // Если gist не существует, создаем новый
+        if (!gistId) {
+            console.log('ℹ️ Gist не найден, создаем новый...');
+            
+            const newGistResponse = await fetch('https://api.github.com/gists', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/vnd.github.v3+json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    description: 'ICE-orders backup',
+                    public: false,
+                    files: {
+                        [GIST_FILENAME]: {
+                            content: JSON.stringify([], null, 2)
+                        }
+                    }
+                })
+            });
+            
+            if (!newGistResponse.ok) {
+                const errorData = await newGistResponse.json();
+                console.error('❌ Ошибка при создании gist:', errorData.message);
+                
+                // Если токен недействителен
+                if (newGistResponse.status === 401 || newGistResponse.status === 403) {
+                    localStorage.removeItem('iceberg_github_token');
+                    console.log('🗑️ Недействительный токен удален из localStorage');
+                    showNotification('❌ GitHub токен недействителен. Обновите токен в настройках.', 'error');
+                }
+                
+                return false;
+            }
+            
+            const gistData = await newGistResponse.json();
+            gistId = gistData.id;
+            localStorage.setItem('iceberg_gist_id', gistId);
+            console.log('✅ Gist создан с ID:', gistId);
+            
+            existingOrders = [];
+        } else {
+            // Получаем существующие заказы из gist
+            console.log('📄 Получаем существующий gist:', gistId);
+            
+            const getResponse = await fetch(`https://api.github.com/gists/${gistId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            });
+            
+            if (getResponse.ok) {
+                const gistData = await getResponse.json();
+                const content = gistData.files[GIST_FILENAME].content;
+                existingOrders = JSON.parse(content);
+                console.log('✅ Загружено заказов из gist:', existingOrders.length);
+            } else {
+                console.error('❌ Ошибка при получении gist');
+                existingOrders = [];
+            }
+        }
+        
+        // Добавляем новый заказ
+        existingOrders.push(orderData);
+        
+        // Обновляем gist
+        const updateResponse = await fetch(`https://api.github.com/gists/${gistId}`, {
+            method: 'PATCH',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/vnd.github.v3+json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                files: {
+                    [GIST_FILENAME]: {
+                        content: JSON.stringify(existingOrders, null, 2)
+                    }
+                }
+            })
+        });
+        
+        if (updateResponse.ok) {
+            console.log('✅ Заказ успешно сохранен в Gist');
+            showNotification('✅ Заказ успешно сохранен в Gist!', 'success');
+            return true;
+        } else {
+            const errorData = await updateResponse.json();
+            console.error('❌ Ошибка при сохранении в Gist:', errorData.message);
+            showNotification('⚠️ Заказ сохранен локально. Ошибка GitHub.', 'warning');
+            return false;
+        }
+        
+    } catch (error) {
+        console.error('❌ Критическая ошибка при сохранении заказа в Gist:', error);
+        showNotification('⚠️ Заказ сохранен локально. Ошибка сети.', 'warning');
+        return false;
+    }
+}
+
+// Получение заказов из gist (опционально, для статистики)
+async function getOrdersFromGist() {
+    try {
+        const gistId = localStorage.getItem('iceberg_gist_id');
+        const token = getGitHubToken();
+        
+        if (!gistId || !token) return [];
+        
+        const response = await fetch(`https://api.github.com/gists/${gistId}`, {
+            headers: { 
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/vnd.github.v3+json'
+            }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            const content = data.files[GIST_FILENAME].content;
+            return JSON.parse(content);
+        }
+        return [];
+    } catch (error) {
+        console.error('Ошибка при получении заказов из Gist:', error);
+        return [];
+    }
 }
 
 function detectTheme() {
@@ -811,7 +957,6 @@ function getLocalProducts() {
             image: "https://static.insales-cdn.com/images/products/1/7732/889290292/large_%D0%BA%D0%BB%D1%83%D0%B1%D0%BD%D0%B8%D0%BA%D0%B0__5_.png",
             isNew: false
         },
-        // ... остальные товары остаются без изменений
         {
             id: 1051,
             name: "ШОК BY X МЯТА",
@@ -1639,139 +1784,6 @@ function showPhoneConfirmationModal(orderData) {
     });
 }
 
-// НОВАЯ ФУНКЦИЯ: Прямая отправка заказа в GitHub
-async function saveOrderToGitHub(orderData) {
-    try {
-        // Получаем токен
-        const token = getGitHubToken();
-        
-        if (!token) {
-            console.warn('⚠️ GitHub токен не найден. Заказ не будет сохранен в GitHub.');
-            showNotification('⚠️ Заказ сохранен локально. Добавьте GitHub токен для сохранения в облаке.', 'warning');
-            return true;
-        }
-        
-        console.log('🔑 Используем токен:', token.substring(0, 4) + '...');
-
-        // Получаем текущий файл orders.json из GitHub
-        // В функции saveOrderToGitHub (строка 1655):
-        const response = await fetch('https://api.github.com/repos/' + GITHUB_REPO + '/contents/' + GITHUB_FILE_PATH, {
-            headers: {
-                'Authorization': 'token ' + token,
-                'Accept': 'application/vnd.github.v3+json'
-            }
-        });
-
-        let existingOrders = [];
-        let sha = '';
-
-        if (response.ok) {
-            const data = await response.json();
-            const content = atob(data.content.replace(/\s/g, ''));
-            existingOrders = JSON.parse(content);
-            sha = data.sha;
-            console.log('📄 Файл orders.json загружен, найдено заказов:', existingOrders.length);
-        } else if (response.status === 404) {
-            // Файл не существует, создаем новый
-            existingOrders = [];
-            console.log('📄 Файл orders.json не найден, создаем новый');
-        } else {
-            const errorData = await response.json();
-            console.error('❌ Ошибка при получении файла:', response.status, errorData.message);
-            
-            // Если токен недействителен, удаляем его
-            if (response.status === 401 || response.status === 403) {
-                localStorage.removeItem('iceberg_github_token');
-                console.log('🗑️ Недействительный токен удален из localStorage');
-                showNotification('❌ GitHub токен недействителен. Обновите токен в настройках.', 'error');
-            }
-            
-            return false;
-        }
-
-        // Добавляем новый заказ
-        existingOrders.push(orderData);
-
-        // Подготовка данных для обновления
-        const fileContent = JSON.stringify(existingOrders, null, 2);
-        const content = btoa(unescape(encodeURIComponent(fileContent)));
-
-        // Определяем метод (создать или обновить)
-        const method = sha ? 'PUT' : 'POST';
-        const url = 'https://api.github.com/repos/' + GITHUB_REPO + '/contents/' + GITHUB_FILE_PATH;
-        
-        const requestBody = {
-            message: 'Добавлен новый заказ #' + orderData.orderNumber,
-            content: content
-        };
-        
-        // Если файл существует, добавляем sha
-        if (sha) {
-            requestBody.sha = sha;
-        }
-
-        // Обновляем/создаем файл в GitHub
-        const updateResponse = await fetch(url, {
-            method: method,
-            headers: {
-                'Authorization': 'token ' + token,
-                'Accept': 'application/vnd.github.v3+json',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(requestBody)
-        });
-
-        if (updateResponse.ok) {
-            console.log('✅ Заказ успешно сохранен в GitHub');
-            showNotification('✅ Заказ успешно сохранен в GitHub!', 'success');
-            return true;
-        } else {
-            const errorData = await updateResponse.json();
-            console.error('❌ Ошибка при сохранении в GitHub:', updateResponse.status, errorData.message);
-            
-            // Если токен недействителен, удаляем его
-            if (updateResponse.status === 401 || updateResponse.status === 403) {
-                localStorage.removeItem('iceberg_github_token');
-                showNotification('❌ GitHub токен недействителен. Обновите токен в настройках.', 'error');
-            } else {
-                showNotification('⚠️ Заказ сохранен локально. Ошибка GitHub: ' + errorData.message, 'warning');
-            }
-            
-            return false;
-        }
-        
-    } catch (error) {
-        console.error('❌ Критическая ошибка при сохранении заказа в GitHub:', error);
-        showNotification('⚠️ Заказ сохранен локально. Ошибка при сохранении в GitHub.', 'warning');
-        return false;
-    }
-}
-
-// Функция для получения всех заказов из GitHub (опционально, для статистики)
-async function getOrdersFromGitHub() {
-    try {
-        const token = getGitHubToken();
-        if (!token) return [];
-        
-        const response = await fetch('https://api.github.com/repos/' + GITHUB_REPO + '/contents/' + GITHUB_FILE_PATH, {
-            headers: {
-                'Authorization': 'token ' + token,
-                'Accept': 'application/vnd.github.v3+json'
-            }
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            const content = atob(data.content.replace(/\s/g, ''));
-            return JSON.parse(content);
-        }
-        return [];
-    } catch (error) {
-        console.error('Ошибка при получении заказов из GitHub:', error);
-        return [];
-    }
-}
-
 async function completeOrderWithPhone(orderData) {
     try {
         orderData.user = orderData.user || {};
@@ -1779,12 +1791,12 @@ async function completeOrderWithPhone(orderData) {
             orderData.user.phone = userPhoneNumber;
         }
         
-        // Отправляем заказ в GitHub
-        const savedToGitHub = await saveOrderToGitHub(orderData);
+        // Отправляем заказ в GitHub Gist
+        const savedToGist = await saveOrderToGist(orderData);
         
-        if (!savedToGitHub && getGitHubToken()) {
+        if (!savedToGist && getGitHubToken()) {
             // Если токен есть, но сохранение не удалось, показываем ошибку
-            showNotification('Ошибка сохранения заказа в GitHub. Попробуйте снова.', 'error');
+            showNotification('Ошибка сохранения заказа в Gist. Попробуйте снова.', 'error');
             return;
         }
         
@@ -1801,7 +1813,7 @@ async function completeOrderWithPhone(orderData) {
                 deliveryTime: orderData.deliveryTime,
                 deliveryNotes: orderData.deliveryNotes,
                 userPhone: orderData.userPhone || userPhoneNumber,
-                savedToGitHub: savedToGitHub
+                savedToGist: savedToGist
             };
 
             console.log("Отправка в Telegram:", orderDataForBot);
@@ -1822,7 +1834,7 @@ async function completeOrderWithPhone(orderData) {
                 `${orderData.deliveryMethod === 'delivery' && orderData.deliveryTime ? `⏰ *Время:* ${orderData.deliveryTime}\n` : ''}` +
                 `📦 Товаров: ${orderData.items_count} шт.\n` +
                 `💰 Сумма: ${orderData.total} руб.\n\n` +
-                `${savedToGitHub ? '✅ *Заказ сохранен в GitHub*\n' : '⚠️ *Заказ сохранен только локально*\n'}` +
+                `${savedToGist ? '✅ *Заказ сохранен в Gist*\n' : '⚠️ *Заказ сохранен только локально*\n'}` +
                 `👤 *Менеджер свяжется с вами в ближайшее время*\n` +
                 `🔗 @Chief_68`,
                 function() {
@@ -1860,7 +1872,7 @@ function loadCart() {
         const savedCart = localStorage.getItem('iceberg_cart');
         cart = savedCart ? JSON.parse(savedCart) : [];
         
-        // НЕ загружаем orderHistory из localStorage - заказы теперь только в GitHub
+        // НЕ загружаем orderHistory из localStorage - заказы теперь только в Gist
         orderHistory = [];
         
     } catch (error) {
@@ -2599,7 +2611,7 @@ async function checkout() {
         } : null
     };
     
-    // НЕ сохраняем локально в orderHistory - только отправляем в GitHub
+    // НЕ сохраняем локально в orderHistory - только отправляем в Gist
     // orderHistory.unshift({...}); // Убрано локальное сохранение
     
     saveCart(); // Сохраняем только корзину (очистка будет после отправки)
@@ -3003,7 +3015,7 @@ function showTokenManagementMenu() {
                     </button>
                 </div>
                 <div class="token-info">
-                    <p><i class="fas fa-info-circle"></i> Токен используется для сохранения заказов в GitHub репозитории.</p>
+                    <p><i class="fas fa-info-circle"></i> Токен используется для сохранения заказов в GitHub Gist.</p>
                 </div>
             </div>
             <div class="token-management-footer">
@@ -3033,12 +3045,13 @@ function showTokenManagementMenu() {
     });
     
     document.getElementById('removeTokenBtn').addEventListener('click', function() {
-        if (confirm('Вы уверены, что хотите удалить токен? Заказы перестанут сохраняться в GitHub.')) {
+        if (confirm('Вы уверены, что хотите удалить токен? Заказы перестанут сохраняться в Gist.')) {
             localStorage.removeItem('iceberg_github_token');
+            localStorage.removeItem('iceberg_gist_id');
             modal.style.opacity = '0';
             setTimeout(() => {
                 modal.remove();
-                showNotification('✅ Токен успешно удален', 'success');
+                showNotification('✅ Токен и Gist ID успешно удалены', 'success');
             }, 300);
         }
     });
@@ -3062,9 +3075,17 @@ async function initApp() {
     
     // Автоматически устанавливаем токен при запуске
     if (!localStorage.getItem('iceberg_github_token')) {
-        const testToken = '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';
+        const testToken = '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';
         localStorage.setItem('iceberg_github_token', testToken);
         console.log('✅ Токен автоматически установлен при запуске');
+    }
+    
+    // Проверяем наличие Gist ID при запуске
+    const gistId = localStorage.getItem('iceberg_gist_id');
+    if (!gistId) {
+        console.log('ℹ️ Gist не создан, будет создан при первом заказе');
+    } else {
+        console.log('✅ Найден Gist ID:', gistId);
     }
     
     loadDeliveryInfo();
@@ -3162,7 +3183,7 @@ async function initApp() {
         const token = getGitHubToken();
         if (token) {
             console.log('✅ GitHub токен готов к использованию');
-            showNotification('✅ GitHub токен настроен. Заказы будут сохраняться в GitHub.', 'success');
+            showNotification('✅ GitHub токен настроен. Заказы будут сохраняться в Gist.', 'success');
         } else {
             console.warn('⚠️ GitHub токен не найден.');
         }
@@ -3196,7 +3217,7 @@ function openManagerChat() {
 }
 
 function showOrderConfirmationModal(orderData, orderNumber) {
-    const savedToGitHub = getGitHubToken() ? true : false;
+    const savedToGist = getGitHubToken() ? true : false;
     
     const modal = document.createElement('div');
     modal.className = 'order-confirmation-modal';
@@ -3214,12 +3235,12 @@ function showOrderConfirmationModal(orderData, orderNumber) {
                     <p><strong>Способ получения:</strong> ${orderData.deliveryMethod === 'pickup' ? 'Самовывоз' : 'Доставка'}</p>
                     ${orderData.deliveryMethod === 'delivery' && orderData.deliveryAddress ? `<p><strong>Адрес доставки:</strong> ${orderData.deliveryAddress}</p>` : ''}
                     ${orderData.deliveryMethod === 'delivery' && orderData.deliveryTime ? `<p><strong>Время доставки:</strong> ${orderData.deliveryTime}</p>` : ''}
-                    <p><strong>Статус сохранения:</strong> ${savedToGitHub ? '✅ Сохранен в GitHub' : '⚠️ Только локально'}</p>
+                    <p><strong>Статус сохранения:</strong> ${savedToGist ? '✅ Сохранен в Gist' : '⚠️ Только локально'}</p>
                 </div>
                 <div class="order-notification">
                     <i class="fas fa-info-circle"></i>
                     <p>Менеджер свяжется с вами в ближайшее время для подтверждения заказа.</p>
-                    ${!savedToGitHub ? '<p style="color: #FF9800; margin-top: 10px;"><i class="fas fa-exclamation-triangle"></i> Заказ сохранен только локально. Добавьте GitHub токен для сохранения в облаке.</p>' : ''}
+                    ${!savedToGist ? '<p style="color: #FF9800; margin-top: 10px;"><i class="fas fa-exclamation-triangle"></i> Заказ сохранен только локально. Добавьте GitHub токен для сохранения в облаке.</p>' : ''}
                 </div>
             </div>
             <div class="order-confirmation-footer">
@@ -3256,6 +3277,4 @@ window.showManagerNotification = showManagerNotification;
 window.promptForGitHubToken = promptForGitHubToken;
 
 window.addEventListener('beforeunload', stopAutoUpdate);
-
-
-
+[file content end]
