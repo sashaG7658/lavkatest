@@ -26,6 +26,7 @@ let deliveryNotes = '';
 const GITHUB_REPO = 'sashaG7658/lavkatest';
 const GITHUB_FILE_PATH = 'orders.json';
 
+
 // Токен будет получаться динамически
 function getGitHubToken() {
     // 1. Пробуем получить из localStorage
@@ -3743,4 +3744,5 @@ window.showManagerNotification = showManagerNotification;
 window.promptForGitHubToken = promptForGitHubToken;
 
 window.addEventListener('beforeunload', stopAutoUpdate);
+
 
