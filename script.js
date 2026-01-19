@@ -1,5 +1,3 @@
-const GITHUB_TOKEN = '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';
-
 // Полный код JavaScript с прямой отправкой заказов в GitHub
 
 let currentTheme = 'light';
@@ -32,31 +30,42 @@ const GITHUB_FILE_PATH = 'orders.json';
 // Можно хранить токен в config.js (window.CONFIG.GITHUB_TOKEN) или захардкодить в начале файла как:
 //   const GITHUB_TOKEN = '...';
 // Если ничего нет — используем localStorage (как раньше) и/или просим ввести токен.
-function getGitHubToken() {
+// Возвращает { token, source } где source = 'config' | 'const' | 'window' | 'localStorage' | null
+function getGitHubTokenInfo() {
     // 1) config.js
     try {
         const cfgToken = window?.CONFIG?.GITHUB_TOKEN;
-        if (typeof cfgToken === 'string' && cfgToken.trim()) return cfgToken.trim();
+        if (typeof cfgToken === 'string' && cfgToken.trim()) {
+            return { token: cfgToken.trim(), source: 'config' };
+        }
     } catch (_) {}
 
     // 2) константа в этом же файле (если вы добавили `const GITHUB_TOKEN = '...'` в самый верх scripts.js)
     // Важно: top-level `const` в браузере НЕ является свойством window/globalThis, поэтому читаем напрямую.
     try {
-        if (typeof GITHUB_TOKEN === 'string' && GITHUB_TOKEN.trim()) return GITHUB_TOKEN.trim();
+        if (typeof GITHUB_TOKEN === 'string' && GITHUB_TOKEN.trim()) {
+            return { token: GITHUB_TOKEN.trim(), source: 'const' };
+        }
     } catch (_) {}
 
     // 3) window/globalThis (если вы назначили `window.GITHUB_TOKEN = '...'`)
     try {
         const hardcoded = globalThis?.GITHUB_TOKEN;
-        if (typeof hardcoded === 'string' && hardcoded.trim()) return hardcoded.trim();
+        if (typeof hardcoded === 'string' && hardcoded.trim()) {
+            return { token: hardcoded.trim(), source: 'window' };
+        }
     } catch (_) {}
 
     // 4) localStorage
     const token = localStorage.getItem('iceberg_github_token');
-    if (token && (token.startsWith('github_pat_') || token.startsWith('ghp_'))) {
-        return token;
+    if (token && (token.startsWith('github_pat_') || token.startsWith('ghp_') || token.startsWith('github_pat'))) {
+        return { token, source: 'localStorage' };
     }
-    return null;
+    return { token: null, source: null };
+}
+
+function getGitHubToken() {
+    return getGitHubTokenInfo().token;
 }
 
 // Универсальный fetch для GitHub API с автоматическим ретраем при 401.
@@ -1767,10 +1776,13 @@ async function saveOrderToGitHub(orderData) {
     // Этот код оставлен для тестов/прототипа.
     try {
         // 1) Получаем токен (если нет — предлагаем ввести)
-        let token = getGitHubToken();
+        let { token, source: tokenSource } = getGitHubTokenInfo();
+        let promptedThisAttempt = false;
         if (!token) {
             showNotification('🔑 Для сохранения заказа в GitHub добавьте токен.', 'warning');
             token = await promptForGitHubToken();
+            tokenSource = token ? 'localStorage' : null; // prompt сохраняет токен в localStorage
+            promptedThisAttempt = !!token;
         }
         if (!token) {
             console.warn('⚠️ GitHub токен не найден/не введён. Заказ не будет сохранен в GitHub.');
@@ -1807,12 +1819,20 @@ async function saveOrderToGitHub(orderData) {
                 return { ok: true, status: 404 };
             }
 
-            // 401/403: сбрасываем токен и даём ввести новый
+            // 401/403: если токен был из localStorage/введён пользователем — дадим заменить.
+            // Если токен захардкожен (const/config/window) — НЕ спрашиваем второй раз, а показываем понятную причину.
             if (res.status === 401 || res.status === 403) {
-                localStorage.removeItem('iceberg_github_token');
-                showNotification('❌ Токен GitHub недействителен. Введите новый токен.', 'error');
-                token = await promptForGitHubToken();
-                if (!token) return { ok: false, status: res.status };
+                const canReenter = (tokenSource === 'localStorage') && !promptedThisAttempt;
+                if (canReenter) {
+                    localStorage.removeItem('iceberg_github_token');
+                    showNotification('❌ Нет доступа к GitHub (401/403). Введите новый токен с правами Contents: Read & Write и доступом к репозиторию.', 'error');
+                    token = await promptForGitHubToken();
+                    promptedThisAttempt = !!token;
+                    if (!token) return { ok: false, status: res.status };
+                } else {
+                    showNotification('❌ Нет доступа к GitHub (401/403). Проверьте, что токен действителен и имеет доступ к репозиторию и права Contents: Read & Write.', 'error');
+                    return { ok: false, status: res.status };
+                }
 
                 // повторяем один раз
                 const retry = await githubFetch(contentApiGet, { headers: commonHeaders() }, token);
@@ -1870,13 +1890,20 @@ async function saveOrderToGitHub(orderData) {
 
         let updateResponse = await doPut();
 
-        // 401/403 на PUT: сбросить токен, попросить новый, повторить один раз
+        // 401/403 на PUT: если токен из localStorage и мы ещё не просили — дадим заменить.
         if (!updateResponse.ok && (updateResponse.status === 401 || updateResponse.status === 403)) {
-            localStorage.removeItem('iceberg_github_token');
-            showNotification('❌ Токен GitHub недействителен. Введите новый токен.', 'error');
-            token = await promptForGitHubToken();
-            if (!token) return false;
-            updateResponse = await doPut();
+            const canReenter = (tokenSource === 'localStorage') && !promptedThisAttempt;
+            if (canReenter) {
+                localStorage.removeItem('iceberg_github_token');
+                showNotification('❌ Нет доступа к GitHub (401/403). Введите новый токен с правами Contents: Read & Write и доступом к репозиторию.', 'error');
+                token = await promptForGitHubToken();
+                promptedThisAttempt = !!token;
+                if (!token) return false;
+                updateResponse = await doPut();
+            } else {
+                showNotification('❌ Нет доступа к GitHub (401/403). Проверьте права токена (Contents: Read & Write) и доступ к репозиторию.', 'error');
+                return false;
+            }
         }
 
         if (updateResponse.ok) {
