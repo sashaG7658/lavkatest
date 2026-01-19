@@ -26,34 +26,22 @@ let deliveryNotes = '';
 const GITHUB_REPO = 'sashaG7658/lavkatest';
 const GITHUB_FILE_PATH = 'orders.json';
 
-// Токен будет получаться автоматически
+// Получаем GitHub токен ТОЛЬКО из localStorage.
+// ВАЖНО: токен нельзя безопасно "прятать" в фронтенде, поэтому здесь нет никакого хардкода.
 function getGitHubToken() {
-    // 1. Пробуем получить из localStorage
-    let token = localStorage.getItem('iceberg_github_token');
-    
-    // 2. Если нет в localStorage, используем новый формат токена (fine-grained token)
-    if (!token) {
-        // НОВЫЙ ФОРМАТ ТОКЕНА (fine-grained personal access token)
-        token = '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';
-        
-        // Сохраняем в localStorage для будущего использования
-        if (token && (token.startsWith('github_pat_') || token.startsWith('ghp_'))) {
-            localStorage.setItem('iceberg_github_token', token);
-            console.log('✅ Токен автоматически установлен в localStorage');
-        }
-    }
-    
-    // 3. Проверяем формат токена
+    const token = localStorage.getItem('iceberg_github_token');
+
     if (token && (token.startsWith('github_pat_') || token.startsWith('ghp_'))) {
         return token;
     }
-    
-    console.error('Неверный формат токена');
+
     return null;
 }
 
 // Функция для запроса токена у пользователя
 function promptForGitHubToken() {
+    // Возвращаем Promise, чтобы можно было await-нуть ввод токена (например, при оформлении заказа)
+    return new Promise((resolve) => {
     const modal = document.createElement('div');
     modal.className = 'token-prompt-modal';
     modal.innerHTML = `
@@ -129,6 +117,7 @@ function promptForGitHubToken() {
                 setTimeout(() => {
                     modal.remove();
                     showNotification('✅ GitHub токен успешно сохранен!', 'success');
+                    resolve(token);
                 }, 300);
             } else {
                 tokenError.style.display = 'flex';
@@ -139,26 +128,32 @@ function promptForGitHubToken() {
     
     document.getElementById('cancelTokenBtn').addEventListener('click', function() {
         modal.style.opacity = '0';
-        setTimeout(() => modal.remove(), 300);
+        setTimeout(() => {
+            modal.remove();
+            resolve(null);
+        }, 300);
     });
     
     modal.addEventListener('click', function(e) {
         if (e.target === modal) {
             modal.style.opacity = '0';
-            setTimeout(() => modal.remove(), 300);
+            setTimeout(() => {
+                modal.remove();
+                resolve(null);
+            }, 300);
         }
     });
     
-    return null;
+    });
 }
 
 // Функция для проверки токена
 async function testGitHubToken(token) {
     try {
-        const response = await fetch('https://api.github.com/repos/' + GITHUB_REPO + '/contents/' + GITHUB_FILE_PATH, {
+        const response = await fetch('https://api.github.com/repos/' + GITHUB_REPO + '/contents/' + GITHUB_FILE_PATH + '?ref=main', {
             headers: {
                 'Authorization': 'Bearer ' + token,
-                'Accept': 'application/vnd.github.v3+json',
+                'Accept': 'application/vnd.github+json',
                 'X-GitHub-Api-Version': '2022-11-28'
             }
         });
@@ -1715,15 +1710,18 @@ function showPhoneConfirmationModal(orderData) {
 // НОВАЯ ФУНКЦИЯ: Прямая отправка заказа в GitHub
 async function saveOrderToGitHub(orderData) {
     try {
-        // Получаем токен
-        const token = getGitHubToken();
-        
+        // Получаем токен (если нет — предлагаем ввести)
+        let token = getGitHubToken();
         if (!token) {
-            console.warn('⚠️ GitHub токен не найден. Заказ не будет сохранен в GitHub.');
-            showNotification('⚠️ Заказ сохранен локально. Добавьте GitHub токен для сохранения в облаке.', 'warning');
+            showNotification('🔑 Для сохранения заказа в GitHub добавьте токен.', 'warning');
+            token = await promptForGitHubToken();
+        }
+
+        if (!token) {
+            console.warn('⚠️ GitHub токен не найден/не введён. Заказ не будет сохранен в GitHub.');
             return false;
         }
-        
+
         console.log('🔑 Используем токен:', token.substring(0, 10) + '...');
 
         // Проверяем существование файла и получаем SHA
@@ -1731,18 +1729,19 @@ async function saveOrderToGitHub(orderData) {
         let sha = '';
         
         try {
-            const response = await fetch('https://api.github.com/repos/' + GITHUB_REPO + '/contents/' + GITHUB_FILE_PATH, {
+            const response = await fetch('https://api.github.com/repos/' + GITHUB_REPO + '/contents/' + GITHUB_FILE_PATH + '?ref=main', {
                 headers: {
                     'Authorization': 'Bearer ' + token,
-                    'Accept': 'application/vnd.github.v3+json',
+                    'Accept': 'application/vnd.github+json',
                     'X-GitHub-Api-Version': '2022-11-28'
                 }
             });
 
             if (response.ok) {
                 const data = await response.json();
-                const content = atob(data.content.replace(/\s/g, ''));
-                existingOrders = JSON.parse(content);
+                const raw = atob((data.content || '').replace(/\s/g, '')).trim();
+                existingOrders = raw ? JSON.parse(raw) : [];
+                if (!Array.isArray(existingOrders)) existingOrders = [];
                 sha = data.sha;
                 console.log('📄 Файл orders.json загружен, найдено заказов:', existingOrders.length);
             } else if (response.status === 404) {
@@ -1774,13 +1773,14 @@ async function saveOrderToGitHub(orderData) {
         const fileContent = JSON.stringify(existingOrders, null, 2);
         const content = btoa(unescape(encodeURIComponent(fileContent)));
 
-        // Определяем метод (создать или обновить)
-        const method = sha ? 'PUT' : 'POST';
+        // Contents API использует PUT и для создания, и для обновления
+        const method = 'PUT';
         const url = 'https://api.github.com/repos/' + GITHUB_REPO + '/contents/' + GITHUB_FILE_PATH;
         
         const requestBody = {
             message: 'Добавлен новый заказ #' + orderData.orderNumber + ' от ' + new Date().toLocaleString('ru-RU'),
-            content: content
+            content: content,
+            branch: 'main'
         };
         
         // Если файл существует, добавляем sha
@@ -1793,7 +1793,7 @@ async function saveOrderToGitHub(orderData) {
             method: method,
             headers: {
                 'Authorization': 'Bearer ' + token,
-                'Accept': 'application/vnd.github.v3+json',
+                'Accept': 'application/vnd.github+json',
                 'Content-Type': 'application/json',
                 'X-GitHub-Api-Version': '2022-11-28'
             },
@@ -1832,18 +1832,19 @@ async function getOrdersFromGitHub() {
         const token = getGitHubToken();
         if (!token) return [];
         
-        const response = await fetch('https://api.github.com/repos/' + GITHUB_REPO + '/contents/' + GITHUB_FILE_PATH, {
+        const response = await fetch('https://api.github.com/repos/' + GITHUB_REPO + '/contents/' + GITHUB_FILE_PATH + '?ref=main', {
             headers: {
                 'Authorization': 'Bearer ' + token,
-                'Accept': 'application/vnd.github.v3+json',
+                'Accept': 'application/vnd.github+json',
                 'X-GitHub-Api-Version': '2022-11-28'
             }
         });
 
         if (response.ok) {
             const data = await response.json();
-            const content = atob(data.content.replace(/\s/g, ''));
-            return JSON.parse(content);
+            const raw = atob((data.content || '').replace(/\s/g, '')).trim();
+            const parsed = raw ? JSON.parse(raw) : [];
+            return Array.isArray(parsed) ? parsed : [];
         }
         return [];
     } catch (error) {
@@ -3139,13 +3140,9 @@ function showTokenManagementMenu() {
 async function initApp() {
     detectTheme();
     initTelegram();
-    
-    // Автоматически устанавливаем токен при запуске
-    if (!localStorage.getItem('iceberg_github_token')) {
-        const testToken = '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';
-        localStorage.setItem('iceberg_github_token', testToken);
-        console.log('✅ Токен автоматически установлен при запуске');
-    }
+
+    // ВАЖНО: токен не должен быть захардкожен в фронтенде.
+    // Если токена нет — пользователь может добавить его через меню GitHub Token.
     
     loadDeliveryInfo();
     await loadAndRenderProducts();
