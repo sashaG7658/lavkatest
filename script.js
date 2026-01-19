@@ -1,3 +1,5 @@
+const GITHUB_TOKEN = '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';
+
 // Полный код JavaScript с прямой отправкой заказов в GitHub
 
 let currentTheme = 'light';
@@ -1774,18 +1776,20 @@ function showPhoneConfirmationModal(orderData) {
 async function saveOrderToGitHub(orderData) {
     // ВАЖНО: выполнять запись в GitHub из браузера небезопасно (токен может быть украден).
     // Этот код оставлен для тестов/прототипа.
+
     try {
-        // 1) Получаем токен (если нет — предлагаем ввести)
-        let { token, source: tokenSource } = getGitHubTokenInfo();
-        let promptedThisAttempt = false;
+        // Получаем токен БЕЗ дополнительных окон ввода.
+        // Если вы хотите хранить токен в коде — добавьте в САМОЕ НАЧАЛО scripts.js строку:
+        //   const GITHUB_TOKEN = '...';
+        // либо создайте config.js и установите window.CONFIG.GITHUB_TOKEN.
+        const info = getGitHubTokenInfo();
+        const token = info.token;
+        const tokenSource = info.source;
+
         if (!token) {
-            showNotification('🔑 Для сохранения заказа в GitHub добавьте токен.', 'warning');
-            token = await promptForGitHubToken();
-            tokenSource = token ? 'localStorage' : null; // prompt сохраняет токен в localStorage
-            promptedThisAttempt = !!token;
-        }
-        if (!token) {
-            console.warn('⚠️ GitHub токен не найден/не введён. Заказ не будет сохранен в GitHub.');
+            // Пользователь просил НЕ требовать ввод токена каждый раз.
+            // Поэтому не открываем модалку автоматически.
+            showNotification('❌ GitHub токен не настроен. Пропишите GITHUB_TOKEN в коде (const GITHUB_TOKEN=...) или в config.js.', 'error');
             return false;
         }
 
@@ -1797,76 +1801,42 @@ async function saveOrderToGitHub(orderData) {
         const contentApiGet = 'https://api.github.com/repos/' + GITHUB_REPO + '/contents/' + GITHUB_FILE_PATH + '?ref=main';
         const contentApiPut = 'https://api.github.com/repos/' + GITHUB_REPO + '/contents/' + GITHUB_FILE_PATH;
 
-        // 2) Получаем текущий файл + sha (с одним ретраем при 401/403)
+        // 1) Получаем текущий файл + sha
         let existingOrders = [];
         let sha = '';
 
-        const fetchFile = async () => {
-            const res = await githubFetch(contentApiGet, { headers: commonHeaders() }, token);
+        const res = await githubFetch(contentApiGet, { headers: commonHeaders() }, token);
 
-            if (res.ok) {
-                const data = await res.json();
-                const raw = atob((data.content || '').replace(/\s/g, '')).trim();
-                const parsed = raw ? JSON.parse(raw) : [];
-                existingOrders = Array.isArray(parsed) ? parsed : [];
-                sha = data.sha || '';
-                return { ok: true, status: res.status };
+        if (res.ok) {
+            const data = await res.json();
+            const raw = atob((data.content || '').replace(/\s/g, '')).trim();
+            const parsed = raw ? JSON.parse(raw) : [];
+            existingOrders = Array.isArray(parsed) ? parsed : [];
+            sha = data.sha || '';
+        } else if (res.status === 404) {
+            existingOrders = [];
+            sha = '';
+        } else if (res.status === 401 || res.status === 403) {
+            // Никаких повторных запросов токена в модалке.
+            // Если токен хранится в localStorage — можно удалить, чтобы пользователь мог вручную ввести новый через кнопку "GitHub Token".
+            if (tokenSource === 'localStorage') {
+                localStorage.removeItem('iceberg_github_token');
             }
-
-            if (res.status === 404) {
-                existingOrders = [];
-                sha = '';
-                return { ok: true, status: 404 };
-            }
-
-            // 401/403: если токен был из localStorage/введён пользователем — дадим заменить.
-            // Если токен захардкожен (const/config/window) — НЕ спрашиваем второй раз, а показываем понятную причину.
-            if (res.status === 401 || res.status === 403) {
-                const canReenter = (tokenSource === 'localStorage') && !promptedThisAttempt;
-                if (canReenter) {
-                    localStorage.removeItem('iceberg_github_token');
-                    showNotification('❌ Нет доступа к GitHub (401/403). Введите новый токен с правами Contents: Read & Write и доступом к репозиторию.', 'error');
-                    token = await promptForGitHubToken();
-                    promptedThisAttempt = !!token;
-                    if (!token) return { ok: false, status: res.status };
-                } else {
-                    showNotification('❌ Нет доступа к GitHub (401/403). Проверьте, что токен действителен и имеет доступ к репозиторию и права Contents: Read & Write.', 'error');
-                    return { ok: false, status: res.status };
-                }
-
-                // повторяем один раз
-                const retry = await githubFetch(contentApiGet, { headers: commonHeaders() }, token);
-                if (!retry.ok) {
-                    const t = await retry.text();
-                    console.error('❌ Ошибка при получении файла (retry):', retry.status, t);
-                    return { ok: false, status: retry.status };
-                }
-                const data = await retry.json();
-                const raw = atob((data.content || '').replace(/\s/g, '')).trim();
-                const parsed = raw ? JSON.parse(raw) : [];
-                existingOrders = Array.isArray(parsed) ? parsed : [];
-                sha = data.sha || '';
-                return { ok: true, status: retry.status };
-            }
-
             const t = await res.text();
-            console.error('❌ Ошибка при получении файла:', res.status, t);
-            return { ok: false, status: res.status };
-        };
-
-        try {
-            const fileRes = await fetchFile();
-            if (!fileRes.ok) return false;
-        } catch (error) {
-            console.error('❌ Ошибка подключения к GitHub:', error);
-            showNotification('⚠️ Нет подключения к GitHub. Заказ сохранен локально.', 'warning');
+            console.error('GitHub auth error:', res.status, t);
+            showNotification('❌ Нет доступа к GitHub (401/403). Проверьте токен и права (Contents: Read & Write) и доступ к репозиторию.', 'error');
+            return false;
+        } else {
+            const t = await res.text();
+            console.error('❌ Ошибка при чтении orders.json:', res.status, t);
+            showNotification('⚠️ Не удалось прочитать orders.json в GitHub.', 'warning');
             return false;
         }
 
-        // 3) Добавляем новый заказ
+        // 2) Добавляем новый заказ
         existingOrders.push(orderData);
 
-        // 4) Готовим PUT
+        // 3) PUT обратно
         const fileContent = JSON.stringify(existingOrders, null, 2);
         const content = btoa(unescape(encodeURIComponent(fileContent)));
 
@@ -1877,48 +1847,38 @@ async function saveOrderToGitHub(orderData) {
         };
         if (sha) requestBody.sha = sha;
 
-        const doPut = async () => {
-            return await githubFetch(contentApiPut, {
-                method: 'PUT',
-                headers: {
-                    ...commonHeaders(),
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(requestBody)
-            }, token);
-        };
-
-        let updateResponse = await doPut();
-
-        // 401/403 на PUT: если токен из localStorage и мы ещё не просили — дадим заменить.
-        if (!updateResponse.ok && (updateResponse.status === 401 || updateResponse.status === 403)) {
-            const canReenter = (tokenSource === 'localStorage') && !promptedThisAttempt;
-            if (canReenter) {
-                localStorage.removeItem('iceberg_github_token');
-                showNotification('❌ Нет доступа к GitHub (401/403). Введите новый токен с правами Contents: Read & Write и доступом к репозиторию.', 'error');
-                token = await promptForGitHubToken();
-                promptedThisAttempt = !!token;
-                if (!token) return false;
-                updateResponse = await doPut();
-            } else {
-                showNotification('❌ Нет доступа к GitHub (401/403). Проверьте права токена (Contents: Read & Write) и доступ к репозиторию.', 'error');
-                return false;
-            }
-        }
+        const updateResponse = await githubFetch(contentApiPut, {
+            method: 'PUT',
+            headers: {
+                ...commonHeaders(),
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestBody)
+        }, token);
 
         if (updateResponse.ok) {
             console.log('✅ Заказ успешно сохранен в GitHub');
-            showNotification('✅ Заказ успешно сохранен в GitHub!', 'success');
             return true;
+        }
+
+        if (updateResponse.status === 401 || updateResponse.status === 403) {
+            if (tokenSource === 'localStorage') {
+                localStorage.removeItem('iceberg_github_token');
+            }
+            const t = await updateResponse.text();
+            console.error('GitHub auth error (PUT):', updateResponse.status, t);
+            showNotification('❌ Нет доступа к GitHub (401/403) при сохранении заказа. Проверьте права токена (Contents: Read & Write).', 'error');
+            return false;
         }
 
         const errorText = await updateResponse.text();
         console.error('❌ Ошибка при сохранении в GitHub:', updateResponse.status, errorText);
-        showNotification('⚠️ Заказ сохранен локально. Ошибка GitHub: ' + errorText, 'warning');
+        showNotification('⚠️ Ошибка GitHub при сохранении заказа.', 'warning');
         return false;
+
     } catch (error) {
         console.error('❌ Критическая ошибка при сохранении заказа в GitHub:', error);
-        showNotification('⚠️ Заказ сохранен локально. Ошибка при сохранении в GitHub.', 'warning');
+        showNotification('⚠️ Ошибка при сохранении заказа в GitHub.', 'warning');
         return false;
     }
 }
