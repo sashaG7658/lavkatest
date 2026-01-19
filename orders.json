@@ -68,5 +68,33 @@
       "phone": "+79153056406"
     },
     "userPhone": "+79153056406"
+  },
+  {
+    "orderNumber": "ORD-260119-00002",
+    "products": [
+      {
+        "id": 1,
+        "name": "ICEBERG ULTRA MENTHOL",
+        "price": 500,
+        "quantity": 1
+      },
+      {
+        "id": 6,
+        "name": "ARQA MIX SOUR PINEAPPLE",
+        "price": 500,
+        "quantity": 1
+      }
+    ],
+    "total": 1000,
+    "items_count": 2,
+    "timestamp": "2026-01-19T17:01:46.744Z",
+    "deliveryMethod": "pickup",
+    "deliveryAddress": null,
+    "deliveryTime": null,
+    "deliveryNotes": null,
+    "user": {
+      "phone": "+71111111111"
+    },
+    "userPhone": "+71111111111"
   }
 ]
