@@ -150,21 +150,35 @@ function promptForGitHubToken() {
 // Функция для проверки токена
 async function testGitHubToken(token) {
     try {
-        const response = await fetch('https://api.github.com/repos/' + GITHUB_REPO + '/contents/' + GITHUB_FILE_PATH + '?ref=main', {
+        // 1) Проверяем, что GitHub вообще принимает токен
+        const userRes = await fetch('https://api.github.com/user', {
             headers: {
                 'Authorization': 'Bearer ' + token,
                 'Accept': 'application/vnd.github+json',
                 'X-GitHub-Api-Version': '2022-11-28'
             }
         });
-        
-        // Любой ответ кроме 404 (файл не найден) считается успешным
-        if (response.ok || response.status === 404) {
-            return true;
-        } else {
-            console.error('Token test failed:', response.status);
+
+        if (!userRes.ok) {
+            console.error('Token test failed (/user):', userRes.status);
             return false;
         }
+
+        // 2) Проверяем доступ именно к репозиторию (GitHub может отдавать 404 вместо 403)
+        const repoRes = await fetch('https://api.github.com/repos/' + GITHUB_REPO, {
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Accept': 'application/vnd.github+json',
+                'X-GitHub-Api-Version': '2022-11-28'
+            }
+        });
+
+        if (!repoRes.ok) {
+            console.error('Token test failed (/repos):', repoRes.status);
+            return false;
+        }
+
+        return true;
     } catch (error) {
         console.error('Token test error:', error);
         return false;
@@ -1709,116 +1723,133 @@ function showPhoneConfirmationModal(orderData) {
 
 // НОВАЯ ФУНКЦИЯ: Прямая отправка заказа в GitHub
 async function saveOrderToGitHub(orderData) {
+    // ВАЖНО: выполнять запись в GitHub из браузера небезопасно (токен может быть украден).
+    // Этот код оставлен для тестов/прототипа.
     try {
-        // Получаем токен (если нет — предлагаем ввести)
+        // 1) Получаем токен (если нет — предлагаем ввести)
         let token = getGitHubToken();
         if (!token) {
             showNotification('🔑 Для сохранения заказа в GitHub добавьте токен.', 'warning');
             token = await promptForGitHubToken();
         }
-
         if (!token) {
             console.warn('⚠️ GitHub токен не найден/не введён. Заказ не будет сохранен в GitHub.');
             return false;
         }
 
-        console.log('🔑 Используем токен:', token.substring(0, 10) + '...');
+        const commonHeaders = () => ({
+            'Authorization': 'Bearer ' + token,
+            'Accept': 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28'
+        });
 
-        // Проверяем существование файла и получаем SHA
+        const contentApiGet = 'https://api.github.com/repos/' + GITHUB_REPO + '/contents/' + GITHUB_FILE_PATH + '?ref=main';
+        const contentApiPut = 'https://api.github.com/repos/' + GITHUB_REPO + '/contents/' + GITHUB_FILE_PATH;
+
+        // 2) Получаем текущий файл + sha (с одним ретраем при 401/403)
         let existingOrders = [];
         let sha = '';
-        
-        try {
-            const response = await fetch('https://api.github.com/repos/' + GITHUB_REPO + '/contents/' + GITHUB_FILE_PATH + '?ref=main', {
-                headers: {
-                    'Authorization': 'Bearer ' + token,
-                    'Accept': 'application/vnd.github+json',
-                    'X-GitHub-Api-Version': '2022-11-28'
-                }
-            });
 
-            if (response.ok) {
-                const data = await response.json();
+        const fetchFile = async () => {
+            const res = await fetch(contentApiGet, { headers: commonHeaders() });
+
+            if (res.ok) {
+                const data = await res.json();
                 const raw = atob((data.content || '').replace(/\s/g, '')).trim();
-                existingOrders = raw ? JSON.parse(raw) : [];
-                if (!Array.isArray(existingOrders)) existingOrders = [];
-                sha = data.sha;
-                console.log('📄 Файл orders.json загружен, найдено заказов:', existingOrders.length);
-            } else if (response.status === 404) {
-                // Файл не существует, создаем новый
-                existingOrders = [];
-                console.log('📄 Файл orders.json не найден, создаем новый');
-            } else {
-                const errorData = await response.json();
-                console.error('❌ Ошибка при получении файла:', response.status, errorData.message);
-                
-                // Если токен недействителен
-                if (response.status === 401 || response.status === 403) {
-                    localStorage.removeItem('iceberg_github_token');
-                    showNotification('❌ GitHub токен недействителен. Обновите токен в настройках.', 'error');
-                }
-                
-                return false;
+                const parsed = raw ? JSON.parse(raw) : [];
+                existingOrders = Array.isArray(parsed) ? parsed : [];
+                sha = data.sha || '';
+                return { ok: true, status: res.status };
             }
+
+            if (res.status === 404) {
+                existingOrders = [];
+                sha = '';
+                return { ok: true, status: 404 };
+            }
+
+            // 401/403: сбрасываем токен и даём ввести новый
+            if (res.status === 401 || res.status === 403) {
+                localStorage.removeItem('iceberg_github_token');
+                showNotification('❌ Токен GitHub недействителен. Введите новый токен.', 'error');
+                token = await promptForGitHubToken();
+                if (!token) return { ok: false, status: res.status };
+
+                // повторяем один раз
+                const retry = await fetch(contentApiGet, { headers: commonHeaders() });
+                if (!retry.ok) {
+                    const t = await retry.text();
+                    console.error('❌ Ошибка при получении файла (retry):', retry.status, t);
+                    return { ok: false, status: retry.status };
+                }
+                const data = await retry.json();
+                const raw = atob((data.content || '').replace(/\s/g, '')).trim();
+                const parsed = raw ? JSON.parse(raw) : [];
+                existingOrders = Array.isArray(parsed) ? parsed : [];
+                sha = data.sha || '';
+                return { ok: true, status: retry.status };
+            }
+
+            const t = await res.text();
+            console.error('❌ Ошибка при получении файла:', res.status, t);
+            return { ok: false, status: res.status };
+        };
+
+        try {
+            const fileRes = await fetchFile();
+            if (!fileRes.ok) return false;
         } catch (error) {
             console.error('❌ Ошибка подключения к GitHub:', error);
             showNotification('⚠️ Нет подключения к GitHub. Заказ сохранен локально.', 'warning');
             return false;
         }
 
-        // Добавляем новый заказ
+        // 3) Добавляем новый заказ
         existingOrders.push(orderData);
 
-        // Подготовка данных для обновления
+        // 4) Готовим PUT
         const fileContent = JSON.stringify(existingOrders, null, 2);
         const content = btoa(unescape(encodeURIComponent(fileContent)));
 
-        // Contents API использует PUT и для создания, и для обновления
-        const method = 'PUT';
-        const url = 'https://api.github.com/repos/' + GITHUB_REPO + '/contents/' + GITHUB_FILE_PATH;
-        
         const requestBody = {
             message: 'Добавлен новый заказ #' + orderData.orderNumber + ' от ' + new Date().toLocaleString('ru-RU'),
             content: content,
             branch: 'main'
         };
-        
-        // Если файл существует, добавляем sha
-        if (sha) {
-            requestBody.sha = sha;
-        }
+        if (sha) requestBody.sha = sha;
 
-        // Обновляем/создаем файл в GitHub
-        const updateResponse = await fetch(url, {
-            method: method,
-            headers: {
-                'Authorization': 'Bearer ' + token,
-                'Accept': 'application/vnd.github+json',
-                'Content-Type': 'application/json',
-                'X-GitHub-Api-Version': '2022-11-28'
-            },
-            body: JSON.stringify(requestBody)
-        });
+        const doPut = async () => {
+            return await fetch(contentApiPut, {
+                method: 'PUT',
+                headers: {
+                    ...commonHeaders(),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestBody)
+            });
+        };
+
+        let updateResponse = await doPut();
+
+        // 401/403 на PUT: сбросить токен, попросить новый, повторить один раз
+        if (!updateResponse.ok && (updateResponse.status === 401 || updateResponse.status === 403)) {
+            localStorage.removeItem('iceberg_github_token');
+            showNotification('❌ Токен GitHub недействителен. Введите новый токен.', 'error');
+            token = await promptForGitHubToken();
+            if (!token) return false;
+            updateResponse = await doPut();
+        }
 
         if (updateResponse.ok) {
             console.log('✅ Заказ успешно сохранен в GitHub');
             showNotification('✅ Заказ успешно сохранен в GitHub!', 'success');
             return true;
-        } else {
-            const errorData = await updateResponse.json();
-            console.error('❌ Ошибка при сохранении в GitHub:', updateResponse.status, errorData.message);
-            
-            // Если токен недействителен
-            if (updateResponse.status === 401 || updateResponse.status === 403) {
-                localStorage.removeItem('iceberg_github_token');
-                showNotification('❌ GitHub токен недействителен. Обновите токен в настройках.', 'error');
-            } else {
-                showNotification('⚠️ Заказ сохранен локально. Ошибка GitHub: ' + errorData.message, 'warning');
-            }
-            
-            return false;
         }
-        
+
+        const errorText = await updateResponse.text();
+        console.error('❌ Ошибка при сохранении в GitHub:', updateResponse.status, errorText);
+        showNotification('⚠️ Заказ сохранен локально. Ошибка GitHub: ' + errorText, 'warning');
+        return false;
     } catch (error) {
         console.error('❌ Критическая ошибка при сохранении заказа в GitHub:', error);
         showNotification('⚠️ Заказ сохранен локально. Ошибка при сохранении в GitHub.', 'warning');
@@ -1845,6 +1876,11 @@ async function getOrdersFromGitHub() {
             const raw = atob((data.content || '').replace(/\s/g, '')).trim();
             const parsed = raw ? JSON.parse(raw) : [];
             return Array.isArray(parsed) ? parsed : [];
+        }
+
+        // Если токен протух/неправильный — очищаем, чтобы пользователь мог ввести новый
+        if (response.status === 401 || response.status === 403) {
+            localStorage.removeItem('iceberg_github_token');
         }
         return [];
     } catch (error) {
