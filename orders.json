@@ -1,1 +1,24 @@
-
+[
+  {
+    "orderNumber": "ORD-260119-00002",
+    "products": [
+      {
+        "id": 24,
+        "name": "ARQA MIX COLD MELON",
+        "price": 500,
+        "quantity": 1
+      }
+    ],
+    "total": 500,
+    "items_count": 1,
+    "timestamp": "2026-01-19T16:31:39.982Z",
+    "deliveryMethod": "pickup",
+    "deliveryAddress": null,
+    "deliveryTime": null,
+    "deliveryNotes": null,
+    "user": {
+      "phone": "+71111111111"
+    },
+    "userPhone": "+71111111111"
+  }
+]
