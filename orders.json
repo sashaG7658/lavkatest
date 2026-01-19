@@ -20,5 +20,27 @@
       "phone": "+71111111111"
     },
     "userPhone": "+71111111111"
+  },
+  {
+    "orderNumber": "ORD-260119-00004",
+    "products": [
+      {
+        "id": 9,
+        "name": "ARQA JUICE PEACH MANGO",
+        "price": 500,
+        "quantity": 1
+      }
+    ],
+    "total": 500,
+    "items_count": 1,
+    "timestamp": "2026-01-19T16:33:12.354Z",
+    "deliveryMethod": "pickup",
+    "deliveryAddress": null,
+    "deliveryTime": null,
+    "deliveryNotes": null,
+    "user": {
+      "phone": "+71111111111"
+    },
+    "userPhone": "+71111111111"
   }
 ]
