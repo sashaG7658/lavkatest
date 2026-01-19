@@ -26,26 +26,25 @@ let deliveryNotes = '';
 const GITHUB_REPO = 'sashaG7658/lavkatest';
 const GITHUB_FILE_PATH = 'orders.json';
 
-
 // Токен будет получаться автоматически
 function getGitHubToken() {
     // 1. Пробуем получить из localStorage
     let token = localStorage.getItem('iceberg_github_token');
     
-    // 2. Если нет в localStorage, используем тестовый токен
+    // 2. Если нет в localStorage, используем новый формат токена (fine-grained token)
     if (!token) {
-        // Тестовый токен (автоматическая установка)
+        // НОВЫЙ ФОРМАТ ТОКЕНА (fine-grained personal access token)
         token = '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';
         
         // Сохраняем в localStorage для будущего использования
-        if (token && token.startsWith('ghp_')) {
+        if (token && (token.startsWith('github_pat_') || token.startsWith('ghp_'))) {
             localStorage.setItem('iceberg_github_token', token);
             console.log('✅ Токен автоматически установлен в localStorage');
         }
     }
     
     // 3. Проверяем формат токена
-    if (token && (token.startsWith('ghp_') || token.startsWith('github_pat_'))) {
+    if (token && (token.startsWith('github_pat_') || token.startsWith('ghp_'))) {
         return token;
     }
     
@@ -3253,6 +3252,7 @@ window.showManagerNotification = showManagerNotification;
 window.promptForGitHubToken = promptForGitHubToken;
 
 window.addEventListener('beforeunload', stopAutoUpdate);
+
 
 
 
