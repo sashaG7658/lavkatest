@@ -42,5 +42,31 @@
       "phone": "+71111111111"
     },
     "userPhone": "+71111111111"
+  },
+  {
+    "orderNumber": "ORD-260119-00015",
+    "products": [
+      {
+        "id": 1,
+        "name": "ICEBERG ULTRA MENTHOL",
+        "price": 500,
+        "quantity": 9
+      }
+    ],
+    "total": 4500,
+    "items_count": 9,
+    "timestamp": "2026-01-19T16:52:34.779Z",
+    "deliveryMethod": "pickup",
+    "deliveryAddress": null,
+    "deliveryTime": null,
+    "deliveryNotes": null,
+    "user": {
+      "id": 1014823997,
+      "username": "Chief_68",
+      "first_name": "Feinov",
+      "last_name": "",
+      "phone": "+79153056406"
+    },
+    "userPhone": "+79153056406"
   }
 ]
