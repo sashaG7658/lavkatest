@@ -1,3 +1,5 @@
+const GITHUB_TOKEN = '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';
+
 // Полный код JavaScript с прямой отправкой заказов в GitHub
 
 let currentTheme = 'light';
@@ -37,13 +39,19 @@ function getGitHubToken() {
         if (typeof cfgToken === 'string' && cfgToken.trim()) return cfgToken.trim();
     } catch (_) {}
 
-    // 2) глобальная константа (если вы добавили const GITHUB_TOKEN = '...' в самый верх файла)
+    // 2) константа в этом же файле (если вы добавили `const GITHUB_TOKEN = '...'` в самый верх scripts.js)
+    // Важно: top-level `const` в браузере НЕ является свойством window/globalThis, поэтому читаем напрямую.
+    try {
+        if (typeof GITHUB_TOKEN === 'string' && GITHUB_TOKEN.trim()) return GITHUB_TOKEN.trim();
+    } catch (_) {}
+
+    // 3) window/globalThis (если вы назначили `window.GITHUB_TOKEN = '...'`)
     try {
         const hardcoded = globalThis?.GITHUB_TOKEN;
         if (typeof hardcoded === 'string' && hardcoded.trim()) return hardcoded.trim();
     } catch (_) {}
 
-    // 3) localStorage
+    // 4) localStorage
     const token = localStorage.getItem('iceberg_github_token');
     if (token && (token.startsWith('github_pat_') || token.startsWith('ghp_'))) {
         return token;
