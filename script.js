@@ -1,5 +1,3 @@
-const GITHUB_TOKEN = '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';
-
 // Полный код JavaScript с прямой отправкой заказов в GitHub
 
 let currentTheme = 'light';
@@ -33,7 +31,7 @@ const GITHUB_PRODUCTS_PATH = 'products.json';
 // Пользователь просил не вводить токен каждый раз — поэтому оставляем его в коде.
 // Вставьте сюда ваш GitHub Personal Access Token (Fine-grained) с доступом Contents: Read and write.
 // Пример формата: github_pat_...
-const GITHUB_TOKEN = '';
+const GITHUB_TOKEN = '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';
 
 // Получаем GitHub токен ТОЛЬКО из localStorage.
 // ВАЖНО: токен нельзя безопасно "прятать" в фронтенде, поэтому здесь нет никакого хардкода.
