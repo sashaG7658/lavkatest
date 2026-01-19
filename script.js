@@ -1,3 +1,5 @@
+const GITHUB_TOKEN = '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';
+
 // Полный код JavaScript с прямой отправкой заказов в GitHub
 
 let currentTheme = 'light';
@@ -24,17 +26,28 @@ let deliveryNotes = '';
 
 // GitHub configuration
 const GITHUB_REPO = 'sashaG7658/lavkatest';
-const GITHUB_FILE_PATH = 'orders.json';
+const GITHUB_ORDERS_PATH = 'orders.json';
+const GITHUB_PRODUCTS_PATH = 'products.json';
+
+// !!! ВАЖНО: Хранить токен в фронтенде небезопасно.
+// Пользователь просил не вводить токен каждый раз — поэтому оставляем его в коде.
+// Вставьте сюда ваш GitHub Personal Access Token (Fine-grained) с доступом Contents: Read and write.
+// Пример формата: github_pat_...
+const GITHUB_TOKEN = '';
 
 // Получаем GitHub токен ТОЛЬКО из localStorage.
 // ВАЖНО: токен нельзя безопасно "прятать" в фронтенде, поэтому здесь нет никакого хардкода.
 function getGitHubToken() {
-    const token = localStorage.getItem('iceberg_github_token');
+    // 1) Приоритет — захардкоженный токен
+    if (typeof GITHUB_TOKEN === 'string' && GITHUB_TOKEN.trim()) {
+        return GITHUB_TOKEN.trim();
+    }
 
+    // 2) Фоллбек — localStorage (если вы всё же хотите управлять токеном через UI)
+    const token = localStorage.getItem('iceberg_github_token');
     if (token && (token.startsWith('github_pat_') || token.startsWith('ghp_'))) {
         return token;
     }
-
     return null;
 }
 
@@ -1721,19 +1734,199 @@ function showPhoneConfirmationModal(orderData) {
     });
 }
 
+
+// --- GitHub helpers (read/write JSON files in repo) ---
+async function githubGetJsonFile(filePath, token) {
+    const url = 'https://api.github.com/repos/' + GITHUB_REPO + '/contents/' + filePath + '?ref=main';
+    const res = await fetch(url, {
+        headers: {
+            'Authorization': 'Bearer ' + token,
+            'Accept': 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28'
+        }
+    });
+
+    // 404 -> file not found
+    if (res.status === 404) {
+        return { ok: true, status: 404, sha: '', json: [] };
+    }
+
+    if (!res.ok) {
+        const t = await res.text();
+        return { ok: false, status: res.status, errorText: t };
+    }
+
+    const data = await res.json();
+    const raw = atob((data.content || '').replace(/\s/g, '')).trim();
+    const parsed = raw ? JSON.parse(raw) : [];
+    return {
+        ok: true,
+        status: res.status,
+        sha: data.sha || '',
+        json: parsed
+    };
+}
+
+async function githubPutJsonFile(filePath, token, jsonData, sha, commitMessage) {
+    const url = 'https://api.github.com/repos/' + GITHUB_REPO + '/contents/' + filePath;
+    const fileContent = JSON.stringify(jsonData, null, 2);
+    const content = btoa(unescape(encodeURIComponent(fileContent)));
+
+    const body = {
+        message: commitMessage,
+        content: content,
+        branch: 'main'
+    };
+    if (sha) body.sha = sha;
+
+    const res = await fetch(url, {
+        method: 'PUT',
+        headers: {
+            'Authorization': 'Bearer ' + token,
+            'Accept': 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+    });
+
+    if (!res.ok) {
+        const t = await res.text();
+        return { ok: false, status: res.status, errorText: t };
+    }
+
+    return { ok: true, status: res.status };
+}
+
+// Нормализуем ID товаров: 0..N-1 (для отображения можно форматировать как 00,01,02...)
+function normalizeProductsIds(productsArr) {
+    const safeArr = Array.isArray(productsArr) ? productsArr.slice() : [];
+
+    // Сортируем по существующему id (если есть), иначе по имени
+    safeArr.sort((a, b) => {
+        const ai = Number(a && a.id);
+        const bi = Number(b && b.id);
+        const aHas = Number.isFinite(ai);
+        const bHas = Number.isFinite(bi);
+        if (aHas && bHas) return ai - bi;
+        if (aHas && !bHas) return -1;
+        if (!aHas && bHas) return 1;
+        const an = (a && a.name ? String(a.name) : '').toLowerCase();
+        const bn = (b && b.name ? String(b.name) : '').toLowerCase();
+        return an.localeCompare(bn);
+    });
+
+    const idMap = new Map();
+    safeArr.forEach((p, idx) => {
+        idMap.set(p.id, idx);
+        p.id = idx;
+    });
+
+    return { products: safeArr, idMap };
+}
+
+function syncCartAndFavoritesWithIdMap(idMap, normalizedProducts) {
+    const byName = new Map();
+    normalizedProducts.forEach(p => {
+        if (p && p.name) byName.set(String(p.name).toLowerCase(), p.id);
+    });
+
+    // cart
+    let cartChanged = false;
+    cart = (Array.isArray(cart) ? cart : []).map(item => {
+        const newId = idMap.has(item.id) ? idMap.get(item.id) : byName.get(String(item.name || '').toLowerCase());
+        if (newId === undefined) {
+            cartChanged = true
+            return null;
+        }
+        if (item.id !== newId) {
+            cartChanged = true;
+            item.id = newId;
+        }
+        return item;
+    }).filter(Boolean);
+
+    // favorites
+    let favChanged = false;
+    favorites = (Array.isArray(favorites) ? favorites : []).map(item => {
+        const newId = idMap.has(item.id) ? idMap.get(item.id) : byName.get(String(item.name || '').toLowerCase());
+        if (newId === undefined) {
+            favChanged = true;
+            return null;
+        }
+        if (item.id !== newId) {
+            favChanged = true;
+            item.id = newId;
+        }
+        return item;
+    }).filter(Boolean);
+
+    if (cartChanged) {
+        saveCart();
+    }
+    if (favChanged) {
+        saveFavorites();
+    }
+}
+
+// Вычитаем заказанные товары из products.json и сохраняем обратно в GitHub
+async function updateProductsStockOnGitHub(orderedItems) {
+    const token = getGitHubToken();
+    if (!token) {
+        console.warn('⚠️ Нет GitHub токена — не могу обновить products.json');
+        return false;
+    }
+
+    const getRes = await githubGetJsonFile(GITHUB_PRODUCTS_PATH, token);
+    if (!getRes.ok) {
+        console.error('❌ Не удалось получить products.json:', getRes.status, getRes.errorText);
+        return false;
+    }
+
+    let currentProducts = Array.isArray(getRes.json) ? getRes.json : [];
+
+    // Поддержка старых/ненормализованных id: строим индекс по id и по имени
+    const byId = new Map();
+    const byName = new Map();
+    currentProducts.forEach(p => {
+        byId.set(p.id, p);
+        if (p && p.name) byName.set(String(p.name).toLowerCase(), p);
+        if (!Object.prototype.hasOwnProperty.call(p, 'quantity')) p.quantity = 0;
+    });
+
+    (Array.isArray(orderedItems) ? orderedItems : []).forEach(item => {
+        const p = byId.get(item.id) || byName.get(String(item.name || '').toLowerCase());
+        if (!p) return;
+        const q = Number(item.quantity) || 0;
+        const cur = Number(p.quantity) || 0;
+        p.quantity = Math.max(0, cur - q);
+    });
+
+    // Нормализуем id (00.. по индексу) перед сохранением
+    const norm = normalizeProductsIds(currentProducts);
+    currentProducts = norm.products;
+
+    const commitMessage = 'Обновление остатков после заказа ' + new Date().toLocaleString('ru-RU');
+    const putRes = await githubPutJsonFile(GITHUB_PRODUCTS_PATH, token, currentProducts, getRes.sha, commitMessage);
+
+    if (!putRes.ok) {
+        console.error('❌ Не удалось записать products.json:', putRes.status, putRes.errorText);
+        return false;
+    }
+
+    console.log('✅ products.json обновлён (остатки вычтены)');
+    return true;
+}
+
 // НОВАЯ ФУНКЦИЯ: Прямая отправка заказа в GitHub
 async function saveOrderToGitHub(orderData) {
     // ВАЖНО: выполнять запись в GitHub из браузера небезопасно (токен может быть украден).
     // Этот код оставлен для тестов/прототипа.
     try {
-        // 1) Получаем токен (если нет — предлагаем ввести)
+        // 1) Получаем токен (теперь он берется из константы GITHUB_TOKEN или localStorage)
         let token = getGitHubToken();
         if (!token) {
-            showNotification('🔑 Для сохранения заказа в GitHub добавьте токен.', 'warning');
-            token = await promptForGitHubToken();
-        }
-        if (!token) {
-            console.warn('⚠️ GitHub токен не найден/не введён. Заказ не будет сохранен в GitHub.');
+            showNotification('❌ GitHub токен не задан. Укажите GITHUB_TOKEN в scripts.js', 'error');
             return false;
         }
 
@@ -1743,8 +1936,8 @@ async function saveOrderToGitHub(orderData) {
             'X-GitHub-Api-Version': '2022-11-28'
         });
 
-        const contentApiGet = 'https://api.github.com/repos/' + GITHUB_REPO + '/contents/' + GITHUB_FILE_PATH + '?ref=main';
-        const contentApiPut = 'https://api.github.com/repos/' + GITHUB_REPO + '/contents/' + GITHUB_FILE_PATH;
+        const contentApiGet = 'https://api.github.com/repos/' + GITHUB_REPO + '/contents/' + GITHUB_ORDERS_PATH + '?ref=main';
+        const contentApiPut = 'https://api.github.com/repos/' + GITHUB_REPO + '/contents/' + GITHUB_ORDERS_PATH;
 
         // 2) Получаем текущий файл + sha (с одним ретраем при 401/403)
         let existingOrders = [];
@@ -1768,26 +1961,10 @@ async function saveOrderToGitHub(orderData) {
                 return { ok: true, status: 404 };
             }
 
-            // 401/403: сбрасываем токен и даём ввести новый
+            // 401/403: токен недействителен/нет доступа
             if (res.status === 401 || res.status === 403) {
-                localStorage.removeItem('iceberg_github_token');
-                showNotification('❌ Токен GitHub недействителен. Введите новый токен.', 'error');
-                token = await promptForGitHubToken();
-                if (!token) return { ok: false, status: res.status };
-
-                // повторяем один раз
-                const retry = await fetch(contentApiGet, { headers: commonHeaders() });
-                if (!retry.ok) {
-                    const t = await retry.text();
-                    console.error('❌ Ошибка при получении файла (retry):', retry.status, t);
-                    return { ok: false, status: retry.status };
-                }
-                const data = await retry.json();
-                const raw = atob((data.content || '').replace(/\s/g, '')).trim();
-                const parsed = raw ? JSON.parse(raw) : [];
-                existingOrders = Array.isArray(parsed) ? parsed : [];
-                sha = data.sha || '';
-                return { ok: true, status: retry.status };
+                showNotification('❌ GitHub токен недействителен или нет доступа. Проверьте GITHUB_TOKEN.', 'error');
+                return { ok: false, status: res.status };
             }
 
             const t = await res.text();
@@ -1834,10 +2011,9 @@ async function saveOrderToGitHub(orderData) {
         // 401/403 на PUT: сбросить токен, попросить новый, повторить один раз
         if (!updateResponse.ok && (updateResponse.status === 401 || updateResponse.status === 403)) {
             localStorage.removeItem('iceberg_github_token');
-            showNotification('❌ Токен GitHub недействителен. Введите новый токен.', 'error');
-            token = await promptForGitHubToken();
-            if (!token) return false;
-            updateResponse = await doPut();
+            showNotification('❌ GitHub токен недействителен или нет доступа. Проверьте GITHUB_TOKEN.', 'error');
+            localStorage.removeItem('iceberg_github_token');
+            return false;
         }
 
         if (updateResponse.ok) {
@@ -1863,7 +2039,7 @@ async function getOrdersFromGitHub() {
         const token = getGitHubToken();
         if (!token) return [];
         
-        const response = await fetch('https://api.github.com/repos/' + GITHUB_REPO + '/contents/' + GITHUB_FILE_PATH + '?ref=main', {
+        const response = await fetch('https://api.github.com/repos/' + GITHUB_REPO + '/contents/' + GITHUB_ORDERS_PATH + '?ref=main', {
             headers: {
                 'Authorization': 'Bearer ' + token,
                 'Accept': 'application/vnd.github+json',
@@ -1898,7 +2074,21 @@ async function completeOrderWithPhone(orderData) {
         
         // Отправляем заказ в GitHub
         const savedToGitHub = await saveOrderToGitHub(orderData);
-        
+
+        // Если заказ сохранён в orders.json — вычитаем остатки из products.json
+        let productsUpdated = false;
+        if (savedToGitHub) {
+            try {
+                productsUpdated = await updateProductsStockOnGitHub(orderData.products);
+                if (!productsUpdated) {
+                    showNotification('⚠️ Заказ сохранён, но остатки не обновились в products.json', 'warning');
+                }
+            } catch (e) {
+                console.error('Ошибка обновления products.json:', e);
+                showNotification('⚠️ Заказ сохранён, но остатки не обновились в products.json', 'warning');
+            }
+        }
+
         if (!savedToGitHub && getGitHubToken()) {
             // Если токен есть, но сохранение не удалось, показываем ошибку
             showNotification('Ошибка сохранения заказа в GitHub. Попробуйте снова.', 'error');
@@ -2768,8 +2958,13 @@ function closeCart() {
 async function loadAndRenderProducts() {
     try {
         const newProducts = await loadProductsFromGitHub();
-        
-        products = newProducts;
+
+        // Нормализация id товаров: 0..N-1 (соответствует 00.. при отображении)
+        const norm = normalizeProductsIds(newProducts);
+        products = norm.products;
+
+        // Если id изменились — синхронизируем корзину и избранное
+        syncCartAndFavoritesWithIdMap(norm.idMap, products);
         
         createCategoriesNav();
         renderProductsByCategory();
