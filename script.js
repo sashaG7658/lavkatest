@@ -1652,7 +1652,7 @@ async function saveOrderToGitHub(orderData) {
         console.log('🔑 Используем токен:', token.substring(0, 4) + '...');
 
         // Получаем текущий файл orders.json из GitHub
-        const response = await fetch('https://api.github.com/repos/' + GITHUB_REPO + '/contents/' + GITHUB_FILE_PATH, {
+        const response = await fetch('https://github.com/sashaG7658/lavkatest/blob/main/orders.json, {
             headers: {
                 'Authorization': 'token ' + token,
                 'Accept': 'application/vnd.github.v3+json'
@@ -3253,5 +3253,6 @@ window.showManagerNotification = showManagerNotification;
 window.promptForGitHubToken = promptForGitHubToken;
 
 window.addEventListener('beforeunload', stopAutoUpdate);
+
 
 
