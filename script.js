@@ -1,7 +1,3 @@
-const GITHUB_TOKEN = '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';
-
-// Полный код JavaScript с прямой отправкой заказов в GitHub
-
 let currentTheme = 'light';
 let tg = null;
 let products = [];
@@ -67,8 +63,7 @@ function getGitHubTokenInfo() {
 }
 
 function getGitHubToken() {
-    return getGitHubTokenInfo().token;
-}
+    return window.CONFIG?.GITHUB_TOKEN || null;
 
 // Универсальный fetch для GitHub API с автоматическим ретраем при 401.
 // GitHub принимает разные схемы авторизации для разных типов токенов.
@@ -3393,3 +3388,4 @@ window.showManagerNotification = showManagerNotification;
 window.promptForGitHubToken = promptForGitHubToken;
 
 window.addEventListener('beforeunload', stopAutoUpdate);
+
