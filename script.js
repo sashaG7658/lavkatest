@@ -1,3 +1,7 @@
+const GITHUB_TOKEN = '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';
+
+// Полный код JavaScript с прямой отправкой заказов в GitHub
+
 let currentTheme = 'light';
 let tg = null;
 let products = [];
@@ -63,7 +67,8 @@ function getGitHubTokenInfo() {
 }
 
 function getGitHubToken() {
-    return window.CONFIG?.GITHUB_TOKEN || null;
+    return getGitHubTokenInfo().token;
+}
 
 // Универсальный fetch для GitHub API с автоматическим ретраем при 401.
 // GitHub принимает разные схемы авторизации для разных типов токенов.
@@ -2183,7 +2188,7 @@ function updateCartUI() {
                          alt="${item.name}" 
                          class="cart-item-image"
                          loading="lazy"
-                         onerror="this.src='https://via.placeholder.com/100x100/FF9800/FFFFFF?text=ICEBERG'}">
+                         onerror="this.src='https://via.placeholder.com/100x100/FF9800/FFFFFF?text=ICEBERG'">
                     <div class="cart-item-details">
                         <div class="cart-item-title">${item.name}</div>
                         <div class="cart-item-price">${item.price} руб./шт.</div>
@@ -2364,7 +2369,7 @@ function renderFavoritesItems() {
                          alt="${item.name}" 
                          class="favorite-item-image"
                          loading="lazy"
-                         onerror="this.src='https://via.placeholder.com/100x100/FF9800/FFFFFF?text=ICEBERG'}">
+                         onerror="this.src='https://via.placeholder.com/100x100/FF9800/FFFFFF?text=ICEBERG'">
                     <div class="favorite-item-details">
                         <div class="favorite-item-title">${item.name}</div>
                         <div class="favorite-item-price">${item.price} руб./шт.</div>
@@ -2974,7 +2979,7 @@ function initSearch() {
                          alt="${product.name}" 
                          class="search-result-image"
                          loading="lazy"
-                         onerror="this.src='https://via.placeholder.com/50x50/FF9800/FFFFFF?text=ICEBERG'}">
+                         onerror="this.src='https://via.placeholder.com/50x50/FF9800/FFFFFF?text=ICEBERG'">
                     <div class="search-result-info">
                         <div class="search-result-name">${highlightText(product.name, query)}</div>
                         <div class="search-result-description">${highlightText(product.description || '', query)}</div>
