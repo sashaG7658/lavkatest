@@ -28,7 +28,11 @@ let deliveryNotes = '';
 const GITHUB_REPO = 'sashaG7658/lavkatest';
 const GITHUB_FILE_PATH = 'orders.json';
 
-\
+// Получаем GitHub токен.
+// Можно хранить токен в config.js (window.CONFIG.GITHUB_TOKEN) или захардкодить в начале файла как:
+//   const GITHUB_TOKEN = '...';
+// Если ничего нет — используем localStorage (как раньше) и/или просим ввести токен.
+// Возвращает { token, source } где source = 'config' | 'const' | 'window' | 'localStorage' | null
 function getGitHubTokenInfo() {
     // 1) config.js
     try {
@@ -3389,5 +3393,3 @@ window.showManagerNotification = showManagerNotification;
 window.promptForGitHubToken = promptForGitHubToken;
 
 window.addEventListener('beforeunload', stopAutoUpdate);
-
-
