@@ -1,4 +1,4 @@
-const GITHUB_TOKEN = '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';
+///const GITHUB_TOKEN = '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';
 
 // Полный код JavaScript с прямой отправкой заказов в GitHub
 
@@ -3393,4 +3393,5 @@ window.showManagerNotification = showManagerNotification;
 window.promptForGitHubToken = promptForGitHubToken;
 
 window.addEventListener('beforeunload', stopAutoUpdate);
+
 
